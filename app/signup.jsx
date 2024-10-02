@@ -1,95 +1,111 @@
-// components/Signup.js
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 
-const SignupScreen = () => {
-    return (
-        <View style={styles.container}>
-  
-            <Text style={styles.brandName}>CoolChop</Text>
+export default function SignUpScreen() {
+  return (
+    <View style={styles.container}>
+      {/* Title */}
+      <Text style={styles.title}>Sign Up</Text>
+      <Text style={styles.subTitle}>Please sign up to get started</Text>
 
-            <TextInput
-                style={styles.numberInput}
-                placeholder="Phone Number"
-                keyboardType="numeric"
-                required
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="First Name"
-                required
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                required
-            />
-            <Text style={styles.loginLink}>
-                Already have an account?{' '}
-                <Text style={styles.link} onPress={() => console.log('Navigate to login')}>
-                    Login here
-                </Text>
-            </Text>
-            <TouchableOpacity style={styles.signupButton}>
-                <Text style={styles.buttonText}>Sign Up</Text>
-            </TouchableOpacity>
-        </View>
-    );
-};
+      {/* Name Input */}
+      <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#B07A7A" />
+
+      {/* Email Input */}
+      <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#B07A7A" keyboardType="email-address" />
+
+      {/* Password Input */}
+      <View style={styles.inputContainer}>
+        <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#B07A7A" secureTextEntry={true} />
+        <TouchableOpacity>
+          <Text style={styles.eyeIcon}>👁️</Text> {/* Use an eye icon */}
+        </TouchableOpacity>
+      </View>
+
+      {/* Re-type Password Input */}
+      <View style={styles.inputContainer}>
+        <TextInput style={styles.input} placeholder="Re-type Password" placeholderTextColor="#B07A7A" secureTextEntry={true} />
+        <TouchableOpacity>
+          <Text style={styles.eyeIcon}>👁️</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Sign Up Button */}
+      <TouchableOpacity style={styles.signUpButton}>
+        <Text style={styles.buttonText}>Sign Up</Text>
+      </TouchableOpacity>
+
+      {/* Footer Text */}
+      <Text style={styles.footerText}>
+        By continuing with an account located in Ghana, you agree to our{' '}
+        <Text style={styles.linkText}>Terms of Service</Text> and acknowledge that you have read our{' '}
+        <Text style={styles.linkText}>Privacy Policy</Text>.
+      </Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-        backgroundColor: '#f0f0f0',
-    },
-    logo: {
-        width: 100, // Adjust as needed
-        height: 100, // Adjust as needed
-        marginBottom: 10,
-    },
-    brandName: {
-        fontSize: 24,
-        color: '#333',
-        marginBottom: 20,
-    },
-    numberInput: {
-        backgroundColor: '#ffcccc', // Light red background
-        borderWidth: 1,
-        borderColor: '#ff9999',
-        borderRadius: 4,
-        padding: 10,
-        width: '100%',
-        marginBottom: 10,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 4,
-        padding: 10,
-        width: '100%',
-        marginBottom: 10,
-    },
-    loginLink: {
-        marginBottom: 10,
-    },
-    link: {
-        color: '#007BFF',
-        textDecorationLine: 'underline',
-    },
-    signupButton: {
-        backgroundColor: 'red',
-        borderRadius: 4,
-        padding: 10,
-        width: '100%',
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: 'white',
-        fontSize: 16,
-    },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+  },
+  title: {
+    fontSize: 24,
+    color: '#D32F2F',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  subTitle: {
+    fontSize: 16,
+    marginBottom: 30,
+  },
+  input: {
+    width: '100%',
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#FAD4D4',
+    borderRadius: 10,
+    backgroundColor: '#FAD4D4',
+    marginBottom: 20,
+    fontSize: 16,
+    color: '#000',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#FAD4D4',
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#FAD4D4',
+    marginBottom: 20,
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
+  signUpButton: {
+    width: '100%',
+    backgroundColor: '#D32F2F',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+  },
+  footerText: {
+    marginTop: 20,
+    textAlign: 'center',
+    color: '#7B7B7B',
+  },
+  linkText: {
+    color: '#D32F2F',
+    textDecorationLine: 'underline',
+  },
 });
-
-export default SignupScreen;
