@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
+import { router } from 'expo-router';
 
 export default function SignInScreen() {
   const [checked, setChecked] = React.useState(false);
@@ -23,9 +24,7 @@ export default function SignInScreen() {
       {/* Password Input */}
       <View style={styles.inputContainer}>
         <TextInput style={styles.input} placeholder="Enter password" placeholderTextColor="#B07A7A" secureTextEntry={true} />
-        <TouchableOpacity>
-          <Text style={styles.eyeIcon}>👁️</Text> {/* Use an eye icon or library */}
-        </TouchableOpacity>
+  
       </View>
 
       {/* Remember Me and Forgot Password */}
@@ -48,7 +47,7 @@ export default function SignInScreen() {
       <Text style={styles.footerText}>
         Don’t have an account?{' '}
         <TouchableOpacity>
-          <Text style={styles.signUpText}>Sign Up</Text>
+          <Text style={styles.signUpText} onPress={() => router.push('/signup')}>Sign Up</Text>
         </TouchableOpacity>
       </Text>
     </View>
@@ -64,9 +63,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 20,
+    width: 180,
+    height: 180,
+    marginBottom: 5,
   },
   title: {
     fontSize: 24,

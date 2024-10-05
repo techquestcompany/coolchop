@@ -1,9 +1,13 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { router } from 'expo-router';
+
 
 export default function SignUpScreen() {
   return (
     <View style={styles.container}>
+            {/* CoolChop Logo */}
+            <Image source={require('../assets/images/coolchop.png')} style={styles.logo} />
       {/* Title */}
       <Text style={styles.title}>Sign Up</Text>
       <Text style={styles.subTitle}>Please sign up to get started</Text>
@@ -15,20 +19,10 @@ export default function SignUpScreen() {
       <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#B07A7A" keyboardType="email-address" />
 
       {/* Password Input */}
-      <View style={styles.inputContainer}>
         <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#B07A7A" secureTextEntry={true} />
-        <TouchableOpacity>
-          <Text style={styles.eyeIcon}>👁️</Text> {/* Use an eye icon */}
-        </TouchableOpacity>
-      </View>
 
       {/* Re-type Password Input */}
-      <View style={styles.inputContainer}>
         <TextInput style={styles.input} placeholder="Re-type Password" placeholderTextColor="#B07A7A" secureTextEntry={true} />
-        <TouchableOpacity>
-          <Text style={styles.eyeIcon}>👁️</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Sign Up Button */}
       <TouchableOpacity style={styles.signUpButton}>
@@ -107,5 +101,9 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#D32F2F',
     textDecorationLine: 'underline',
+  },
+  logo: {
+    width: 190,
+    height: 190,
   },
 });

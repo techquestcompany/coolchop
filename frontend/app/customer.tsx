@@ -6,20 +6,16 @@ export default function AuthScreen() {
   return (
     <View style={styles.container}>
       {/* Placeholder for the image */}
-      <Image source={require('../assets/images/coolchop.png')} style={styles.image} />
-
-      
-      {/* Title */}
-      <Text style={styles.text}>Continue as</Text>
+      <Image source={require('../assets/images/delivery.png')} style={styles.image} />
 
       {/* Login button */}
-      <TouchableOpacity style={[styles.button, styles.loginButton]} onPress={() => router.push('/customer')}>
-        <Text style={styles.buttonText}>Customer</Text>
+      <TouchableOpacity style={[styles.button, styles.loginButton]} onPress={() => router.push('/login')}>
+        <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
       {/* Signup button */}
-      <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => router.push('/vendor')}>
-        <Text style={styles.buttonText}>Vendor</Text>
+      <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => router.push('/signup')}>
+        <Text style={styles.buttonText}>Signup</Text>
       </TouchableOpacity>
     </View>
   );
@@ -35,7 +31,7 @@ const styles = StyleSheet.create({
   image: {
     width: 350,
     height: 350, 
-    marginBottom: 25, 
+    marginBottom: 55, 
   },
   button: {
     width: 320,
@@ -54,11 +50,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
-  },
-  text: {
-    fontSize: 20,
-    marginBottom: 20,
     fontWeight: 'bold',
   },
 });
