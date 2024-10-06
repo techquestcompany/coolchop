@@ -13,13 +13,17 @@
       "backgroundColor": "#DC2C10;"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We need your location to show you nearby services"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/coolchop.png",
         "backgroundColor": "#DC2C10"
-      }
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "web": {
       "bundler": "metro",

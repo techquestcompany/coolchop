@@ -1,51 +1,152 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
+import { signUp } from '../services/api';
+import Toast from 'react-native-toast-message'; 
 
+const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
+  return (
+    <View style={styles.inputContainer}>
+      <FontAwesome name={iconName} size={20} color="#B07A7A" style={styles.icon} />
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor="#B07A7A"
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        value={value}
+        onChangeText={onChangeText}
+      />
+    </View>
+  );
+};
 
 export default function SignUpScreen() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Handle Sign Up
+  const handleSignUp = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert("Passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await signUp(name, email, password);
+      if (response.message == "User created successfully") {
+        Toast.show({
+          type: 'success',
+          text1: 'Sign up Successful',
+          text2: 'Welcome! 🎉',
+        });
+        router.push('/login');
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Sign up Failed',
+          text2: response.message || 'Please try again.',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Sign Up Failed',
+        text2: error.message || 'Something went wrong.',
+      });
+    }
+  };
+
   return (
-    <View style={styles.container}>
-            {/* CoolChop Logo */}
-            <Image source={require('../assets/images/coolchop.png')} style={styles.logo} />
-      {/* Title */}
-      <Text style={styles.title}>Sign Up</Text>
-      <Text style={styles.subTitle}>Please sign up to get started</Text>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView behavior="padding" style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Back Button */}
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
+          </TouchableOpacity>
 
-      {/* Name Input */}
-      <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#B07A7A" />
+          {/* CoolChop Logo */}
+          <Image source={require('../assets/images/coolchop.png')} style={styles.logo} />
 
-      {/* Email Input */}
-      <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#B07A7A" keyboardType="email-address" />
+          {/* Title */}
+          <Text style={styles.title}>Sign Up</Text>
+          <Text style={styles.subTitle}>Please sign up to get started 😊</Text>
 
-      {/* Password Input */}
-        <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#B07A7A" secureTextEntry={true} />
+          {/* Name Input */}
+          <InputField
+            iconName="user"
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+          />
 
-      {/* Re-type Password Input */}
-        <TextInput style={styles.input} placeholder="Re-type Password" placeholderTextColor="#B07A7A" secureTextEntry={true} />
+          {/* Email Input */}
+          <InputField
+            iconName="envelope"
+            placeholder="Email"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
 
-      {/* Sign Up Button */}
-      <TouchableOpacity style={styles.signUpButton}>
-        <Text style={styles.buttonText}>Sign Up</Text>
-      </TouchableOpacity>
+          {/* Password Input */}
+          <InputField
+            iconName="lock"
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
 
-      {/* Footer Text */}
-      <Text style={styles.footerText}>
-        By continuing with an account located in Ghana, you agree to our{' '}
-        <Text style={styles.linkText}>Terms of Service</Text> and acknowledge that you have read our{' '}
-        <Text style={styles.linkText}>Privacy Policy</Text>.
-      </Text>
-    </View>
+          {/* Re-type Password Input */}
+          <InputField
+            iconName="lock"
+            placeholder="Re-type Password"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
+
+          {/* Sign Up Button */}
+          <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
+            <Text style={styles.buttonText}>Sign Up</Text>
+          </TouchableOpacity>
+
+          {/* Footer Text */}
+          <Text style={styles.footerText}>
+            By continuing with an account located in Ghana, you agree to our{' '}
+            <Text style={styles.linkText}>Terms of Service</Text> and acknowledge that you have read our{' '}
+            <Text style={styles.linkText}>Privacy Policy</Text>.
+          </Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      <Toast ref={(ref) => Toast.setRef(ref)} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
     paddingHorizontal: 20,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 180,
+    height: 180,
+    marginBottom: 5,
   },
   title: {
     fontSize: 24,
@@ -57,30 +158,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 30,
   },
-  input: {
-    width: '100%',
-    padding: 15,
-    borderWidth: 1,
-    borderColor: '#FAD4D4',
-    borderRadius: 10,
-    backgroundColor: '#FAD4D4',
-    marginBottom: 20,
-    fontSize: 16,
-    color: '#000',
-  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
     borderWidth: 1,
     borderColor: '#FAD4D4',
     borderRadius: 10,
+    marginBottom: 20,
     padding: 10,
     backgroundColor: '#FAD4D4',
-    marginBottom: 20,
   },
-  eyeIcon: {
-    fontSize: 18,
+  icon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
   },
   signUpButton: {
     width: '100%',
@@ -101,9 +195,5 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#D32F2F',
     textDecorationLine: 'underline',
-  },
-  logo: {
-    width: 190,
-    height: 190,
   },
 });

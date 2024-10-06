@@ -1,10 +1,15 @@
 import { router } from 'expo-router';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons'; 
 
 export default function AuthScreen() {
   return (
     <View style={styles.container}>
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
+      </TouchableOpacity>
       {/* Placeholder for the image */}
       <Image source={require('../assets/images/delivery.png')} style={styles.image} />
 
@@ -51,5 +56,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 20,
   },
 });
