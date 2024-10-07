@@ -23,7 +23,20 @@ const User = sequelize.define('User', {
   code: {
     type: DataTypes.STRING,
     allowNull: true
-  }
+  },
+  longitude: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  latitude: {
+    type: DataTypes.FLOAT,
+    allowNull: true
+  },
+  confirm_location: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
 }, {});
 
 module.exports = User;

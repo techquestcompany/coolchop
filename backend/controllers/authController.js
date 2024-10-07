@@ -2,12 +2,16 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const { encrypt, decrypt } = require('../utils/encryption');
 const nodemailer = require('nodemailer');
+const multer = require('multer');
+const path = require('path');
 require('dotenv').config();
 
 // Function to generate a random 4-digit verification code
 const generateVerificationCode = () => {
   return Math.floor(1000 + Math.random() * 9000).toString(); 
 };
+
+
 
 // Function to send verification email
 const sendVerificationEmail = async (email, code) => {
@@ -44,10 +48,13 @@ const sendVerificationEmail = async (email, code) => {
   }
 };
 
+
+
+
 // Login function
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, longitude, latitude } = req.body;
 
     // Check if user exists
     const user = await User.findOne({ where: { email } });
@@ -62,6 +69,11 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
+
+    await user.update({
+      longitude,
+      latitude 
+    });
 
     // Generate a random 4-digit verification code
     const verificationCode = generateVerificationCode();
@@ -83,6 +95,9 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+
+
 
 // Signup function
 exports.signup = async (req, res) => {
@@ -116,6 +131,9 @@ exports.signup = async (req, res) => {
 };
 
 
+
+
+
 // Verification function
 exports.verifyCode = async (req, res) => {
   const { email, code } = req.body;
@@ -143,6 +161,8 @@ exports.verifyCode = async (req, res) => {
 
 
 
+
+
 // Function to handle getting user data
 exports.getUserData = async (req, res) => {
   try {
@@ -164,9 +184,86 @@ exports.getUserData = async (req, res) => {
     res.status(200).json({
       name: user.name,
       email: user.email,
+      longitude: user.longitude,
+      latitude: user.latitude,
     });
   } catch (error) {
     console.error('Error getting user data:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+
+
+
+
+
+
+// Set up multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'public/uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage: storage }).single('file');
+
+exports.uploadUserImage =  (req, res) => {
+  upload(req, res, function (err) {
+    if (err) {
+      return res.status(400).json({ success: false, message: 'Failed to upload image', error: err.message });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    const imageUrl = `${req.protocol}://${req.get('host')}/public/uploads/${req.file.filename}`;
+    res.json({ success: true, url: imageUrl });
+  });
+};
+
+
+
+
+
+exports.searchUser = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).send('Query parameter is required');
+    }
+    const regex = new RegExp(q, 'i'); // Case-insensitive search
+    const users = await User.find({ name: regex }).limit(10); // Adjust limit as needed
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
+}
+
+
+
+
+
+exports.getUserById = async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).send('User ID parameter is required');
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user by ID:', error.message);
+    res.status(500).json({ message: error.message });
   }
 };

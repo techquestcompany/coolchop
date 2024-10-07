@@ -22,12 +22,44 @@ export const signUp = async (name: string, email: string, password: string) => {
 };
 
 // Function to handle user login
-export const login = async (email: string, password: string) => {
+export const login = async (email: string, password: string, latitude: string, longitude: string) => {
   try {
-    const response = await api.post('/user/login', { email, password });
+    const response = await api.post('/user/login', { email, password, latitude, longitude });
     return response.data;
   } catch (error) {
     console.error('Error logging in:', error);
+    throw error;
+  }
+};
+
+// Function to handle getting user data
+export const confimrUserLocation = async (token: string) => {
+  try {
+    const response = await api.get('/location/check', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting user data:', error);
+    throw error;
+  }
+};
+
+// Function to handle getting user data
+export const confirmNewLocation = async (token: string, latitude: string, longitude: string) => {
+  try {
+    const response = await api.get('/location/confirm', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      longitude,
+      latitude
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting user data:', error);
     throw error;
   }
 };

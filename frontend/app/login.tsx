@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
 import { login } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
+import * as Location from 'expo-location';
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText }) => {
   return (
@@ -27,11 +28,25 @@ export default function SignInScreen() {
   const [checked, setChecked] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Handle Sign In
   const handleSignIn = async () => {
     try {
-      const response = await login(email, password);
+      setLoading(true);
+        // Request location permissions
+        const { status } = await Location.requestForegroundPermissionsAsync();
+
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Location permission is required to proceed.');
+          setLoading(false); // Hide loading indicator
+          return;
+        }
+      // Get the current location
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      const response = await login(email, password, latitude, longitude);
       if (response.message == "Login successful") {
         await AsyncStorage.setItem('userId', response.user.id);
         Toast.show({
@@ -53,6 +68,8 @@ export default function SignInScreen() {
         text1: 'Sign In Failed ⚠️',
         text2: error.message || 'Something went wrong.',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,7 +123,11 @@ export default function SignInScreen() {
 
           {/* Sign In Button */}
           <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
             <Text style={styles.buttonText}>Sign In</Text>
+          )}
           </TouchableOpacity>
 
           {/* Sign Up Link */}

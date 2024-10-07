@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
 import { signUp } from '../services/api';
@@ -27,6 +27,7 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Handle Sign Up
   const handleSignUp = async () => {
@@ -36,6 +37,7 @@ export default function SignUpScreen() {
     }
 
     try {
+      setLoading(true);
       const response = await signUp(name, email, password);
       if (response.message == "User created successfully") {
         Toast.show({
@@ -57,6 +59,8 @@ export default function SignUpScreen() {
         text1: 'Sign Up Failed',
         text2: error.message || 'Something went wrong.',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -113,7 +117,11 @@ export default function SignUpScreen() {
 
           {/* Sign Up Button */}
           <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
             <Text style={styles.buttonText}>Sign Up</Text>
+          )}
           </TouchableOpacity>
 
           {/* Footer Text */}
