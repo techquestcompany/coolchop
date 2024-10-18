@@ -42,7 +42,7 @@ export const confimrUserLocation = async (token: string) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Error getting user data:', error);
+    console.error('Error getting location data:', error);
     throw error;
   }
 };
@@ -59,7 +59,7 @@ export const confirmNewLocation = async (token: string, latitude: string, longit
     });
     return response.data;
   } catch (error) {
-    console.error('Error getting user data:', error);
+    console.error('Error getting location data:', error);
     throw error;
   }
 };

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { verify, getUserData } from '../services/api';
 import Toast from 'react-native-toast-message';
@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const VerificationScreen = () => {
   const [code, setCode] = useState(['', '', '', '']);
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (text, index) => {
     const newCode = [...code];
@@ -22,13 +23,13 @@ const VerificationScreen = () => {
 
   const handleVerify = async () => {
     try {
+      setLoading(true);
       const token = await AsyncStorage.getItem('userId'); 
       if (!token) {
         throw new Error('No authentication token found');
       }
 
       const user = await getUserData(token);
-      console.log(user)
       const email = user.email;
 
       const response = await verify(email, code.join(''));
@@ -51,6 +52,9 @@ const VerificationScreen = () => {
         text1: 'Verification Failed ⚠️',
         text2: error.message || 'Something went wrong.',
       });
+      setLoading(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,7 +81,11 @@ const VerificationScreen = () => {
         </View>
 
         <TouchableOpacity style={styles.verifyButton} onPress={handleVerify}>
-            <Text style={styles.buttonText}>VERIFY</Text>
+            {loading ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>VERIFY</Text>
+            )}
         </TouchableOpacity>
         </View>
     </View>

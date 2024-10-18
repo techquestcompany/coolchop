@@ -38,6 +38,8 @@ export default function RootLayout() {
         <Stack.Screen name="vendor" options={{ headerShown: false }} />
         <Stack.Screen name="verify" options={{ headerShown: false }} />
         <Stack.Screen name="location" options={{ headerShown: false }} />
+        <Stack.Screen name="add_restaurants" options={{ headerShown: false }} />
+        <Stack.Screen name="add_dish" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         <Toast />
       </Stack>

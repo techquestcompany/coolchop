@@ -13,7 +13,7 @@ exports.confirmLocation = async (req, res) => {
       const { longitude, latitude } = req.body;
   
       // Find the user by id
-      const user = await User.findByPk(decoded);
+      const user = await User.findOne({ where: { id: decoded } });
   
       if (!user) {
         return res.status(404).json({ error: 'User not found' });

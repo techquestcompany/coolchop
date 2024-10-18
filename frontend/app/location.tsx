@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserData, confirmNewLocation } from '../services/api';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete'
 
 const LocationScreen = () => {
   const initialLocation = {
@@ -13,7 +14,6 @@ const LocationScreen = () => {
     longitude: -0.1870,
   };
 
-  const [myLocation, setMyLocation] = useState(null);
   const [region, setRegion] = useState({
     latitude: initialLocation.latitude,
     longitude: initialLocation.longitude,
@@ -21,19 +21,17 @@ const LocationScreen = () => {
     longitudeDelta: 0.0421,
   });
   const [errorMsg, setErrorMsg] = useState(null);
-  const [locationInput, setLocationInput] = useState('');
   const mapRef = useRef(null);
   const router = useRouter();
 
   useEffect(() => {
     fetchUserLocation();
-    //_getLocation();
   }, []);
 
   const fetchUserLocation = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId');
-      const user = await getUserData(userId); 
+      const user = await getUserData(userId);
       if (user.latitude && user.longitude) {
         setRegion({
           latitude: user.latitude,
@@ -47,10 +45,10 @@ const LocationScreen = () => {
     }
   };
 
-  const setNewLocation = async () => {
+  const setNewLocation = async (latitude, longitude) => {
     try {
       const userId = await AsyncStorage.getItem('userId');
-      const user = await confirmNewLocation(userId);
+      const user = await confirmNewLocation(userId, latitude, longitude);
       if(user.confirmLocation == true){
         router.push("/(tabs)");
       } 
@@ -58,7 +56,6 @@ const LocationScreen = () => {
       console.error("Error fetching user location:", error);
     }
   };
-
 
   const _getLocation = async () => {
     try {
@@ -68,7 +65,6 @@ const LocationScreen = () => {
         return;
       }
       let location = await Location.getCurrentPositionAsync({});
-      setMyLocation(location.coords);
       setRegion({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -81,10 +77,10 @@ const LocationScreen = () => {
   };
 
   const focusOnLocation = () => {
-    if (myLocation) {
+    if (region) {
       const newRegion = {
-        latitude: myLocation.latitude,
-        longitude: myLocation.longitude,
+        latitude: region.latitude,
+        longitude: region.longitude,
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       };
@@ -94,21 +90,17 @@ const LocationScreen = () => {
     }
   };
 
-  let text = 'Waiting...';
-  if (errorMsg) {
-    text = errorMsg;
-  } else if (myLocation) {
-    text = 'Your current location';
-  }
-
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
       </TouchableOpacity>
 
-      {myLocation ? (
+      {region ? (
         <MapView
           style={styles.map}
           region={region}
@@ -118,34 +110,43 @@ const LocationScreen = () => {
           <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} title="You are here" />
         </MapView>
       ) : (
-        <Text>{text}</Text>
+        <Text>{errorMsg || 'Waiting...'}</Text>
       )}
 
-      {/* White container with input box */}
-      <View style={styles.locationContainer}>
-        <Text style={styles.heading}>Set your location to continue</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm your location"
-          value={locationInput}
-          onChangeText={setLocationInput}
+      {/* Google Places Search for location */}
+       <View style={styles.locationContainer}>
+       <GooglePlacesAutocomplete
+          placeholder="Search location"
+          onPress={(data, details = null) => {
+            const { lat, lng } = details.geometry.location;
+            setRegion({
+              latitude: lat,
+              longitude: lng,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            });
+            setNewLocation(lat, lng);
+          }}
+          query={{
+            key: 'AIzaSyAXt5gQVUQBp6SvKxz6pSnvsUVf3jzXe6M',
+            language: 'en',
+          }}
+          fetchDetails={true}
+          styles={{
+            textInput: styles.input,
+          }}
         />
-        <TouchableOpacity style={styles.confirmButton} onPress={setNewLocation}>
-          <Text style={styles.confirmButtonText}>Set New Location</Text>
-        </TouchableOpacity>
         <TouchableOpacity style={styles.confirmButton} onPress={() => focusOnLocation()}>
           <Text style={styles.confirmButtonText}>Yes, you're right!</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   map: {
     width: '100%',
@@ -169,27 +170,21 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
   },
-  heading: {
-    fontSize: 18,
-    color: '#000',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
   input: {
-    width: '80%',
+    width: '100%',
     padding: 10,
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 10,
     backgroundColor: '#fff',
     marginBottom: 10,
-    textAlign: 'center',
   },
   confirmButton: {
     backgroundColor: '#D32F2F',
     paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 20,
+    marginBottom: 10,
   },
   confirmButtonText: {
     color: '#fff',

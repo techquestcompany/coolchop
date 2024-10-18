@@ -123,11 +123,11 @@ export default function SignInScreen() {
 
           {/* Sign In Button */}
           <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <Text style={styles.buttonText}>Sign In</Text>
-          )}
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <Text style={styles.buttonText}>Sign In</Text>
+            )}
           </TouchableOpacity>
 
           {/* Sign Up Link */}
