@@ -1,4 +1,6 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const API_URL = 'http://172.20.10.4:3000/api';
 
@@ -10,10 +12,19 @@ const api = axios.create({
   },
 });
 
+interface Dish {
+  dishName: string;
+  description: string;
+  price: number;
+  ingredients: string;
+  category: string;
+  restaurantId: string;
+}
+
 // Function to handle user signup
-export const signUp = async (name: string, email: string, password: string) => {
+export const signUp = async (name: string, email: string, phone: string,  password: string) => {
   try {
-    const response = await api.post('/user/signup', {name, email, password});
+    const response = await api.post('/user/signup', {name, email, phone, password});
     return response.data;
   } catch (error) {
     console.error('Error signing up:', error);
@@ -89,4 +100,116 @@ export const verify = async (email: string, code: string) => {
     console.error('Error verifying code:', error);
     throw error;
   }
+};
+
+// Function to handle restaurant resgistration
+export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string,  password: string) => {
+  try {
+    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, password});
+    return response.data;
+  } catch (error) {
+    console.error('Error resgistering restaurant:', error);
+    throw error;
+  }
+};
+
+// Function to handle restaurant login
+export const loginRestaurant = async (restaurantId: string, password: string, latitude: string, longitude: string) => {
+  try {
+    const response = await api.post('/restaurant/login', { restaurantId, password, latitude, longitude });
+    return response.data;
+  } catch (error) {
+    console.error('Error logging in restaurant:', error);
+    throw error;
+  }
+};
+
+
+export const submitDishes = async (dishes: Dish[]): Promise<any> => {
+  try {
+    const response = await api.post('/restaurant/dishes', { dishes });
+    console.log("Response data:", response.data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get all restaurants
+export const getAllRestaurants = async () => {
+  try {
+    const response = await api.get('restaurant/restaurants');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching restaurants', error);
+    throw error;
+  }
+};
+
+// Get restaurant by ID
+export const getRestaurantById = async (id: string) => {
+  try {
+    const response = await api.get('restaurants=/myrestaurant', {
+      headers: {
+        Authorization: `Bearer ${id}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching restaurant with ID: ${id}`, error);
+    throw error;
+  }
+};
+
+// Get all dishes
+export const getAllDishes = async () => {
+  try {
+    const response = await api.get('dish/dishes');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dishes', error);
+    throw error;
+  }
+};
+
+// Get dish by ID
+export const getDishById = async (id: string) => {
+  try {
+    const response = await api.get('dish/mydishes', {
+      headers: {
+        Authorization: `Bearer ${id}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching dish with ID: ${id}`, error);
+    throw error;
+  }
+};
+
+
+
+
+export const getRestaurantId = async () => {
+  try {
+    const restaurantId = await AsyncStorage.getItem('restaurantId');
+    if (restaurantId !== null) {
+      return restaurantId;
+    }
+  } catch (error) {
+    console.log('Error getting restaurant ID from local storage', error);
+  }
+  return null;
+};
+
+export const getUserId = async () => {
+  try {
+    const userId = await AsyncStorage.getItem('userId');
+    if (userId !== null) {
+      return userId;
+    }
+  } catch (error) {
+    console.log('Error getting user ID from local storage', error);
+  }
+  return null;
 };

@@ -14,7 +14,7 @@ export default function AuthScreen() {
       <Image source={require('../assets/images/vendor.png')} style={styles.image} />
 
       {/* Login button */}
-      <TouchableOpacity style={[styles.button, styles.loginButton]} onPress={() => router.push('/login')}>
+      <TouchableOpacity style={[styles.button, styles.loginButton]} onPress={() => router.push('/reslogin')}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: 350,
-    height: 350, 
+    height: 300, 
     marginBottom: 55, 
   },
   button: {

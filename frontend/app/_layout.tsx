@@ -31,6 +31,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(res_tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="signup" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
@@ -40,6 +41,7 @@ export default function RootLayout() {
         <Stack.Screen name="location" options={{ headerShown: false }} />
         <Stack.Screen name="add_restaurants" options={{ headerShown: false }} />
         <Stack.Screen name="add_dish" options={{ headerShown: false }} />
+        <Stack.Screen name="reslogin" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         <Toast />
       </Stack>

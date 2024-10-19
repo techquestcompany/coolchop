@@ -1,64 +1,112 @@
 import { router } from 'expo-router';
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient'; 
+import LottieView from 'lottie-react-native'; 
+import useCheckAuthAndNavigateToHome from '../components/checkIdIndex';
 
 export default function AuthScreen() {
+  useCheckAuthAndNavigateToHome();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Fade-in animation for the title
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1500,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
   return (
-    <View style={styles.container}>
-      {/* Placeholder for the image */}
-      <Image source={require('../assets/images/coolchop.png')} style={styles.image} />
+    <LinearGradient colors={['#fff', '#fff']} style={styles.gradient}>
+      <View style={styles.container}>
+        
+        {/* Cool Animation using Lottie */}
+        <LottieView
+          source={require('../assets/animations/welcome.json')}
+          autoPlay
+          loop
+          style={styles.lottieAnimation}
+        />
+        
+        {/* Animated Title */}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <Text style={styles.title}>Welcome</Text>
+        </Animated.View>
 
-      
-      {/* Title */}
-      <Text style={styles.text}>Continue as</Text>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/customer')}>
+          <Image source={require('../assets/images/customer.webp')} style={styles.icon} />
+          <View style={styles.cardText}>
+            <Text style={styles.optionTitle}>Customer</Text>
+            <Text style={styles.arrow}>→</Text>
+          </View>
+        </TouchableOpacity>
 
-      {/* Login button */}
-      <TouchableOpacity style={[styles.button, styles.loginButton]} onPress={() => router.push('/customer')}>
-        <Text style={styles.buttonText}>Customer</Text>
-      </TouchableOpacity>
-
-      {/* Signup button */}
-      <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => router.push('/vendor')}>
-        <Text style={styles.buttonText}>Vendor</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/vendor')}>
+          <Image source={require('../assets/images/vendor.webp')} style={styles.icon} />
+          <View style={styles.cardText}>
+            <Text style={styles.optionTitle}>Vendor</Text>
+            <Text style={styles.arrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  image: {
-    width: 350,
-    height: 350, 
-    marginBottom: 25, 
+  lottieAnimation: {
+    width: 150,
+    height: 150,
+    marginBottom: 20, 
   },
-  button: {
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 40,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
+    marginVertical: 10,
     width: 320,
-    paddingVertical: 15,
-    backgroundColor: '#007BFF',
-    borderRadius: 10, 
-    alignItems: 'center', 
-    marginBottom: 25, 
+    justifyContent: 'space-between',
+    elevation: 5, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
-  loginButton: {
-    backgroundColor: '#FCA204', 
+  cardText: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '80%',
   },
-  signupButton: {
-    backgroundColor: '#DC2C10', 
+  icon: {
+    width: 50,
+    height: 50,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  text: {
+  optionTitle: {
     fontSize: 20,
-    marginBottom: 20,
     fontWeight: 'bold',
+  },
+  arrow: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FCA204',
   },
 });

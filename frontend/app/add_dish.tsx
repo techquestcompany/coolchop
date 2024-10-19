@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { submitDishes, getRestaurantId } from '../services/api';
+import Toast from 'react-native-toast-message'; 
 
 const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType, multiline }) => {
   return (
@@ -26,6 +29,7 @@ export default function AddDishScreen() {
   const [ingredients, setIngredients] = useState('');
   const [category, setCategory] = useState('');
   const [dishes, setDishes] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handleAddDish = () => {
     const newDish = { dishName, description, price, ingredients, category };
@@ -38,12 +42,52 @@ export default function AddDishScreen() {
     setIngredients('');
     setCategory('');
   };
-
-  const handleSubmit = () => {
-    // Submit all dishes logic
-    console.log("Dishes submitted: ", dishes);
+  const handleSubmit = async () => {
+ 
+    try {
+      setLoading(true);
+  
+      // Get restaurantId from local storage
+      const restaurantId = await getRestaurantId();
+      if (!restaurantId) {
+        Alert.alert('Error', 'Restaurant ID not found. Please log in again.');
+        return;
+      }
+  
+      // Prepare the array of dishes with restaurantId
+      const dishesToSubmit = dishes.map((dish) => ({
+        ...dish,
+        restaurantId,
+      }));
+  
+      // Submit the dishes to the backend
+      const response = await submitDishes(dishesToSubmit);
+      if (response.message === "Dishes saved successfully") {
+        Toast.show({
+          type: 'success',
+          text1: 'Dishes saved successfully',
+          text2: 'Your dish has been submitted!',
+        });
+        router.push('/reslogin');
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Dish Submission Failed',
+          text2: response.message || 'Please try again.',
+        });
+      }
+    } catch (error) {
+      console.log(error)
+      Toast.show({
+        type: 'error',
+        text1: 'Dish Submission Failed',
+        text2: error.message || 'Something went wrong.',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-
+  
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -114,11 +158,16 @@ export default function AddDishScreen() {
 
           {/* Submit Button */}
           <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>Submit Dishes</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <Text style={styles.buttonText}>Submit Dishes</Text>
+            )}
           </TouchableOpacity>
 
         </ScrollView>
       </KeyboardAvoidingView>
+      <Toast ref={(ref) => Toast.setRef(ref)} />
     </SafeAreaView>
   );
 }

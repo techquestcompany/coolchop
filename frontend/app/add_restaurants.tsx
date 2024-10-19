@@ -4,6 +4,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { registerRestaurant } from '../services/api';
 import Toast from 'react-native-toast-message'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
   return (
@@ -25,7 +27,10 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
 export default function RestaurantRegistrationScreen() {
   const [restaurantName, setRestaurantName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Handle restaurant registration
@@ -34,17 +39,22 @@ export default function RestaurantRegistrationScreen() {
       Alert.alert("All fields are required");
       return;
     }
+    else if (password !== confirmPassword) {
+      Alert.alert("Passwords do not match");
+      return;
+    }
 
     try {
       setLoading(true);
-      const response = await registerRestaurant(restaurantName, email, address);
+      const response = await registerRestaurant(restaurantName, email, phone, address, password);
       if (response.message == "Restaurant registered successfully") {
+        await AsyncStorage.setItem('restaurantId', response.restaurant.id);
         Toast.show({
           type: 'success',
           text1: 'Registration Successful',
           text2: 'Your restaurant has been registered!',
         });
-        router.push('/restaurantList');
+        router.push('/add_dish');
       } else {
         Toast.show({
           type: 'error',
@@ -73,7 +83,7 @@ export default function RestaurantRegistrationScreen() {
           </TouchableOpacity>
 
           {/* Logo */}
-          <Image source={require('../assets/images/delivery.png')} style={styles.logo} />
+          <Image source={require('../assets/images/restaurant.webp')} style={styles.logo} />
 
           {/* Title */}
           <Text style={styles.title}>Register Your Restaurant</Text>
@@ -96,6 +106,15 @@ export default function RestaurantRegistrationScreen() {
             onChangeText={setEmail}
           />
 
+          {/* Phone Input */}
+          <InputField
+            iconName="phone"
+            placeholder="Phone"
+            keyboardType="numeric"
+            value={phone}
+            onChangeText={setPhone}
+          />
+
           {/* Address Input */}
           <InputField
             iconName="map-marker"
@@ -103,9 +122,27 @@ export default function RestaurantRegistrationScreen() {
             value={address}
             onChangeText={setAddress}
           />
+          
+          {/* Password Input */}
+          <InputField
+            iconName="lock"
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          {/* Re-type Password Input */}
+          <InputField
+            iconName="lock"
+            placeholder="Re-type Password"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
 
           {/* Register Button */}
-          <TouchableOpacity style={styles.registerButton} onPress={() => router.push("/add_dish")}>
+          <TouchableOpacity style={styles.registerButton} onPress={(handleRegistration)}>
           {loading ? (
             <ActivityIndicator size="small" color="#FFF" />
           ) : (
@@ -135,7 +172,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 180,
-    height: 180,
+    height: 380,
     marginBottom: 5,
   },
   title: {

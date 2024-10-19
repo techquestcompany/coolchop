@@ -3,10 +3,8 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { confimrUserLocation } from '../../services/api';
-import useCheckAuthAndNavigateToIndex from '../../components/checkId';
 
 const HomeScreen = () => {
-  useCheckAuthAndNavigateToIndex(); 
   const [userLocation, setUserLocation] = useState(null);
   const router = useRouter();
 

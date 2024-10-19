@@ -25,6 +25,7 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
 export default function SignUpScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,7 @@ export default function SignUpScreen() {
 
     try {
       setLoading(true);
-      const response = await signUp(name, email, password);
+      const response = await signUp(name, email, phone, password);
       if (response.message == "User created successfully") {
         Toast.show({
           type: 'success',
@@ -95,6 +96,16 @@ export default function SignUpScreen() {
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
+          />
+
+          
+          {/* Phone Input */}
+          <InputField
+            iconName="phone"
+            placeholder="Phone"
+            keyboardType="numeric"
+            value={phone}
+            onChangeText={setPhone}
           />
 
           {/* Password Input */}
