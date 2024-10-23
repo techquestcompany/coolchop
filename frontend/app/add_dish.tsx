@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, ActivityIndicator, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { submitDishes, getRestaurantId } from '../services/api';
 import Toast from 'react-native-toast-message'; 
+import LottieView from 'lottie-react-native'; 
 
 const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType, multiline }) => {
   return (
@@ -30,6 +31,17 @@ export default function AddDishScreen() {
   const [category, setCategory] = useState('');
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(false);
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    // Fade-in animation for the title
+    useEffect(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      }).start();
+    }, [fadeAnim]);
+
 
   const handleAddDish = () => {
     const newDish = { dishName, description, price, ingredients, category };
@@ -42,6 +54,8 @@ export default function AddDishScreen() {
     setIngredients('');
     setCategory('');
   };
+
+
   const handleSubmit = async () => {
  
     try {
@@ -93,7 +107,18 @@ export default function AddDishScreen() {
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
 
-          <Text style={styles.title}>Add New Dishes</Text>
+        {/* Cool Animation using Lottie */}
+        <LottieView
+          source={require('../assets/animations/fork.json')}
+          autoPlay
+          loop
+          style={styles.lottieAnimation}
+        />
+        
+        {/* Animated Title */}
+        <Animated.View style={{ opacity: fadeAnim }}>
+        <Text style={styles.title}>Add New Dishes</Text>
+        </Animated.View>
 
           {/* Dish Name */}
           <InputField
@@ -186,7 +211,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#D32F2F',
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom:40,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -249,5 +274,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 20,
+  },
+  lottieAnimation: {
+    width: 150,
+    height: 150,
+    marginBottom: 20, 
   },
 });

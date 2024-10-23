@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
-import { login } from '../services/api';
+import { loginRestaurant } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
@@ -46,7 +46,7 @@ export default function SignInScreen() {
       const location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
 
-      const response = await login(restaurantId, password, latitude, longitude);
+      const response = await loginRestaurant(restaurantId, password, latitude, longitude);
       if (response.message == "Login successful") {
         await AsyncStorage.setItem('userId', response.user.id);
         Toast.show({

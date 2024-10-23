@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { confimrUserLocation } from '../../services/api';
@@ -14,81 +14,71 @@ const HomeScreen = () => {
     const checkUserLocation = async () => {
       const userId = await AsyncStorage.getItem('userId');
       const userData = await confimrUserLocation(userId); 
-      setUserLocation("Yet to get user location")
-      // if (userData.confirmLocation == false) {
-      //   router.push('/location'); 
-      // }
+      setUserLocation("Yet to get user location");
     };
+
     checkUserLocation();
   }, []);
 
-  const categories = [
-    { id: '1', name: 'Category 1' },
-    { id: '2', name: 'Category 2' },
-    { id: '3', name: 'Category 3' },
-    { id: '4', name: 'Category 4' },
-    { id: '5', name: 'Category 5' },
-    { id: '6', name: 'Category 6' },
+  // Dummy Restaurants Data
+  const restaurants = [
+    { id: '1', name: 'Restaurant 1', imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Rest1' },
+    { id: '2', name: 'Restaurant 2', imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Rest2' },
+    { id: '3', name: 'Restaurant 3', imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Rest3' },
   ];
 
-  const mostPopular = [
-    { id: '1', name: 'Jollof', image: require('../../assets/images/dummy_image.png') },
-    { id: '2', name: 'Burger', image: require('../../assets/images/dummy_image.png') },
-    { id: '3', name: 'Noodles', image: require('../../assets/images/dummy_image.png') },
-  ];
-
-  const promos = [
-    { id: '1', name: 'Fried rice', image: require('../../assets/images/dummy_image.png') },
-    { id: '2', name: 'Kelewele', image: require('../../assets/images/dummy_image.png') },
-    { id: '3', name: 'Shawarma', image: require('../../assets/images/dummy_image.png') },
+  // Dummy Dishes Data
+  const dishes = [
+    { id: '1', dishName: 'Jollof Rice', description: 'Delicious West African dish', location: 'Restaurant 1', price: 10, imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Jollof' },
+    { id: '2', dishName: 'Burger', description: 'Juicy grilled burger', location: 'Restaurant 2', price: 12, imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Burger' },
+    { id: '3', dishName: 'Shawarma', description: 'Tasty middle-eastern wrap', location: 'Restaurant 3', price: 8, imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Shawarma' },
   ];
 
   return (
     <View style={styles.container}>
       <Text style={styles.locationText}>Your location now is {userLocation || 'Fetching location...'}</Text>
       <Text style={styles.title}>COOL CHOP</Text>
-      
+
       {/* Search Menu */}
       <View style={styles.searchContainer}>
         <Text style={styles.searchInput}>search menu</Text>
       </View>
 
-      {/* Categories */}
-      <FlatList
-        data={categories}
-        renderItem={({ item }) => (
-          <View style={styles.categoryBox}>
-            <Text>{item.name}</Text>
-          </View>
-        )}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
-        style={styles.categoryList}
-      />
-
-      {/* Most Popular and Promos */}
+      {/* Restaurants Section */}
       <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Most popular</Text>
+        <Text style={styles.sectionTitle}>Restaurants</Text>
         <FlatList
-          data={mostPopular}
+          data={restaurants}
           horizontal
           renderItem={({ item }) => (
-            <View style={styles.foodBox}>
-              <Image source={item.image} style={styles.foodImage} />
-              <Text>{item.name}</Text>
+            <View style={styles.restaurantCard}>
+              <Image source={{ uri: item.imageUrl }} style={styles.restaurantImage} />
+              <View style={styles.restaurantInfo}>
+                <Text style={styles.restaurantName}>{item.name}</Text>
+                <Text style={styles.restaurantDescription}>Brief description here</Text>
+                <Text style={styles.restaurantLocation}>Location</Text>
+              </View>
             </View>
           )}
           keyExtractor={(item) => item.id}
         />
+      </View>
 
-        <Text style={styles.sectionTitle}>Promos</Text>
+
+      {/* Dishes Section */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Dishes</Text>
         <FlatList
-          data={promos}
-          horizontal
+          data={dishes}
           renderItem={({ item }) => (
-            <View style={styles.foodBox}>
-              <Image source={item.image} style={styles.foodImage} />
-              <Text>{item.name}</Text>
+            <View style={styles.dishCard}>
+              <Image source={{ uri: item.imageUrl }} style={styles.dishImage} />
+              <View style={styles.dishInfo}>
+                <Text style={styles.dishName}>{item.dishName}</Text>
+                <Text style={styles.dishDescription}>{item.description}</Text>
+                <Text style={styles.dishLocation}>{item.location}</Text>
+                <Text style={styles.dishPrice}>${item.price}</Text>
+              </View>
             </View>
           )}
           keyExtractor={(item) => item.id}
@@ -128,18 +118,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F1F1',
     textAlign: 'center',
   },
-  categoryList: {
-    marginBottom: 20,
-  },
-  categoryBox: {
-    width: '30%',
-    height: 100,
-    margin: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F1F1F1',
-    borderRadius: 10,
-  },
   sectionContainer: {
     marginTop: 10,
   },
@@ -148,14 +126,75 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  foodBox: {
-    marginRight: 10,
-    alignItems: 'center',
+  dishCard: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
-  foodImage: {
+  dishImage: {
     width: 100,
     height: 100,
     borderRadius: 10,
+  },
+  dishInfo: {
+    marginLeft: 10,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  dishName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  dishDescription: {
+    fontSize: 14,
+    color: '#555',
+  },
+  dishLocation: {
+    fontSize: 12,
+    color: '#777',
+  },
+  dishPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#D32F2F',
+  },
+   restaurantCard: {
+    width: 200,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    padding: 10,
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  restaurantImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 15,
+  },
+  restaurantInfo: {
+    marginTop: 10,
+  },
+  restaurantName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  restaurantDescription: {
+    fontSize: 14,
+    color: '#555',
+    marginVertical: 4,
+  },
+  restaurantLocation: {
+    fontSize: 12,
+    color: '#777',
   },
 });
 
