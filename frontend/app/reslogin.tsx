@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
-import { login } from '../services/api';
+import { loginRestaurant } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
@@ -26,7 +26,7 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
 
 export default function SignInScreen() {
   const [checked, setChecked] = useState(false);
-  const [email, setEmail] = useState('');
+  const [restaurantId, setRestaurantId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +46,7 @@ export default function SignInScreen() {
       const location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
 
-      const response = await login(email, password, latitude, longitude);
+      const response = await loginRestaurant(restaurantId, password, latitude, longitude);
       if (response.message == "Login successful") {
         await AsyncStorage.setItem('userId', response.user.id);
         Toast.show({
@@ -54,7 +54,7 @@ export default function SignInScreen() {
           text1: 'Login Successful 😊',
           text2: 'Welcome back! 🎉',
         });
-        router.push('/verify');
+        router.push('/(res_tab)');
       } else {
         Toast.show({
           type: 'error',
@@ -92,9 +92,9 @@ export default function SignInScreen() {
           {/* Email Input */}
           <InputField
             iconName="envelope"
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
+            placeholder="Restaurant Id"
+            value={restaurantId}
+            onChangeText={setRestaurantId}
           />
 
           {/* Password Input */}
@@ -132,10 +132,7 @@ export default function SignInScreen() {
 
           {/* Sign Up Link */}
           <Text style={styles.footerText}>
-            Don’t have an account?{' '}
-            <TouchableOpacity>
-              <Text style={styles.signUpText} onPress={() => router.push('/signup')}>Sign Up</Text>
-            </TouchableOpacity>
+           Contact the coolchop team if you don't have an account
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -1,21 +1,26 @@
 import { router } from 'expo-router';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons'; 
 
 export default function AuthScreen() {
   return (
     <View style={styles.container}>
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
+      </TouchableOpacity>
       {/* Placeholder for the image */}
       <Image source={require('../assets/images/vendor.png')} style={styles.image} />
 
       {/* Login button */}
-      <TouchableOpacity style={[styles.button, styles.loginButton]} onPress={() => router.push('/login')}>
+      <TouchableOpacity style={[styles.button, styles.loginButton]} onPress={() => router.push('/reslogin')}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
       {/* Signup button */}
-      <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => router.push('/signup')}>
-        <Text style={styles.buttonText}>Signup</Text>
+      <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => router.push('/add_restaurants')}>
+        <Text style={styles.buttonText}>Add Restaurant</Text>
       </TouchableOpacity>
     </View>
   );
@@ -30,7 +35,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: 350,
-    height: 350, 
+    height: 300, 
     marginBottom: 55, 
   },
   button: {
@@ -51,5 +56,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 20,
   },
 });

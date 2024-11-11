@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
-import { signUp } from '../services/api';
+import { registerRestaurant } from '../services/api';
 import Toast from 'react-native-toast-message'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
   return (
@@ -22,42 +24,48 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
   );
 };
 
-export default function SignUpScreen() {
-  const [name, setName] = useState('');
+export default function RestaurantRegistrationScreen() {
+  const [restaurantName, setRestaurantName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Handle Sign Up
-  const handleSignUp = async () => {
-    if (password !== confirmPassword) {
+  // Handle restaurant registration
+  const handleRegistration = async () => {
+    if (!restaurantName || !email || !address) {
+      Alert.alert("All fields are required");
+      return;
+    }
+    else if (password !== confirmPassword) {
       Alert.alert("Passwords do not match");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await signUp(name, email, phone, password);
-      if (response.message == "User created successfully") {
+      const response = await registerRestaurant(restaurantName, email, phone, address, password);
+      if (response.message == "Restaurant registered successfully") {
+        await AsyncStorage.setItem('restaurantId', response.restaurant.id);
         Toast.show({
           type: 'success',
-          text1: 'Sign up Successful',
-          text2: 'Welcome! 🎉',
+          text1: 'Registration Successful',
+          text2: 'Your restaurant has been registered!',
         });
-        router.push('/login');
+        router.push('/add_dish');
       } else {
         Toast.show({
           type: 'error',
-          text1: 'Sign up Failed',
+          text1: 'Registration Failed',
           text2: response.message || 'Please try again.',
         });
       }
     } catch (error) {
       Toast.show({
         type: 'error',
-        text1: 'Sign Up Failed',
+        text1: 'Registration Failed',
         text2: error.message || 'Something went wrong.',
       });
     } finally {
@@ -74,19 +82,19 @@ export default function SignUpScreen() {
             <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
           </TouchableOpacity>
 
-          {/* CoolChop Logo */}
-          <Image source={require('../assets/images/coolchop.png')} style={styles.logo} />
+          {/* Logo */}
+          <Image source={require('../assets/images/restaurant.webp')} style={styles.logo} />
 
           {/* Title */}
-          <Text style={styles.title}>Sign Up</Text>
-          <Text style={styles.subTitle}>Please sign up to get started 😊</Text>
+          <Text style={styles.title}>Register Your Restaurant</Text>
+          <Text style={styles.subTitle}>Please provide the details below to register your restaurant 🍽️</Text>
 
-          {/* Name Input */}
+          {/* Restaurant Name Input */}
           <InputField
-            iconName="user"
-            placeholder="Name"
-            value={name}
-            onChangeText={setName}
+            iconName="building"
+            placeholder="Restaurant Name"
+            value={restaurantName}
+            onChangeText={setRestaurantName}
           />
 
           {/* Email Input */}
@@ -98,7 +106,6 @@ export default function SignUpScreen() {
             onChangeText={setEmail}
           />
 
-          
           {/* Phone Input */}
           <InputField
             iconName="phone"
@@ -108,6 +115,14 @@ export default function SignUpScreen() {
             onChangeText={setPhone}
           />
 
+          {/* Address Input */}
+          <InputField
+            iconName="map-marker"
+            placeholder="Restaurant Address"
+            value={address}
+            onChangeText={setAddress}
+          />
+          
           {/* Password Input */}
           <InputField
             iconName="lock"
@@ -126,21 +141,14 @@ export default function SignUpScreen() {
             onChangeText={setConfirmPassword}
           />
 
-          {/* Sign Up Button */}
-          <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
+          {/* Register Button */}
+          <TouchableOpacity style={styles.registerButton} onPress={(handleRegistration)}>
           {loading ? (
             <ActivityIndicator size="small" color="#FFF" />
           ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
+            <Text style={styles.buttonText}>Register</Text>
           )}
           </TouchableOpacity>
-
-          {/* Footer Text */}
-          <Text style={styles.footerText}>
-            By continuing with an account located in Ghana, you agree to our{' '}
-            <Text style={styles.linkText}>Terms of Service</Text> and acknowledge that you have read our{' '}
-            <Text style={styles.linkText}>Privacy Policy</Text>.
-          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
       <Toast ref={(ref) => Toast.setRef(ref)} />
@@ -164,7 +172,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 180,
-    height: 180,
+    height: 380,
     marginBottom: 5,
   },
   title: {
@@ -195,7 +203,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
-  signUpButton: {
+  registerButton: {
     width: '100%',
     backgroundColor: '#D32F2F',
     padding: 15,
@@ -205,14 +213,5 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 18,
-  },
-  footerText: {
-    marginTop: 20,
-    textAlign: 'center',
-    color: '#7B7B7B',
-  },
-  linkText: {
-    color: '#D32F2F',
-    textDecorationLine: 'underline',
   },
 });

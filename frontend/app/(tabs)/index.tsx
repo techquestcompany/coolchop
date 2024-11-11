@@ -1,122 +1,201 @@
-import { Image, View, StyleSheet, Platform, SafeAreaView, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { confimrUserLocation } from '../../services/api';
+import useCheckAuthAndNavigateToIndex from '../../components/checkId';
 
-export default function HomeScreen() {
+const HomeScreen = () => {
+  useCheckAuthAndNavigateToIndex(); 
+  const [userLocation, setUserLocation] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkUserLocation = async () => {
+      const userId = await AsyncStorage.getItem('userId');
+      const userData = await confimrUserLocation(userId); 
+      setUserLocation("Yet to get user location");
+    };
+
+    checkUserLocation();
+  }, []);
+
+  // Dummy Restaurants Data
+  const restaurants = [
+    { id: '1', name: 'Restaurant 1', imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Rest1' },
+    { id: '2', name: 'Restaurant 2', imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Rest2' },
+    { id: '3', name: 'Restaurant 3', imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Rest3' },
+  ];
+
+  // Dummy Dishes Data
+  const dishes = [
+    { id: '1', dishName: 'Jollof Rice', description: 'Delicious West African dish', location: 'Restaurant 1', price: 10, imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Jollof' },
+    { id: '2', dishName: 'Burger', description: 'Juicy grilled burger', location: 'Restaurant 2', price: 12, imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Burger' },
+    { id: '3', dishName: 'Shawarma', description: 'Tasty middle-eastern wrap', location: 'Restaurant 3', price: 8, imageUrl: 'https://dummyimage.com/100x100/000/fff&text=Shawarma' },
+  ];
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerText}>
-          Serve your meals to hungry customers nearby
-        </Text>
+    <View style={styles.container}>
+      <Text style={styles.locationText}>Your location now is {userLocation || 'Fetching location...'}</Text>
+      <Text style={styles.title}>COOL CHOP</Text>
+
+      {/* Search Menu */}
+      <View style={styles.searchContainer}>
+        <Text style={styles.searchInput}>search menu</Text>
       </View>
 
-      <Image
-        style={styles.image}
-        source={require("../../assets/images/pexels-norma-mortenson-4393668.jpg")}
-      />
-
-      <View style={styles.secondTextContainer}>
-        <Text style={{ fontWeight: "bold" }}>
-          Reach more customers with your food servings
-        </Text>
-        <Text style={{ fontWeight: "bold" }}>
-          Restaurants on <Text style={{ fontWeight: "bold", color: "red" }}>COOL-CHOP</Text> see a sales boost of up to
-          45% within the first 90 days
-        </Text>
+      {/* Restaurants Section */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Restaurants</Text>
+        <FlatList
+          data={restaurants}
+          horizontal
+          renderItem={({ item }) => (
+            <View style={styles.restaurantCard}>
+              <Image source={{ uri: item.imageUrl }} style={styles.restaurantImage} />
+              <View style={styles.restaurantInfo}>
+                <Text style={styles.restaurantName}>{item.name}</Text>
+                <Text style={styles.restaurantDescription}>Brief description here</Text>
+                <Text style={styles.restaurantLocation}>Location</Text>
+              </View>
+            </View>
+          )}
+          keyExtractor={(item) => item.id}
+        />
       </View>
 
-      {/* New View for Managing Orders */}
-      <View style={styles.orderManagementContainer}>
-        <Text style={styles.orderManagementText}>
-          Manage your online orders with COOL-CHOP
-        </Text>
-    
 
-      {/* Three View Elements */}
-      <View style={styles.threeViewsContainer}>
-        <View style={styles.deepRedView}>
-          <Text style={styles.viewText}>Order Tracking</Text>
-        </View>
-        <View style={styles.deepRedView}>
-          <Text style={styles.viewText}>Customer Feedback</Text>
-        </View>
-        <View style={styles.deepRedView}>
-          <Text style={styles.viewText}>Sales Reports</Text>
-        </View>
+      {/* Dishes Section */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Dishes</Text>
+        <FlatList
+          data={dishes}
+          renderItem={({ item }) => (
+            <View style={styles.dishCard}>
+              <Image source={{ uri: item.imageUrl }} style={styles.dishImage} />
+              <View style={styles.dishInfo}>
+                <Text style={styles.dishName}>{item.dishName}</Text>
+                <Text style={styles.dishDescription}>{item.description}</Text>
+                <Text style={styles.dishLocation}>{item.location}</Text>
+                <Text style={styles.dishPrice}>${item.price}</Text>
+              </View>
+            </View>
+          )}
+          keyExtractor={(item) => item.id}
+        />
       </View>
-
-      {/* Button Below the Views */}
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>ADD MY RESTAURANT</Text>
-      </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
-    height: "auto",
-    marginBottom:30
-  },
-  headerContainer: {
-    marginTop: 70,
-  },
-  headerText: {
-    color: "red",
-    fontWeight: "bold",
-    fontSize: 24,
-    textAlign: "center",
-  },
-  image: {
-    height: 278,
-    width: "90%",
-    borderRadius: 10,
-    marginLeft: 24,
-  },
-  secondTextContainer: {
-    maxWidth: "100%",
-    marginTop: 50,
-    marginLeft: 20,
-  },
-  orderManagementContainer: {
-    backgroundColor: '#ffcccc', 
-    padding: 15,
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  orderManagementText: {
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  threeViewsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    paddingHorizontal: 20,
-  },
-  deepRedView: {
-    backgroundColor: '#a40000', // Deep red color
-    padding: 20,
-    borderRadius: 10,
     flex: 1,
-    marginHorizontal: 5, 
-    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
   },
-  viewText: {
-    color: 'white',
+  locationText: {
+    marginTop: 20,
+    color: '#999',
+    textAlign: 'center',
+  },
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#D32F2F',
+    marginBottom: 20,
   },
-  button: {
-    backgroundColor: 'red',
+  searchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  searchInput: {
+    width: '80%',
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: '#F1F1F1',
+    textAlign: 'center',
+  },
+  sectionContainer: {
+    marginTop: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  dishCard: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    backgroundColor: '#FFF',
     borderRadius: 10,
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 30,
-    marginHorizontal: 20,
-    width:"90%"
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
-  buttonText: {
-    color: 'white',
+  dishImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+  },
+  dishInfo: {
+    marginLeft: 10,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  dishName: {
+    fontSize: 16,
     fontWeight: 'bold',
+  },
+  dishDescription: {
+    fontSize: 14,
+    color: '#555',
+  },
+  dishLocation: {
+    fontSize: 12,
+    color: '#777',
+  },
+  dishPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#D32F2F',
+  },
+   restaurantCard: {
+    width: 200,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    padding: 10,
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  restaurantImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 15,
+  },
+  restaurantInfo: {
+    marginTop: 10,
+  },
+  restaurantName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  restaurantDescription: {
+    fontSize: 14,
+    color: '#555',
+    marginVertical: 4,
+  },
+  restaurantLocation: {
+    fontSize: 12,
+    color: '#777',
   },
 });
+
+export default HomeScreen;
