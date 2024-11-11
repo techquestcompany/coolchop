@@ -3,10 +3,10 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import LottieView from 'lottie-react-native'; 
-import useCheckAuthAndNavigateToHome from '../components/checkIdIndex';
+import { verifyToken } from '../services/api';
+import Cookies from 'js-cookie';
 
 export default function AuthScreen() {
-  useCheckAuthAndNavigateToHome();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Fade-in animation for the title
@@ -17,6 +17,36 @@ export default function AuthScreen() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
+
+  useEffect(() => {
+    checkTokenValidity();
+  }, [router]);
+
+
+    // Function to check if token is valid
+    const checkTokenValidity = async () => {
+      const token = Cookies.get('userId');
+      if (token) {
+        try {
+          // Assume `verifyToken` is an API function to check token validity
+          const isValid = await verifyToken(token);
+          if (!isValid) {
+            // Token is invalid or expired
+            Cookies.remove('userId'); // Remove the token if expired
+            router.push('/'); // Redirect to login page
+          } else {
+            // Token is valid, redirect to home
+            router.push('/(tabs)');
+          }
+        } catch (error) {
+          // Handle any error that occurred during token verification
+          console.error("Token verification failed:", error);
+          Cookies.remove('userId'); // Remove token if any error
+          router.push('/login'); // Redirect to login
+        }
+      }
+    };
+
 
   return (
     <LinearGradient colors={['#fff', '#fff']} style={styles.gradient}>

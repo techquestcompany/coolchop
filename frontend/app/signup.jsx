@@ -4,6 +4,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { signUp } from '../services/api';
 import Toast from 'react-native-toast-message'; 
+import * as ImagePicker from 'expo-image-picker';
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
   return (
@@ -28,6 +29,7 @@ export default function SignUpScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Handle Sign Up
@@ -65,6 +67,26 @@ export default function SignUpScreen() {
     }
   };
 
+   // Select Profile Image
+   const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert("Permission to access camera roll is required!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.uri);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -80,6 +102,17 @@ export default function SignUpScreen() {
           {/* Title */}
           <Text style={styles.title}>Sign Up</Text>
           <Text style={styles.subTitle}>Please sign up to get started 😊</Text>
+
+            {/* Profile Picture Upload */}
+            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <FontAwesome name="camera" size={40} color="#B07A7A" />
+            )}
+            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
+          </TouchableOpacity>
+
 
           {/* Name Input */}
           <InputField
@@ -176,6 +209,19 @@ const styles = StyleSheet.create({
   subTitle: {
     fontSize: 16,
     marginBottom: 30,
+  },
+  imagePicker: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 10,
+  },
+  imagePickerText: {
+    color: '#B07A7A',
   },
   inputContainer: {
     flexDirection: 'row',

@@ -188,28 +188,12 @@ export const getDishById = async (id: string) => {
 };
 
 
-
-
-export const getRestaurantId = async () => {
+// Function to verify if the token is valid
+export const verifyToken = async (token: string) => {
   try {
-    const restaurantId = await AsyncStorage.getItem('restaurantId');
-    if (restaurantId !== null) {
-      return restaurantId;
-    }
+    const response = await api.post('/token/verify', { token }); // Send the token for verification
+    return response.data.isValid; // Assuming the API returns isValid as true or false
   } catch (error) {
-    console.log('Error getting restaurant ID from local storage', error);
+    throw error;
   }
-  return null;
-};
-
-export const getUserId = async () => {
-  try {
-    const userId = await AsyncStorage.getItem('userId');
-    if (userId !== null) {
-      return userId;
-    }
-  } catch (error) {
-    console.log('Error getting user ID from local storage', error);
-  }
-  return null;
 };

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
-import { loginRestaurant } from '../services/api';
+import { loginRestaurant, verifyToken } from '../services/api';
+import Cookies from 'js-cookie';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
@@ -29,6 +30,36 @@ export default function SignInScreen() {
   const [restaurantId, setRestaurantId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    checkTokenValidity();
+  }, [router]);
+
+
+    // Function to check if token is valid
+    const checkTokenValidity = async () => {
+      const token = Cookies.get('userId');
+      if (token) {
+        try {
+          // Assume `verifyToken` is an API function to check token validity
+          const isValid = await verifyToken(token);
+          if (!isValid) {
+            // Token is invalid or expired
+            Cookies.remove('userId'); // Remove the token if expired
+            router.push('/'); // Redirect to login page
+          } else {
+            // Token is valid, redirect to home
+            router.push('/(tabs)');
+          }
+        } catch (error) {
+          // Handle any error that occurred during token verification
+          console.error("Token verification failed:", error);
+          Cookies.remove('userId'); // Remove token if any error
+          router.push('/login'); // Redirect to login
+        }
+      }
+    };
+
 
   // Handle Sign In
   const handleSignIn = async () => {

@@ -3,22 +3,51 @@ import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { confimrUserLocation } from '../../services/api';
-import useCheckAuthAndNavigateToIndex from '../../components/checkId';
+import Cookies from 'js-cookie';
 
 const HomeScreen = () => {
-  useCheckAuthAndNavigateToIndex(); 
   const [userLocation, setUserLocation] = useState(null);
+  const { isOpen: isLogoutDialogOpen, onOpen: onLogoutOpen, onClose: onLogoutClose } = useDisclosure();
   const router = useRouter();
 
   useEffect(() => {
-    const checkUserLocation = async () => {
+    const token = Cookies.get('userId'); // Get the token from cookies
+    if (token) {
+      //fetchData(token);
+      checkUserLocation();
+    } else {
+      router.push('../login');
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    onLogoutOpen();
+  };
+
+  const confirmLogout = () => {
+    setIsLoading(true);
+    Cookies.remove('userId'); // Remove the token from cookies
+
+    setTimeout(() => {
+      setIsLoading(false);
+      toast({
+        title: 'Logout successful.',
+        description: 'You have been logged out.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      navigate('/login');
+    }, 1000);
+  };
+
+   const checkUserLocation = async () => {
       const userId = await AsyncStorage.getItem('userId');
       const userData = await confimrUserLocation(userId); 
       setUserLocation("Yet to get user location");
     };
 
-    checkUserLocation();
-  }, []);
+
 
   // Dummy Restaurants Data
   const restaurants = [
