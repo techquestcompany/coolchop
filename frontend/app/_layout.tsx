@@ -42,7 +42,11 @@ export default function RootLayout() {
         <Stack.Screen name="add_restaurants" options={{ headerShown: false }} />
         <Stack.Screen name="add_dish" options={{ headerShown: false }} />
         <Stack.Screen name="reslogin" options={{ headerShown: false }} />
+        <Stack.Screen name="order" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
+        <Stack.Screen name="order_cust" options={{ headerShown: false }} />
+        <Stack.Screen name="info" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot_password" options={{ headerShown: false }} />
         <Toast />
       </Stack>
     </ThemeProvider>

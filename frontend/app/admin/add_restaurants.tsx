@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
-import { registerRestaurant } from '../services/api';
+import { registerRestaurant } from '../../services/api';
 import Toast from 'react-native-toast-message'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -83,7 +83,7 @@ export default function RestaurantRegistrationScreen() {
           </TouchableOpacity>
 
           {/* Logo */}
-          <Image source={require('../assets/images/restaurant.webp')} style={styles.logo} />
+          <Image source={require('../../assets/images/restaurant.webp')} style={styles.logo} />
 
           {/* Title */}
           <Text style={styles.title}>Register Your Restaurant</Text>

@@ -268,3 +268,24 @@ exports.getUserById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+
+exports.verifyUserId = async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    const user_id = decrypt(userId);
+    console.log(user_id)
+    // Find user by userId
+    const user = await User.findOne({ where: { id: user_id } });
+
+    if (!user) {
+      return res.status(400).json({ error: 'User ID not found' });
+    }
+
+    res.status(200).json({ message: 'User ID verified successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};

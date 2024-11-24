@@ -1,8 +1,8 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
-const API_URL = 'http://172.20.10.4:3000/api';
+//const API_URL = 'http://172.20.10.4:3000/api';
+const API_URL = 'http://192.168.0.101:3000/api';
 
 
 const api = axios.create({
@@ -191,8 +191,8 @@ export const getDishById = async (id: string) => {
 // Function to verify if the token is valid
 export const verifyToken = async (token: string) => {
   try {
-    const response = await api.post('/token/verify', { token }); // Send the token for verification
-    return response.data.isValid; // Assuming the API returns isValid as true or false
+    const response = await api.post('/user/token', { token }); 
+    return response.data.isValid; 
   } catch (error) {
     throw error;
   }

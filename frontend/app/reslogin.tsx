@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
 import { loginRestaurant, verifyToken } from '../services/api';
-import Cookies from 'js-cookie';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
 import * as Location from 'expo-location';
@@ -31,35 +30,30 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+
   useEffect(() => {
     checkTokenValidity();
   }, [router]);
 
 
-    // Function to check if token is valid
-    const checkTokenValidity = async () => {
-      const token = Cookies.get('userId');
-      if (token) {
-        try {
-          // Assume `verifyToken` is an API function to check token validity
-          const isValid = await verifyToken(token);
-          if (!isValid) {
-            // Token is invalid or expired
-            Cookies.remove('userId'); // Remove the token if expired
-            router.push('/'); // Redirect to login page
-          } else {
-            // Token is valid, redirect to home
-            router.push('/(tabs)');
-          }
-        } catch (error) {
-          // Handle any error that occurred during token verification
-          console.error("Token verification failed:", error);
-          Cookies.remove('userId'); // Remove token if any error
-          router.push('/login'); // Redirect to login
-        }
+// Function to check if token is valid
+const checkTokenValidity = async () => {
+  const token = await SecureStore.getItemAsync('userId');
+  console.log(token)
+  if (token) {
+    try {
+      const isValid = await verifyToken(token);
+      if (!isValid) {
+        await SecureStore.deleteItemAsync('userId'); // Remove expired or invalid token securely
+      } else {
+        router.push('/(tabs)');
       }
-    };
-
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      await SecureStore.deleteItemAsync('userId'); // Remove invalid token securely
+    }
+  }
+};
 
   // Handle Sign In
   const handleSignIn = async () => {
@@ -79,13 +73,13 @@ export default function SignInScreen() {
 
       const response = await loginRestaurant(restaurantId, password, latitude, longitude);
       if (response.message == "Login successful") {
-        await AsyncStorage.setItem('userId', response.user.id);
+        await SecureStore.setItemAsync('userId', response.user.id); // Securely store the token
         Toast.show({
           type: 'success',
           text1: 'Login Successful 😊',
           text2: 'Welcome back! 🎉',
         });
-        router.push('/(res_tab)');
+        router.push('/(res_tabs)');
       } else {
         Toast.show({
           type: 'error',

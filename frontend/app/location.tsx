@@ -4,9 +4,9 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserData, confirmNewLocation } from '../services/api';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete'
+import * as SecureStore from 'expo-secure-store';
 
 const LocationScreen = () => {
   const initialLocation = {
@@ -30,7 +30,7 @@ const LocationScreen = () => {
 
   const fetchUserLocation = async () => {
     try {
-      const userId = await AsyncStorage.getItem('userId');
+      const userId = await SecureStore.getItemAsync('userId');
       const user = await getUserData(userId);
       if (user.latitude && user.longitude) {
         setRegion({
@@ -47,7 +47,7 @@ const LocationScreen = () => {
 
   const setNewLocation = async (latitude, longitude) => {
     try {
-      const userId = await AsyncStorage.getItem('userId');
+      const userId = await SecureStore.getItemAsync('userId');
       const user = await confirmNewLocation(userId, latitude, longitude);
       if(user.confirmLocation == true){
         router.push("/(tabs)");

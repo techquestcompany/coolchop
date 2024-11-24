@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, ActivityIndicator, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { submitDishes, getRestaurantId } from '../services/api';
+import { submitDishes } from '../../services/api';
 import Toast from 'react-native-toast-message'; 
 import LottieView from 'lottie-react-native'; 
 
@@ -109,7 +109,7 @@ export default function AddDishScreen() {
 
         {/* Cool Animation using Lottie */}
         <LottieView
-          source={require('../assets/animations/fork.json')}
+          source={require('../../assets/animations/fork.json')}
           autoPlay
           loop
           style={styles.lottieAnimation}
