@@ -4,6 +4,7 @@ const { encrypt, decrypt } = require('../utils/encryption');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const path = require('path');
+const crypto =require("crypto")
 require('dotenv').config();
 
 // Function to generate a random 4-digit verification code
@@ -268,3 +269,51 @@ exports.getUserById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+exports.forgottenPassword= async (req,res)=>{
+  const {email} = req.body
+
+  const customer = await Customer.findOne({ where: { email } });
+
+  if (!customer) {
+    return res.status(400).json({ message: 'Customer not found' });
+  }
+
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const tokenExpiry = Date.now() + 86400000; // 24 hours expiration
+
+  await User.create({
+    customerId: User.id,
+    resetToken,
+    tokenExpiry,
+  });
+
+  // Send email with reset link 
+  const transporter = nodemailer.createTransport({ mailOptions });
+  await transporter.sendMail({
+    from: 'no-reply@yourapp.com',
+    to: customer.email,
+    subject: 'Password Reset',
+    text: `Here is your password reset link: http://yourapp.com/reset-password?token=${resetToken}`,
+  });
+
+  res.json({ message: 'Password reset link sent' });
+};
+
+exports.passwordReset= async (req,res)=>{
+const {token,newPassword}= req.body
+
+
+const passwordReset = await User.findOne({ where: { resetToken: token } });
+if (!passwordReset || passwordReset.resetTokenExpires < Date.now()) {
+  return res.status(400).json({ message: 'Invalid or expired token' });
+}
+
+// find the user by itprimary key
+const customer = await User.findByPk(passwordReset.customerId);
+customer.password = await bcrypt.hash(newPassword, 10);
+
+await customer.save();
+await passwordReset.destroy(); // Delete the reset token  
+res.json({ message: 'Password updated successfully' });
+};
+

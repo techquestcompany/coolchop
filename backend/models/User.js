@@ -33,6 +33,12 @@ const User = sequelize.define('User', {
     type: DataTypes.FLOAT,
     allowNull: true
   },
+  resetToken:{
+     type: DataTypes.STRING
+  },
+  tokenExpiry:{
+    type: DataTypes.DATE
+  },
   latitude: {
     type: DataTypes.FLOAT,
     allowNull: true
