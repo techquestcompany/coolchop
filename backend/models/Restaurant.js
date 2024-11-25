@@ -30,7 +30,7 @@ const Restaurant = sequelize.define('Restaurant', {
     allowNull: false,
     unique: true
   },
-  password: {
+  profileImage: {
     type: DataTypes.STRING,
     allowNull: false
   },

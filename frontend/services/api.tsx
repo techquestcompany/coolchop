@@ -1,8 +1,12 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
+<<<<<<< HEAD
 const API_URL = 'http://192.168.56.1:5000/api';
+=======
+const API_URL = 'http://172.20.10.4:3000/api';
+// const API_URL = 'http://192.168.0.101:3000/api';
+>>>>>>> 7587d9c5e9391147bdd1ea3fc7f8991d45f39c6e
 
 
 const api = axios.create({
@@ -22,9 +26,9 @@ interface Dish {
 }
 
 // Function to handle user signup
-export const signUp = async (name: string, email: string, phone: string,  password: string) => {
+export const signUp = async (name: string, email: string, phone: string,  password: string, profileImage: string) => {
   try {
-    const response = await api.post('/user/signup', {name, email, phone, password});
+    const response = await api.post('/user/signup', {name, email, phone, password, profileImage});
     return response.data;
   } catch (error) {
     console.error('Error signing up:', error);
@@ -102,10 +106,21 @@ export const verify = async (email: string, code: string) => {
   }
 };
 
-// Function to handle restaurant resgistration
-export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string,  password: string) => {
+export const uploadImage = async (profileImage: string) => {
   try {
-    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, password});
+    const response = await api.post('/upload/upload_image', { profileImage });
+    console.log(response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading photo:', error);
+    throw error;
+  }
+};
+
+// Function to handle restaurant resgistration
+export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string, profileImage: string) => {
+  try {
+    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, profileImage});
     return response.data;
   } catch (error) {
     console.error('Error resgistering restaurant:', error);
@@ -188,28 +203,12 @@ export const getDishById = async (id: string) => {
 };
 
 
-
-
-export const getRestaurantId = async () => {
+// Function to verify if the token is valid
+export const verifyToken = async (token: string) => {
   try {
-    const restaurantId = await AsyncStorage.getItem('restaurantId');
-    if (restaurantId !== null) {
-      return restaurantId;
-    }
+    const response = await api.post('/user/token', { token }); 
+    return response.data.isValid; 
   } catch (error) {
-    console.log('Error getting restaurant ID from local storage', error);
+    throw error;
   }
-  return null;
-};
-
-export const getUserId = async () => {
-  try {
-    const userId = await AsyncStorage.getItem('userId');
-    if (userId !== null) {
-      return userId;
-    }
-  } catch (error) {
-    console.log('Error getting user ID from local storage', error);
-  }
-  return null;
 };

@@ -308,7 +308,7 @@ if (!passwordReset || passwordReset.resetTokenExpires < Date.now()) {
   return res.status(400).json({ message: 'Invalid or expired token' });
 }
 
-// find the user by itprimary key
+// find the user by it primary key
 const customer = await User.findByPk(passwordReset.customerId);
 customer.password = await bcrypt.hash(newPassword, 10);
 
