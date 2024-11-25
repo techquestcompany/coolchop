@@ -7,6 +7,10 @@ const Dish = sequelize.define('Dish', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  profileImage: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   dishName: {
     type: DataTypes.STRING,
     allowNull: false,

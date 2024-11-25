@@ -98,9 +98,9 @@ exports.login = async (req, res) => {
 // Signup function
 exports.addRestaurant = async (req, res) => {
   try {
-    const { restaurantName, email, phone, address, password } = req.body;
+    const { restaurantName, email, phone, address } = req.body;
 
-    if (!restaurantName || !email || !phone || !address || !password) {
+    if (!restaurantName || !email || !phone || !address) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -110,7 +110,6 @@ exports.addRestaurant = async (req, res) => {
       return res.status(400).json({ error: 'Email already in use' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
 
     const restaurantId = generateRestaurantId(restaurantName);
 
@@ -122,7 +121,6 @@ exports.addRestaurant = async (req, res) => {
       email,
       phone,
       address,
-      password: hashedPassword,
     });
 
       //encrypt restaurant id

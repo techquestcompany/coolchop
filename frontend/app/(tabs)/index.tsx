@@ -1,24 +1,77 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, Button, Modal, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { confimrUserLocation } from '../../services/api';
-import useCheckAuthAndNavigateToIndex from '../../components/checkId';
+import * as SecureStore from 'expo-secure-store';
 
 const HomeScreen = () => {
-  useCheckAuthAndNavigateToIndex(); 
   const [userLocation, setUserLocation] = useState(null);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const checkUserLocation = async () => {
-      const userId = await AsyncStorage.getItem('userId');
-      const userData = await confimrUserLocation(userId); 
-      setUserLocation("Yet to get user location");
+    const checkToken = async () => {
+      try {
+        const token = await SecureStore.getItemAsync('userId'); 
+  
+        if (token) {
+          // Token exists, check user location or do any other checks
+        //  checkUserLocation(token);
+        } else {
+          // No token found, redirect to login page
+          router.push('/login'); // Make sure the path is correct
+        }
+      } catch (error) {
+        console.error("Error fetching token:", error);
+        router.push('/login'); // If there's an error, redirect to login
+      }
     };
+  
+    checkToken(); // Call the async function
+  
+  }, [router]);
 
-    checkUserLocation();
-  }, []);
+  const handleLogout = () => {
+    onLogoutOpen();
+  };
+  
+
+  const onLogoutOpen = () => setIsLogoutDialogOpen(true);
+  const onLogoutClose = () => setIsLogoutDialogOpen(false);
+  
+
+  const handleItemPress = (type, item) => {
+    router.push({
+      pathname: '/info',
+      params: { type, item: JSON.stringify(item) },
+    });
+  };
+
+  const checkUserLocation = async (token) => {
+    const userData = await confimrUserLocation(token); 
+    console.log(userData);
+    if (userData.confirmLocation == false) {
+      router.push('/location');
+    }
+    setUserLocation("Yet to get user location");
+  };
+
+   const confirmLogout = async () => {
+    setLoading(true);
+  
+    await SecureStore.deleteItemAsync('userId'); 
+  
+    setTimeout(() => {
+      setLoading(false);
+
+      alert('Logout successful. You have been logged out.');
+      router.push('/login'); 
+    }, 1000);
+  };
+  
+
+
 
   // Dummy Restaurants Data
   const restaurants = [
@@ -84,6 +137,29 @@ const HomeScreen = () => {
           keyExtractor={(item) => item.id}
         />
       </View>
+
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        visible={isLogoutDialogOpen}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={onLogoutClose}
+      >
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalText}>Are you sure you want to logout?</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <TouchableOpacity style={styles.modalButton} onPress={confirmLogout}>
+              <Text style={styles.modalButtonText}>Confirm Logout</Text>
+            </TouchableOpacity>
+
+          )}
+          <Button title="Cancel" onPress={onLogoutClose} />
+        </View>
+      </Modal>
+
     </View>
   );
 };
@@ -195,6 +271,40 @@ const styles = StyleSheet.create({
   restaurantLocation: {
     fontSize: 12,
     color: '#777',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: 300,
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  modalText: {
+    fontSize: 18,
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#333',
+  },
+  modalButton: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    backgroundColor: '#D32F2F',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });
 

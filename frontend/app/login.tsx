@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
 import { login } from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
 import * as Location from 'expo-location';
@@ -30,49 +29,53 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Handle Sign In
-  const handleSignIn = async () => {
-    try {
-      setLoading(true);
-        // Request location permissions
-        const { status } = await Location.requestForegroundPermissionsAsync();
 
-        if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Location permission is required to proceed.');
-          setLoading(false); // Hide loading indicator
-          return;
-        }
-      // Get the current location
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
+// Handle Sign In
+const handleSignIn = async () => {
+  try {
+    setLoading(true);
 
-      const response = await login(email, password, latitude, longitude);
-      if (response.message == "Login successful") {
-        await AsyncStorage.setItem('userId', response.user.id);
-        Toast.show({
-          type: 'success',
-          text1: 'Login Successful 😊',
-          text2: 'Welcome back! 🎉',
-        });
-        router.push('/verify');
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Login Failed ❌',
-          text2: response.message || 'Please try again.',
-        });
-      }
-    } catch (error) {
+    // Request location permissions
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Location permission is required to proceed.');
+      setLoading(false); // Hide loading indicator
+      return;
+    }
+
+    // Get the current location
+    const location = await Location.getCurrentPositionAsync({});
+    const { latitude, longitude } = location.coords;
+
+    const response = await login(email, password, latitude, longitude);
+
+    if (response.message == "Login successful") {
+      // Set the token securely using expo-secure-store with 7 days expiration
+      await SecureStore.setItemAsync('userId', response.user.id); // Securely store the token
+
+      Toast.show({
+        type: 'success',
+        text1: 'Login Successful 😊',
+        text2: 'Welcome back! 🎉',
+      });
+      router.push('/verify');
+    } else {
       Toast.show({
         type: 'error',
-        text1: 'Sign In Failed ⚠️',
-        text2: error.message || 'Something went wrong.',
+        text1: 'Login Failed ❌',
+        text2: response.message || 'Please try again.',
       });
-    } finally {
-      setLoading(false);
     }
-  };
-
+  } catch (error) {
+    Toast.show({
+      type: 'error',
+      text1: 'Sign In Failed ⚠️',
+      text2: error.message || 'Something went wrong.',
+    });
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -116,7 +119,7 @@ export default function SignInScreen() {
               />
               <Text>Remember me</Text>
             </View>
-            <TouchableOpacity>
+            <TouchableOpacity onPress = {() => router.push('/forgot_password')}>
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
