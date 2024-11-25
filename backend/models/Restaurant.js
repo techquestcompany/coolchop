@@ -34,6 +34,10 @@ const Restaurant = sequelize.define('Restaurant', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  profileImage: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
   longitude: {
     type: DataTypes.FLOAT,
     allowNull: true

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, ActivityIndicator, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Animated, ActivityIndicator, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { submitDishes } from '../../services/api';
 import Toast from 'react-native-toast-message'; 
 import LottieView from 'lottie-react-native'; 
+import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
 
 const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType, multiline }) => {
   return (
@@ -31,7 +33,9 @@ export default function AddDishScreen() {
   const [category, setCategory] = useState('');
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(false);
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [profileImage, setProfileImage] = useState(null);
+
 
     // Fade-in animation for the title
     useEffect(() => {
@@ -44,7 +48,7 @@ export default function AddDishScreen() {
 
 
   const handleAddDish = () => {
-    const newDish = { dishName, description, price, ingredients, category };
+    const newDish = { dishName, description, price, ingredients, category, profileImage };
     setDishes([...dishes, newDish]);
 
     // Clear input fields after adding
@@ -62,7 +66,7 @@ export default function AddDishScreen() {
       setLoading(true);
   
       // Get restaurantId from local storage
-      const restaurantId = await getRestaurantId();
+      const restaurantId = await SecureStore.getItemAsync('resId');
       if (!restaurantId) {
         Alert.alert('Error', 'Restaurant ID not found. Please log in again.');
         return;
@@ -101,6 +105,26 @@ export default function AddDishScreen() {
       setLoading(false);
     }
   };
+
+    // Select Profile Image
+    const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert("Permission to access camera roll is required!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
   
   return (
     <SafeAreaView style={styles.container}>
@@ -119,6 +143,18 @@ export default function AddDishScreen() {
         <Animated.View style={{ opacity: fadeAnim }}>
         <Text style={styles.title}>Add New Dishes</Text>
         </Animated.View>
+
+
+          {/* Profile Picture Upload */}
+          <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <FontAwesome name="camera" size={40} color="#B07A7A" />
+            )}
+            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
+          </TouchableOpacity>
+
 
           {/* Dish Name */}
           <InputField
@@ -212,6 +248,19 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     fontWeight: 'bold',
     marginBottom:40,
+  },
+  imagePicker: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 10,
+  },
+  imagePickerText: {
+    color: '#B07A7A',
   },
   inputContainer: {
     flexDirection: 'row',

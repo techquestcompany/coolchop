@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 
-//const API_URL = 'http://172.20.10.4:3000/api';
-const API_URL = 'http://192.168.0.101:3000/api';
+const API_URL = 'http://172.20.10.4:3000/api';
+// const API_URL = 'http://192.168.0.101:3000/api';
 
 
 const api = axios.create({
@@ -22,9 +22,9 @@ interface Dish {
 }
 
 // Function to handle user signup
-export const signUp = async (name: string, email: string, phone: string,  password: string) => {
+export const signUp = async (name: string, email: string, phone: string,  password: string, profileImage: string) => {
   try {
-    const response = await api.post('/user/signup', {name, email, phone, password});
+    const response = await api.post('/user/signup', {name, email, phone, password, profileImage});
     return response.data;
   } catch (error) {
     console.error('Error signing up:', error);
@@ -102,10 +102,21 @@ export const verify = async (email: string, code: string) => {
   }
 };
 
-// Function to handle restaurant resgistration
-export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string,  password: string) => {
+export const uploadImage = async (profileImage: string) => {
   try {
-    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, password});
+    const response = await api.post('/upload/upload_image', { profileImage });
+    console.log(response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading photo:', error);
+    throw error;
+  }
+};
+
+// Function to handle restaurant resgistration
+export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string,  password: string, profileImage: string) => {
+  try {
+    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, password, profileImage});
     return response.data;
   } catch (error) {
     console.error('Error resgistering restaurant:', error);

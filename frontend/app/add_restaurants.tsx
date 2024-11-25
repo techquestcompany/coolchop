@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
-import { registerRestaurant } from '../../services/api';
+import { registerRestaurant, uploadImage } from '../services/api';
 import Toast from 'react-native-toast-message'; 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
@@ -31,6 +31,7 @@ export default function RestaurantRegistrationScreen() {
   const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Handle restaurant registration
@@ -46,9 +47,8 @@ export default function RestaurantRegistrationScreen() {
 
     try {
       setLoading(true);
-      const response = await registerRestaurant(restaurantName, email, phone, address, password);
+      const response = await registerRestaurant(restaurantName, email, phone, address, password, profileImage);
       if (response.message == "Restaurant registered successfully") {
-        await AsyncStorage.setItem('restaurantId', response.restaurant.id);
         Toast.show({
           type: 'success',
           text1: 'Registration Successful',
@@ -73,6 +73,50 @@ export default function RestaurantRegistrationScreen() {
     }
   };
 
+     // Select Profile Image
+     const pickImage = async () => {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        alert("Permission to access camera roll is required!");
+        return;
+      }
+  
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+  
+      if (!result.canceled) {
+        setProfileImage(result.assets[0].uri);
+      }
+
+      try{
+        const response = await uploadImage(profileImage);
+        console.log(response);
+        if (response.message == "Restaurant registered successfully") {
+          Toast.show({
+            type: 'success',
+            text1: 'Registration Successful',
+            text2: 'Your restaurant has been registered!',
+          });
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: 'Registration Failed',
+            text2: response.message || 'Please try again.',
+          });
+        }
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Registration Failed',
+          text2: error.message || 'Something went wrong.',
+        });
+      }
+    };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -83,11 +127,22 @@ export default function RestaurantRegistrationScreen() {
           </TouchableOpacity>
 
           {/* Logo */}
-          <Image source={require('../../assets/images/restaurant.webp')} style={styles.logo} />
+          <Image source={require('../assets/images/restaurant.webp')} style={styles.logo} />
 
           {/* Title */}
           <Text style={styles.title}>Register Your Restaurant</Text>
           <Text style={styles.subTitle}>Please provide the details below to register your restaurant 🍽️</Text>
+
+          {/* Profile Picture Upload */}
+          <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <FontAwesome name="camera" size={40} color="#B07A7A" />
+            )}
+            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
+          </TouchableOpacity>
+
 
           {/* Restaurant Name Input */}
           <InputField
@@ -169,6 +224,19 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 20,
+  },
+  imagePicker: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 10,
+  },
+  imagePickerText: {
+    color: '#B07A7A',
   },
   logo: {
     width: 180,

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
-import { login, verifyToken } from '../services/api';
-import * as SecureStore from 'expo-secure-store';
+import { login } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
 import * as Location from 'expo-location';
@@ -30,29 +29,6 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    checkTokenValidity();
-  }, [router]);
-
-
-// Function to check if token is valid
-const checkTokenValidity = async () => {
-  const token = await SecureStore.getItemAsync('userId');
-  console.log(token)
-  if (token) {
-    try {
-      const isValid = await verifyToken(token);
-      if (!isValid) {
-        await SecureStore.deleteItemAsync('userId'); // Remove expired or invalid token securely
-      } else {
-        router.push('/(tabs)');
-      }
-    } catch (error) {
-      console.error("Token verification failed:", error);
-      await SecureStore.deleteItemAsync('userId'); // Remove invalid token securely
-    }
-  }
-};
 
 // Handle Sign In
 const handleSignIn = async () => {

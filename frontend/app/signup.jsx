@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
-import { signUp } from '../services/api';
+import { signUp, uploadImage } from '../services/api';
 import Toast from 'react-native-toast-message'; 
 import * as ImagePicker from 'expo-image-picker';
 
@@ -41,7 +41,7 @@ export default function SignUpScreen() {
 
     try {
       setLoading(true);
-      const response = await signUp(name, email, phone, password);
+      const response = await signUp(name, email, phone, password, profileImage);
       if (response.message == "User created successfully") {
         Toast.show({
           type: 'success',
@@ -84,6 +84,31 @@ export default function SignUpScreen() {
 
     if (!result.canceled) {
       setProfileImage(result.assets[0].uri);
+    }
+
+    try{
+      console.log(result.assets[0].uri);
+      const response = await uploadImage(result.assets[0].uri);
+      console.log(response);
+      if (response.message == "Restaurant registered successfully") {
+        Toast.show({
+          type: 'success',
+          text1: 'Registration Successful',
+          text2: 'Your restaurant has been registered!',
+        });
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Registration Failed',
+          text2: response.message || 'Please try again.',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Registration Failed',
+        text2: error.message || 'Something went wrong.',
+      });
     }
   };
 
