@@ -114,9 +114,9 @@ export const uploadImage = async (profileImage: string) => {
 };
 
 // Function to handle restaurant resgistration
-export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string,  password: string, profileImage: string) => {
+export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string, profileImage: string) => {
   try {
-    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, password, profileImage});
+    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, profileImage});
     return response.data;
   } catch (error) {
     console.error('Error resgistering restaurant:', error);

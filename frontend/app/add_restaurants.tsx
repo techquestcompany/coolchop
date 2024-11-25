@@ -29,8 +29,6 @@ export default function RestaurantRegistrationScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -40,14 +38,10 @@ export default function RestaurantRegistrationScreen() {
       Alert.alert("All fields are required");
       return;
     }
-    else if (password !== confirmPassword) {
-      Alert.alert("Passwords do not match");
-      return;
-    }
 
     try {
       setLoading(true);
-      const response = await registerRestaurant(restaurantName, email, phone, address, password, profileImage);
+      const response = await registerRestaurant(restaurantName, email, phone, address, profileImage);
       if (response.message == "Restaurant registered successfully") {
         Toast.show({
           type: 'success',
@@ -178,23 +172,7 @@ export default function RestaurantRegistrationScreen() {
             onChangeText={setAddress}
           />
           
-          {/* Password Input */}
-          <InputField
-            iconName="lock"
-            placeholder="Password"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          {/* Re-type Password Input */}
-          <InputField
-            iconName="lock"
-            placeholder="Re-type Password"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
+      
 
           {/* Register Button */}
           <TouchableOpacity style={styles.registerButton} onPress={(handleRegistration)}>
