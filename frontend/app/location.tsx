@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+/* import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getUserData, confirmNewLocation } from '../services/api';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete'
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import * as SecureStore from 'expo-secure-store';
 
 const LocationScreen = () => {
@@ -17,7 +17,7 @@ const LocationScreen = () => {
   const [region, setRegion] = useState({
     latitude: initialLocation.latitude,
     longitude: initialLocation.longitude,
-    latitudeDelta: 0.0922,
+    latitudeDelta: 0.0922, 
     longitudeDelta: 0.0421,
   });
   const [errorMsg, setErrorMsg] = useState(null);
@@ -49,7 +49,7 @@ const LocationScreen = () => {
     try {
       const userId = await SecureStore.getItemAsync('userId');
       const user = await confirmNewLocation(userId, latitude, longitude);
-      if(user.confirmLocation == true){
+      if(user.confirmLocation === true){
         router.push("/(tabs)");
       } 
     } catch (error) {
@@ -95,7 +95,6 @@ const LocationScreen = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
       </TouchableOpacity>
@@ -113,9 +112,8 @@ const LocationScreen = () => {
         <Text>{errorMsg || 'Waiting...'}</Text>
       )}
 
-      {/* Google Places Search for location */}
-       <View style={styles.locationContainer}>
-       <GooglePlacesAutocomplete
+      <View style={styles.locationContainer}>
+        <GooglePlacesAutocomplete
           placeholder="Search location"
           onPress={(data, details = null) => {
             const { lat, lng } = details.geometry.location;
@@ -180,11 +178,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   confirmButton: {
-    backgroundColor: '#D32F2F',
     paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 20,
     marginBottom: 10,
+    backgroundColor: '#D32F2F',
   },
   confirmButtonText: {
     color: '#fff',
@@ -192,4 +190,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LocationScreen;
+export default LocationScreen; */

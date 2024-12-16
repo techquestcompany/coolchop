@@ -34,7 +34,7 @@ export default function AddDishScreen() {
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [profileImage, setProfileImage] = useState(null);
+  const [foodImage, setFoodImage] = useState(null);
 
 
     // Fade-in animation for the title
@@ -48,7 +48,7 @@ export default function AddDishScreen() {
 
 
   const handleAddDish = () => {
-    const newDish = { dishName, description, price, ingredients, category, profileImage };
+    const newDish = { dishName, description, price, ingredients, category, foodImage };
     setDishes([...dishes, newDish]);
 
     // Clear input fields after adding
@@ -147,15 +147,15 @@ export default function AddDishScreen() {
 
           {/* Profile Picture Upload */}
           <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-            {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            {foodImage ? (
+              <Image source={{ uri: foodImage }} style={styles.profileImage} />
             ) : (
               <FontAwesome name="camera" size={40} color="#B07A7A" />
             )}
-            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
+            <Text style={styles.imagePickerText}>Upload Food Picture</Text>
           </TouchableOpacity>
 
-
+                                                                                
           {/* Dish Name */}
           <InputField
             iconName="cutlery"

@@ -59,7 +59,7 @@ const sendEmail = async (email, restaurantId) => {
 // Login function
 exports.login = async (req, res) => {
   try {
-    const { restaurantId, password, longitude, latitude } = req.body;
+    const { restaurantId,longitude, latitude } = req.body;
 
     // Check if user exists
     const restaurant = await Restaurant.findOne({ where: { restaurantId } });
@@ -69,11 +69,11 @@ exports.login = async (req, res) => {
     }
 
     // Check if the password is correct
-    const isMatch = await bcrypt.compare(password, restaurant.password);
+   // const isMatch = await bcrypt.compare(password, restaurant.password);
 
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid id or password' });
-    }
+    //if (!isMatch) {
+    //  return res.status(400).json({ error: 'Invalid id or password' });
+    //}
 
     await restaurant.update({
       longitude,
@@ -121,6 +121,7 @@ exports.addRestaurant = async (req, res) => {
       email,
       phone,
       address,
+      verificationStatus
     });
 
       //encrypt restaurant id

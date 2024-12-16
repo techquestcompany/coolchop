@@ -51,6 +51,14 @@ export default function RootLayout() {
         <Stack.Screen name="manage_res" options={{ headerShown: false }} />
         <Stack.Screen name="users" options={{ headerShown: false }} />
         <Stack.Screen name="restaurants" options={{ headerShown: false }} />
+        <Stack.Screen name="vendorPortal" options={{ headerShown: false }} />
+        <Stack.Screen name="vendorOrders" options={{ headerShown: false }} />
+        <Stack.Screen name="vendorSettings" options={{ headerShown: false }} />
+        <Stack.Screen name="About" options={{ headerShown: false }} />
+        <Stack.Screen name="vendorPayments" options={{ headerShown: false }} />
+        <Stack.Screen name="Support" options={{ headerShown: false }} />
+        <Stack.Screen name="vendorProfile" options={{ headerShown: false }} />
+        <Stack.Screen name="VendorLogo" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         <Toast />
       </Stack>

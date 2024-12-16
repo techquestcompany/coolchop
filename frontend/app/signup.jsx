@@ -41,7 +41,7 @@ export default function SignUpScreen() {
 
     try {
       setLoading(true);
-      const response = await signUp(name, email, phone, password, profileImage);
+      const response = await signUp(name, email, phone, password);
       if (response.message == "User created successfully") {
         Toast.show({
           type: 'success',
@@ -53,9 +53,9 @@ export default function SignUpScreen() {
         Toast.show({
           type: 'error',
           text1: 'Sign up Failed',
-          text2: response.message || 'Please try again.',
+          text2: response.message || 'Please try again.',  
         });
-      }
+      }   
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -68,7 +68,7 @@ export default function SignUpScreen() {
   };
 
    // Select Profile Image
-   const pickImage = async () => {
+   /*const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       alert("Permission to access camera roll is required!");
@@ -110,7 +110,7 @@ export default function SignUpScreen() {
         text2: error.message || 'Something went wrong.',
       });
     }
-  };
+  };*/
 
   return (
     <SafeAreaView style={styles.container}>
@@ -127,17 +127,6 @@ export default function SignUpScreen() {
           {/* Title */}
           <Text style={styles.title}>Sign Up</Text>
           <Text style={styles.subTitle}>Please sign up to get started 😊</Text>
-
-            {/* Profile Picture Upload */}
-            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-            {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImage} />
-            ) : (
-              <FontAwesome name="camera" size={40} color="#B07A7A" />
-            )}
-            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
-          </TouchableOpacity>
-
 
           {/* Name Input */}
           <InputField
@@ -175,14 +164,7 @@ export default function SignUpScreen() {
             onChangeText={setPassword}
           />
 
-          {/* Re-type Password Input */}
-          <InputField
-            iconName="lock"
-            placeholder="Re-type Password"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
+         
 
           {/* Sign Up Button */}
           <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>

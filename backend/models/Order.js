@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
+const User= require("./User")
 
 const Order=sequelize.define("Order",{
         
@@ -19,11 +20,11 @@ const Order=sequelize.define("Order",{
           
     })
 
-Order.belongsTo(models.Customer, {
+Order.belongsTo(User, {
     foreignKey: 'customerId',
     as: 'customer',
   });
-  Order.belongsTo(models.Vendor, {
+  Order.belongsTo(User, {
     foreignKey: 'vendorId',
     as: 'vendor',
   });

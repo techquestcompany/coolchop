@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
-import { registerRestaurant, uploadImage } from '../services/api';
+import { registerRestaurant } from '../services/api'; // Ensure this is the correct import
 import Toast from 'react-native-toast-message'; 
-import * as ImagePicker from 'expo-image-picker';
 
-
-const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
+const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType }) => {
   return (
     <View style={styles.inputContainer}>
       <FontAwesome name={iconName} size={20} color="#B07A7A" style={styles.icon} />
@@ -15,7 +13,6 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
         style={styles.input}
         placeholder={placeholder}
         placeholderTextColor="#B07A7A"
-        secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         value={value}
         onChangeText={onChangeText}
@@ -24,38 +21,56 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
   );
 };
 
-export default function RestaurantRegistrationScreen() {
+export default function AddRestaurantScreen() {
   const [restaurantName, setRestaurantName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Handle restaurant registration
-  const handleRegistration = async () => {
-    if (!restaurantName || !email || !address) {
-      Alert.alert("All fields are required");
+  const verifyPhone=(phone)=>{
+   const phonePattern=/\d+/
+   return phonePattern.test(phone)
+  }
+
+  // verify the email typed by the user
+  const validateEmail = (email) => {
+    const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    return emailPattern.test(email);
+  };
+
+  // Handle Add Restaurant
+  const handleAddRestaurant = async () => {
+
+  if(!verifyPhone){
+    Alert.alert("Invalid Phone format")
+  }
+
+  if(!verifyEmail){
+    Alert.alert("invalid email format")
+  }
+    if (!restaurantName || !email || !phone || !address) {
+      Alert.alert("All fields are required!");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await registerRestaurant(restaurantName, email, phone, address );
-      if (response.message == "Restaurant registered successfully") {
+      const response = await registerRestaurant(restaurantName, email, phone, address);
+      if (response.message === "Restaurant registered successfully") {
         Toast.show({
           type: 'success',
-          text1: 'Registration Successful',
-          text2: 'Your restaurant has been registered!',
+          text1: 'Restaurant Registration Successful',
+          text2: 'Your restaurant has been added!',
         });
-        router.push('/add_dish');
+        router.push('/restaurant/dashboard'); // Redirect to restaurant dashboard or login
       } else {
         Toast.show({
           type: 'error',
-          text1: 'Registration Failed',
+          text1: 'Restaurant Registration Failed',
           text2: response.message || 'Please try again.',
         });
-      }
+      }   
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -67,50 +82,6 @@ export default function RestaurantRegistrationScreen() {
     }
   };
 
-     // Select Profile Image
-   /*  const pickImage = async () => {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        alert("Permission to access camera roll is required!");
-        return;
-      }
-  
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-  
-      if (!result.canceled) {
-        setProfileImage(result.assets[0].uri);
-      }
-
-      try{
-        const response = await uploadImage(profileImage);
-        console.log(response);
-        if (response.message == "Restaurant registered successfully") {
-          Toast.show({
-            type: 'success',
-            text1: 'Registration Successful',
-            text2: 'Your restaurant has been registered!',
-          });
-        } else {
-          Toast.show({
-            type: 'error',
-            text1: 'Registration Failed',
-            text2: response.message || 'Please try again.',
-          });
-        }
-      } catch (error) {
-        Toast.show({
-          type: 'error',
-          text1: 'Registration Failed',
-          text2: error.message || 'Something went wrong.',
-        });
-      }
-    };*/
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -120,15 +91,12 @@ export default function RestaurantRegistrationScreen() {
             <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
           </TouchableOpacity>
 
-          {/* Logo */}
-          <Image source={require('../assets/images/restaurant.webp')} style={styles.logo} />
+          {/* CoolChop Logo */}
+          <Image source={require('../assets/images/coolchop.png')} style={styles.logo} />
 
           {/* Title */}
-          <Text style={styles.title}>Register Your Restaurant</Text>
-          <Text style={styles.subTitle}>Please provide the details below to register your restaurant 🍽️</Text>
-
-          {/* Profile Picture Upload */}
-      
+          <Text style={styles.title}>Add Restaurant</Text>
+          <Text style={styles.subTitle}>Please add your restaurant to get started 😊</Text>
 
           {/* Restaurant Name Input */}
           <InputField
@@ -163,17 +131,22 @@ export default function RestaurantRegistrationScreen() {
             value={address}
             onChangeText={setAddress}
           />
-          
-      
 
-          {/* Register Button */}
-          <TouchableOpacity style={styles.registerButton} onPress={(handleRegistration)}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <Text style={styles.buttonText}>Register</Text>
-          )}
+          {/* Add Restaurant Button */}
+          <TouchableOpacity style={styles.addRestaurantButton} onPress={handleAddRestaurant}>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <Text style={styles.buttonText}>Add Restaurant</Text>
+            )}
           </TouchableOpacity>
+
+          {/* Footer Text */}
+          <Text style={styles.footerText}>
+            By continuing with an account located in Ghana, you agree to our{' '}
+            <Text style={styles.linkText}>Terms of Service</Text> and acknowledge that you have read our{' '}
+            <Text style={styles.linkText}>Privacy Policy</Text>.
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
       <Toast ref={(ref) => Toast.setRef(ref)} />
@@ -195,22 +168,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 20,
   },
-  imagePicker: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
-  },
-  imagePickerText: {
-    color: '#B07A7A',
-  },
   logo: {
     width: 180,
-    height: 380,
+    height: 180,
     marginBottom: 5,
   },
   title: {
@@ -241,7 +201,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
-  registerButton: {
+  addRestaurantButton: {
     width: '100%',
     backgroundColor: '#D32F2F',
     padding: 15,
@@ -251,5 +211,14 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 18,
+  },
+  footerText: {
+    marginTop: 20,
+    textAlign: 'center',
+    color: '#7B7B7B',
+  },
+  linkText: {
+    color: '#D32F2F',
+    textDecorationLine: 'underline',
   },
 });
