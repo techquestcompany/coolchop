@@ -144,15 +144,7 @@ export default function RestaurantRegistrationScreen() {
           <Text style={styles.subTitle}>Please provide the details below to register your restaurant 🍽️</Text>
 
           {/* Profile Picture Upload */}
-          <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-            {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImage} />
-            ) : (
-              <FontAwesome name="camera" size={40} color="#B07A7A" />
-            )}
-            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
-          </TouchableOpacity>
-
+      
 
           {/* Restaurant Name Input */}
           <InputField

@@ -2,13 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
-import { signUp, api } from '../services/api';
+import { registerRestaurant } from '../services/api'; // Ensure this is the correct import
 import Toast from 'react-native-toast-message'; 
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 
-
-const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
+const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType }) => {
   return (
     <View style={styles.inputContainer}>
       <FontAwesome name={iconName} size={20} color="#B07A7A" style={styles.icon} />
@@ -16,7 +13,6 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
         style={styles.input}
         placeholder={placeholder}
         placeholderTextColor="#B07A7A"
-        secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         value={value}
         onChangeText={onChangeText}
@@ -25,101 +21,66 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
   );
 };
 
-export default function SignUpScreen() {
-  const [name, setName] = useState('');
+export default function AddRestaurantScreen() {
+  const [restaurantName, setRestaurantName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [profileImage, setProfileImage] = useState(null);
-  const [imageName, setImageName] = useState('');
+  const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Handle Sign Up
-  const handleSignUp = async () => {
-    if (password !== confirmPassword) {
-      Alert.alert("Passwords do not match");
+  const verifyPhone=(phone)=>{
+   const phonePattern=/\d+/
+   return phonePattern.test(phone)
+  }
+
+  // verify the email typed by the user
+  const validateEmail = (email) => {
+    const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    return emailPattern.test(email);
+  };
+
+  // Handle Add Restaurant
+  const handleAddRestaurant = async () => {
+
+  if(!verifyPhone){
+    Alert.alert("Invalid Phone format")
+  }
+
+  if(!verifyEmail){
+    Alert.alert("invalid email format")
+  }
+    if (!restaurantName || !email || !phone || !address) {
+      Alert.alert("All fields are required!");
       return;
     }
 
     try {
       setLoading(true);
-      const response = await signUp(name, email, phone, password, imageName);
-      if (response.message == "User created successfully") {
+      const response = await registerRestaurant(restaurantName, email, phone, address);
+      if (response.message === "Restaurant registered successfully") {
         Toast.show({
           type: 'success',
-          text1: 'Sign up Successful',
-          text2: 'Welcome! 🎉',
+          text1: 'Restaurant Registration Successful',
+          text2: 'Your restaurant has been added!',
         });
-        router.push('/login');
+        router.push('/restaurant/dashboard'); // Redirect to restaurant dashboard or login
       } else {
         Toast.show({
           type: 'error',
-          text1: 'Sign up Failed',
-          text2: response.message || 'Please try again.',  
+          text1: 'Restaurant Registration Failed',
+          text2: response.message || 'Please try again.',
         });
       }   
     } catch (error) {
       Toast.show({
         type: 'error',
-        text1: 'Sign Up Failed',
+        text1: 'Registration Failed',
         text2: error.message || 'Something went wrong.',
       });
     } finally {
       setLoading(false);
     }
   };
-
-   // Select Profile Image
-   const pickImage = async () => {
-    // Request permission to access media library
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need permission to access your media library.');
-      return;
-    }
-  
-    // Launch image picker
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-  
-    if (!result.canceled) {
-      // Get the URI of the selected image
-      const sourceUri = result.assets[0].uri;
-  
-      try {
-        const fileInfo = await FileSystem.getInfoAsync(sourceUri);
-        const formData = new FormData();
-        formData.append('file', {
-          uri: sourceUri,
-          name: fileInfo.uri.split('/').pop(),
-          type: 'image/jpeg',
-        });
-  
-        // Upload the image to your server
-        const response = await api.post('/upload/upload_image', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        if (response.data.success) {
-          const serverImageUrl = response.data.url;
-          setProfileImage(serverImageUrl);
-          setImageName(response.data.imageName);
-
-        } else {
-          Alert.alert('Error', 'Failed to upload the image');
-        }
-      } catch (error) {
-        console.error('Error uploading the image:', error);
-        Alert.alert('Error', 'Failed to upload the image');
-      }
-    }
-  };*/
 
   return (
     <SafeAreaView style={styles.container}>
@@ -134,15 +95,15 @@ export default function SignUpScreen() {
           <Image source={require('../assets/images/coolchop.png')} style={styles.logo} />
 
           {/* Title */}
-          <Text style={styles.title}>Sign Up</Text>
-          <Text style={styles.subTitle}>Please sign up to get started 😊</Text>
+          <Text style={styles.title}>Add Restaurant</Text>
+          <Text style={styles.subTitle}>Please add your restaurant to get started 😊</Text>
 
-          {/* Name Input */}
+          {/* Restaurant Name Input */}
           <InputField
-            iconName="user"
-            placeholder="Name"
-            value={name}
-            onChangeText={setName}
+            iconName="building"
+            placeholder="Restaurant Name"
+            value={restaurantName}
+            onChangeText={setRestaurantName}
           />
 
           {/* Email Input */}
@@ -154,7 +115,6 @@ export default function SignUpScreen() {
             onChangeText={setEmail}
           />
 
-          
           {/* Phone Input */}
           <InputField
             iconName="phone"
@@ -164,24 +124,21 @@ export default function SignUpScreen() {
             onChangeText={setPhone}
           />
 
-          {/* Password Input */}
+          {/* Address Input */}
           <InputField
-            iconName="lock"
-            placeholder="Password"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
+            iconName="map-marker"
+            placeholder="Restaurant Address"
+            value={address}
+            onChangeText={setAddress}
           />
 
-         
-
-          {/* Sign Up Button */}
-          <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
-          )}
+          {/* Add Restaurant Button */}
+          <TouchableOpacity style={styles.addRestaurantButton} onPress={handleAddRestaurant}>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <Text style={styles.buttonText}>Add Restaurant</Text>
+            )}
           </TouchableOpacity>
 
           {/* Footer Text */}
@@ -226,19 +183,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 30,
   },
-  imagePicker: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
-  },
-  imagePickerText: {
-    color: '#B07A7A',
-  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -257,7 +201,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
-  signUpButton: {
+  addRestaurantButton: {
     width: '100%',
     backgroundColor: '#D32F2F',
     padding: 15,

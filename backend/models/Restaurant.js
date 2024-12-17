@@ -32,7 +32,7 @@ const Restaurant = sequelize.define('Restaurant', {
   },
   profileImage: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true
   },
   longitude: {
     type: DataTypes.FLOAT,
@@ -47,6 +47,10 @@ const Restaurant = sequelize.define('Restaurant', {
     allowNull: false,
     defaultValue: false
   },
+  verificationStatus:{
+    type: DataTypes.STRING,
+    default:"Not Verified"
+  }
 }, {});
 
 module.exports = Restaurant;
