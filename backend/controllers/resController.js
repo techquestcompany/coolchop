@@ -121,7 +121,7 @@ exports.addRestaurant = async (req, res) => {
       email,
       phone,
       address,
-      profileImage
+      profileImage,
       verificationStatus
     });
 

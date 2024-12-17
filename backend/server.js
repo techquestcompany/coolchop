@@ -18,13 +18,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
-
-app.use('/public', express.static(path.join(__dirname, 'public')));
-
-
-// routes
-app.use('/api/user', userRoutes);
 // Create HTTP server and attach to Socket.IO
 const server = http.createServer(app);
 const socketServer = new Server(server);
@@ -37,10 +30,8 @@ socketServer.on("disconnect", () => {
   console.log("WebSocket connection disconnected");
 });
 
-// Default route for /api
-app.get('/api', (req, res) => {
-  res.send('API Root is working');
-});
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 
 // API Routes
 app.use('/api/user', authRoutes);
@@ -56,7 +47,7 @@ sequelize.sync().then(() => {
   console.error('Unable to sync database:', err);
 });
 
-const PORT = process.env.PORT || 8082;
+const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || 'http://192.168.68.9:8082'; 
 
 server.listen(PORT, () => {

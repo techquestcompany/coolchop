@@ -1,9 +1,9 @@
-const User = require('../models/User');
-const bcrypt = require('bcryptjs');
-const { encrypt, decrypt } = require('../utils/encryption');
-const nodemailer = require('nodemailer');
+const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+const { encrypt, decrypt } = require("../utils/encryption");
+const nodemailer = require("nodemailer");
 const crypto = require("crypto");
-require('dotenv').config();
+require("dotenv").config();
 
 // Function to generate a random 4-digit verification code
 /*const generateVerificationCode = () => {
@@ -43,19 +43,19 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      return res.status(400).json({ error: "Invalid email or password" });
     }
 
     // Check if the password is correct
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      return res.status(400).json({ error: "Invalid email or password" });
     }
 
     await user.update({
       longitude,
-      latitude 
+      latitude,
     });
 
     // Generate a random 4-digit verification code
@@ -68,13 +68,13 @@ exports.login = async (req, res) => {
     const user_id = await encrypt(user.id.toString());
 
     res.status(200).json({
-      message: 'Login successful',
+      message: "Login successful",
       user: {
         id: user_id,
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -84,13 +84,13 @@ exports.signup = async (req, res) => {
     const { name, email, phone, password, profileImage } = req.body;
 
     if (!name || !email || !phone || !password || profileImage) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({ error: "All fields are required" });
     }
 
     // Check if email is already registered
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already in use' });
+      return res.status(400).json({ error: "Email already in use" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -100,14 +100,14 @@ exports.signup = async (req, res) => {
       email,
       phone,
       password: hashedPassword,
-      profileImage
+      profileImage,
     });
 
     res.status(201).json({
-      message: 'User created successfully',
+      message: "User created successfully",
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error creating user' });
+    res.status(500).json({ error: "Error creating user" });
   }
 };
 
@@ -119,35 +119,35 @@ exports.verifyCode = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
-      return res.status(400).json({ error: 'Invalid email or code' });
+      return res.status(400).json({ error: "Invalid email or code" });
     }
 
     // Check if the code matches
     if (user.code !== code) {
-      return res.status(400).json({ error: 'Invalid verification code' });
+      return res.status(400).json({ error: "Invalid verification code" });
     }
 
     await user.update({ code: null });
 
-    res.status(200).json({ message: 'Code verified successfully' });
+    res.status(200).json({ message: "Code verified successfully" });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
 // Getting user data
 exports.getUserData = async (req, res) => {
   try {
-    const token = req.headers.authorization.split(' ')[1]; 
+    const token = req.headers.authorization.split(" ")[1];
     if (!token) {
-      return res.status(401).json({ error: 'Authentication token missing' });
+      return res.status(401).json({ error: "Authentication token missing" });
     }
 
     const decoded = await decrypt(token);
     const user = await User.findOne({ where: { id: decoded } });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: "User not found" });
     }
 
     res.status(200).json({
@@ -157,46 +157,32 @@ exports.getUserData = async (req, res) => {
       latitude: user.latitude,
     });
   } catch (error) {
-    console.error('Error getting user data:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error getting user data:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };
-
-// Forgotten Password function
-exports.forgottenPassword = async (req, res) => {
-  const { email } = req.body;
-
-
-
-
-
-
 
 exports.searchUser = async (req, res) => {
   try {
     const { q } = req.query;
     if (!q) {
-      return res.status(400).send('Query parameter is required');
+      return res.status(400).send("Query parameter is required");
     }
-    const regex = new RegExp(q, 'i'); // Case-insensitive search
+    const regex = new RegExp(q, "i"); // Case-insensitive search
     const users = await User.find({ name: regex }).limit(10); // Adjust limit as needed
     res.json(users);
   } catch (error) {
     console.error(error);
-    res.status(500).send('Server error');
+    res.status(500).send("Server error");
   }
-}
-
-
-
-
+};
 
 exports.getUserById = async (req, res) => {
   try {
     const { userId } = req.query;
 
     if (!userId) {
-      return res.status(400).send('User ID parameter is required');
+      return res.status(400).send("User ID parameter is required");
     }
 
     const user = await User.findById(userId);
@@ -207,20 +193,21 @@ exports.getUserById = async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    console.error('Error fetching user by ID:', error.message);
+    console.error("Error fetching user by ID:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
-exports.forgottenPassword= async (req,res)=>{
-  const {email} = req.body
+
+exports.forgottenPassword = async (req, res) => {
+  const { email } = req.body;
 
   const customer = await User.findOne({ where: { email } });
 
   if (!customer) {
-    return res.status(400).json({ message: 'Customer not found' });
+    return res.status(400).json({ message: "Customer not found" });
   }
 
-  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetToken = crypto.randomBytes(32).toString("hex");
   const tokenExpiry = Date.now() + 86400000; // 24 hours expiration
 
   // Update user with reset token and expiry
@@ -229,7 +216,7 @@ exports.forgottenPassword= async (req,res)=>{
     tokenExpiry,
   });
 
-  // Send email with reset link 
+  // Send email with reset link
   /*const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -260,20 +247,21 @@ exports.passwordReset = async (req, res) => {
 
   const passwordReset = await User.findOne({ where: { resetToken: token } });
   if (!passwordReset || passwordReset.tokenExpiry < Date.now()) {
-    return res.status(400).json({ message: 'Invalid or expired token' });
+    return res.status(400).json({ message: "Invalid or expired token" });
   }
 
   const customer = await User.findByPk(passwordReset.customerId);
   customer.password = await bcrypt.hash(newPassword, 10);
 
   await customer.save();
-  await passwordReset.destroy(); // Delete the reset token  
+  await passwordReset.destroy(); // Delete the reset token
 
-  res.json({ message: 'Password updated successfully' });
+  res.json({ message: "Password updated successfully" });
 };
-exports.getAllUsers= async (req,res)=>{
-   const getUsers= await User.findAll()
-   if(getUsers){
-    res.status(200).json(getUsers)
-   }
-}
+
+exports.getAllUsers = async (req, res) => {
+  const getUsers = await User.findAll();
+  if (getUsers) {
+    res.status(200).json(getUsers);
+  }
+};
