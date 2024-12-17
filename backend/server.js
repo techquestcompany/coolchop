@@ -9,6 +9,9 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 const http = require('http');  // Import http module to attach WebSocket
 require('dotenv').config();
+const path = require('path');
+
+
 
 const app = express();
 
@@ -27,10 +30,8 @@ socketServer.on("disconnect", () => {
   console.log("WebSocket connection disconnected");
 });
 
-// Default route for /api
-app.get('/api', (req, res) => {
-  res.send('API Root is working');
-});
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 
 // API Routes
 app.use('/api/user', authRoutes);
@@ -46,7 +47,7 @@ sequelize.sync().then(() => {
   console.error('Unable to sync database:', err);
 });
 
-const PORT = process.env.PORT || 8082;
+const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || 'http://192.168.68.9:8082'; 
 
 server.listen(PORT, () => {
