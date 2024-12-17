@@ -98,9 +98,9 @@ exports.login = async (req, res) => {
 // Signup function
 exports.addRestaurant = async (req, res) => {
   try {
-    const { restaurantName, email, phone, address } = req.body;
+    const { restaurantName, email, phone, address, profileImage } = req.body;
 
-    if (!restaurantName || !email || !phone || !address) {
+    if (!restaurantName || !email || !phone || !address || !profileImage ) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -121,6 +121,7 @@ exports.addRestaurant = async (req, res) => {
       email,
       phone,
       address,
+      profileImage
     });
 
       //encrypt restaurant id

@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; 
 import { router } from 'expo-router';
-import { signUp, uploadImage } from '../services/api';
+import { signUp, api } from '../services/api';
 import Toast from 'react-native-toast-message'; 
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
   return (
@@ -30,6 +32,7 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profileImage, setProfileImage] = useState(null);
+  const [imageName, setImageName] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Handle Sign Up
@@ -41,7 +44,7 @@ export default function SignUpScreen() {
 
     try {
       setLoading(true);
-      const response = await signUp(name, email, phone, password, profileImage);
+      const response = await signUp(name, email, phone, password, imageName);
       if (response.message == "User created successfully") {
         Toast.show({
           type: 'success',
@@ -69,46 +72,52 @@ export default function SignUpScreen() {
 
    // Select Profile Image
    const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Permission to access camera roll is required!");
+    // Request permission to access media library
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need permission to access your media library.');
       return;
     }
-
+  
+    // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [4, 3],
       quality: 1,
     });
-
+  
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-    }
+      // Get the URI of the selected image
+      const sourceUri = result.assets[0].uri;
+  
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(sourceUri);
+        const formData = new FormData();
+        formData.append('file', {
+          uri: sourceUri,
+          name: fileInfo.uri.split('/').pop(),
+          type: 'image/jpeg',
+        });
+  
+        // Upload the image to your server
+        const response = await api.post('/upload/upload_image', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        if (response.data.success) {
+          const serverImageUrl = response.data.url;
+          setProfileImage(serverImageUrl);
+          setImageName(response.data.imageName);
 
-    try{
-      console.log(result.assets[0].uri);
-      const response = await uploadImage(result.assets[0].uri);
-      console.log(response);
-      if (response.message == "Restaurant registered successfully") {
-        Toast.show({
-          type: 'success',
-          text1: 'Registration Successful',
-          text2: 'Your restaurant has been registered!',
-        });
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Registration Failed',
-          text2: response.message || 'Please try again.',
-        });
+        } else {
+          Alert.alert('Error', 'Failed to upload the image');
+        }
+      } catch (error) {
+        console.error('Error uploading the image:', error);
+        Alert.alert('Error', 'Failed to upload the image');
       }
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Registration Failed',
-        text2: error.message || 'Something went wrong.',
-      });
     }
   };
 

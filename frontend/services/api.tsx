@@ -1,15 +1,11 @@
 import axios from 'axios';
 
 
-<<<<<<< HEAD
-const API_URL = 'http://192.168.56.1:5000/api';
-=======
 const API_URL = 'http://172.20.10.4:3000/api';
-// const API_URL = 'http://192.168.0.101:3000/api';
->>>>>>> 7587d9c5e9391147bdd1ea3fc7f8991d45f39c6e
+// const API_URL = 'http://192.168.0.103:3000/api';
 
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -106,16 +102,6 @@ export const verify = async (email: string, code: string) => {
   }
 };
 
-export const uploadImage = async (profileImage: string) => {
-  try {
-    const response = await api.post('/upload/upload_image', { profileImage });
-    console.log(response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error uploading photo:', error);
-    throw error;
-  }
-};
 
 // Function to handle restaurant resgistration
 export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string, profileImage: string) => {

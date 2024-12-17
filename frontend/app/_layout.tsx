@@ -51,6 +51,7 @@ export default function RootLayout() {
         <Stack.Screen name="manage_res" options={{ headerShown: false }} />
         <Stack.Screen name="users" options={{ headerShown: false }} />
         <Stack.Screen name="restaurants" options={{ headerShown: false }} />
+        <Stack.Screen name="[id]" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         <Toast />
       </Stack>

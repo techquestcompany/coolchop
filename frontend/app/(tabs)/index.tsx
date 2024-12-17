@@ -3,43 +3,40 @@ import { View, Text, StyleSheet, FlatList, Image, Button, Modal, ActivityIndicat
 import { useRouter } from 'expo-router';
 import { confimrUserLocation } from '../../services/api';
 import * as SecureStore from 'expo-secure-store';
+import CustomDrawer from '../../components/CustomDrawer'; 
 
 const HomeScreen = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false); 
   const router = useRouter();
 
   useEffect(() => {
     const checkToken = async () => {
       try {
         const token = await SecureStore.getItemAsync('userId'); 
-  
         if (token) {
           // Token exists, check user location or do any other checks
-        //  checkUserLocation(token);
+          //checkUserLocation();
         } else {
           // No token found, redirect to login page
-          router.push('/login'); // Make sure the path is correct
+          router.push('/login');
         }
       } catch (error) {
         console.error("Error fetching token:", error);
-        router.push('/login'); // If there's an error, redirect to login
+        router.push('/login');
       }
     };
-  
-    checkToken(); // Call the async function
-  
+    checkToken();
   }, [router]);
 
   const handleLogout = () => {
     onLogoutOpen();
   };
-  
 
   const onLogoutOpen = () => setIsLogoutDialogOpen(true);
   const onLogoutClose = () => setIsLogoutDialogOpen(false);
-  
 
   const handleItemPress = (type, item) => {
     router.push({
@@ -57,21 +54,15 @@ const HomeScreen = () => {
     setUserLocation("Yet to get user location");
   };
 
-   const confirmLogout = async () => {
+  const confirmLogout = async () => {
     setLoading(true);
-  
     await SecureStore.deleteItemAsync('userId'); 
-  
     setTimeout(() => {
       setLoading(false);
-
       alert('Logout successful. You have been logged out.');
       router.push('/login'); 
     }, 1000);
   };
-  
-
-
 
   // Dummy Restaurants Data
   const restaurants = [
@@ -89,6 +80,13 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={() => setDrawerVisible(true)} style={styles.hamburgerButton}>
+        <Text style={styles.hamburgerText}>☰</Text>
+      </TouchableOpacity>
+
+      {/* Drawer Component */}
+      <CustomDrawer isVisible={drawerVisible} onClose={() => setDrawerVisible(false)} />
+
       <Text style={styles.locationText}>Your location now is {userLocation || 'Fetching location...'}</Text>
       <Text style={styles.title}>COOL CHOP</Text>
 
@@ -117,7 +115,6 @@ const HomeScreen = () => {
         />
       </View>
 
-
       {/* Dishes Section */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Dishes</Text>
@@ -138,7 +135,6 @@ const HomeScreen = () => {
         />
       </View>
 
-
       {/* Logout Confirmation Modal */}
       <Modal
         visible={isLogoutDialogOpen}
@@ -154,12 +150,10 @@ const HomeScreen = () => {
             <TouchableOpacity style={styles.modalButton} onPress={confirmLogout}>
               <Text style={styles.modalButtonText}>Confirm Logout</Text>
             </TouchableOpacity>
-
           )}
           <Button title="Cancel" onPress={onLogoutClose} />
         </View>
       </Modal>
-
     </View>
   );
 };
@@ -169,6 +163,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 16,
+  },
+  hamburgerButton: {
+    position: 'absolute',
+    top: 30,
+    left: 20,
+    padding: 10,
+    backgroundColor: '#333',
+    borderRadius: 5,
+    zIndex: 1,  
+  },
+  hamburgerText: {
+    color: 'white',
+    fontSize: 24,
   },
   locationText: {
     marginTop: 20,
@@ -240,7 +247,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#D32F2F',
   },
-   restaurantCard: {
+  restaurantCard: {
     width: 200,
     borderRadius: 20,
     backgroundColor: '#FFF',

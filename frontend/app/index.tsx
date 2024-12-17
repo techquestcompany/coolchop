@@ -68,7 +68,7 @@ const checkTokenValidity = async () => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/vendor')}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/(res_tabs)')}>
           <Image source={require('../assets/images/vendor.webp')} style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Vendor</Text>
@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     width: 320,
     justifyContent: 'space-between',
-    elevation: 5, // Android shadow
-    shadowColor: '#000', // iOS shadow
+    elevation: 5,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 5,

@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import LottieView from 'lottie-react-native'; 
+import Entypo from '@expo/vector-icons/Entypo';
 
 export default function AuthScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -24,7 +25,7 @@ export default function AuthScreen() {
         
         {/* Cool Animation using Lottie */}
         <LottieView
-          source={require('../../assets/animations/welcome.json')}
+          source={require('../../assets/animations/users.json')}
           autoPlay
           loop
           style={styles.lottieAnimation}
@@ -35,16 +36,16 @@ export default function AuthScreen() {
           <Text style={styles.title}>Welcome</Text>
         </Animated.View>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/add_user')}>
-          <Image source={require('../../assets/images/customer.webp')} style={styles.icon} />
+        {/* <TouchableOpacity style={styles.card} onPress={() => router.push('/add_users')}>
+         <Entypo name="add-to-list" size={24} color="black" style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Add Users</Text>
             <Text style={styles.arrow}>→</Text>
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/manage_user')}>
-          <Image source={require('../../assets/images/vendor.webp')} style={styles.icon} />
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/manage_users')}>
+        <Entypo name="add-user" size={24} color="black" style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Manage Users</Text>
             <Text style={styles.arrow}>→</Text>

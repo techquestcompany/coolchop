@@ -7,7 +7,6 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const cors = require('cors');
 require('dotenv').config();
 const path = require('path');
-const fs = require('fs');
 
 
 
@@ -17,13 +16,9 @@ app.use(cors());
 
 app.use(express.json());
 
-const uploadDir = path.join(__dirname, 'public/uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
 
 
-app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 
 // routes
