@@ -1,120 +1,97 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { confimrUserLocation } from '../../services/api';
-import Cookies from 'js-cookie';
+
+import * as React from 'react';
+import { NavigationContainer,useNavigation } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { View, Text, Button, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import vendorOrders from "../vendorOrders"
+import Settings from "../vendorSettings"
+import SupportScreen from '../Support';
+const Drawer = createDrawerNavigator();
 
 
-const HomeScreen = () => {
-  const [userLocation, setUserLocation] = useState(null);
-  const router = useRouter();
-
-  useEffect(() => {
-    const token = Cookies.get('userId'); // Get the token from cookies
-    if (token) {
-      //fetchData(token);
-      checkUserLocation();
-    } else {
-      router.push('../login');
-    }
-  }, [router]);
-
-  const handleLogout = () => {
-    onLogoutOpen();
-  };
-
-  const confirmLogout = () => {
-    setIsLoading(true);
-    Cookies.remove('userId'); // Remove the token from cookies
-
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: 'Logout successful.',
-        description: 'You have been logged out.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      navigate('/login');
-    }, 1000);
-  };
-
-   const checkUserLocation = async () => {
-      const userId = await AsyncStorage.getItem('userId');
-      const userData = await confimrUserLocation(userId); 
-      setUserLocation("Yet to get user location");
-    };
 
 
+export default function App() {
+  const userProfileImage = 'https://via.placeholder.com/40';
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>COOL CHOP RESTAURANT DASHBOARD</Text>
-    </View>
+    
+      <Drawer.Navigator initialRouteName="vendorOrders"  
+      screenOptions={{
+        headerTitle: 'COOL CHOP',
+        headerStyle: {
+          backgroundColor: '#fff',
+        },
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        headerRight: () => (
+          <View style={styles.headerRightContainer}>
+            <TouchableOpacity style={styles.profileContainer}>
+              <Image
+                source={{ uri: userProfileImage }}
+                style={styles.profileImage}
+              />
+            </TouchableOpacity>
+          </View>
+        ),
+      }}
+      >
+        <Drawer.Screen name="vendorOrders" component={vendorOrders} options={{
+          drawerActiveBackgroundColor:"#D32F2F",
+          drawerIcon:()=>(
+            <FontAwesome name="shopping-cart" colour="gray" size={20} />
+          ),
+          drawerActiveTintColor:"gray"
+        }} />
+        <Drawer.Screen name="Settings" component={Settings} options={{
+          drawerActiveBackgroundColor:"#D32F2F",
+          drawerIcon:() =>(
+            <FontAwesome name='cogs' size={20} color="gray" />
+              
+          ),
+          drawerActiveTintColor:"gray"
+        }} />
+
+
+      <Drawer.Screen name="Help" component={SupportScreen} options={{
+          drawerActiveBackgroundColor:"#D32F2F",
+          drawerIcon:() =>(
+            <Ionicons name='help' size={20} color="gray" />
+              
+          ),
+          drawerActiveTintColor:"black"
+        }} />
+      </Drawer.Navigator>
+  
   );
-};
+}
+
+
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-  },
-  locationText: {
-    marginTop: 20,
-    color: '#999',
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#D32F2F',
-    marginBottom: 20,
-  },
-  searchContainer: {
+  headerRightContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  searchInput: {
-    width: '80%',
-    padding: 10,
-    borderRadius: 20,
-    backgroundColor: '#F1F1F1',
-    textAlign: 'center',
-  },
-  categoryList: {
-    marginBottom: 20,
-  },
-  categoryBox: {
-    width: '30%',
-    height: 100,
-    margin: 5,
-    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F1F1F1',
-    borderRadius: 10,
-  },
-  sectionContainer: {
-    marginTop: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  foodBox: {
     marginRight: 10,
-    alignItems: 'center',
   },
-  foodImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
+  headerLocation: {
+    color: '#fff',
+    marginRight: 10,
+    fontSize: 14,
+  },
+  profileContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
 });
-
-export default HomeScreen;

@@ -68,7 +68,7 @@ const checkTokenValidity = async () => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/(res_tabs)')}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/vendor')}>
           <Image source={require('../assets/images/vendor.webp')} style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Vendor</Text>
@@ -76,14 +76,6 @@ const checkTokenValidity = async () => {
           </View>
         </TouchableOpacity>
 
-
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/location')}>
-          <Image source={require('../assets/images/vendor.webp')} style={styles.icon} />
-          <View style={styles.cardText}>
-            <Text style={styles.optionTitle}>Vendor</Text>
-            <Text style={styles.arrow}>→</Text>
-          </View>
-        </TouchableOpacity>
       </View>
     </LinearGradient>
   );

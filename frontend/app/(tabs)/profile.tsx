@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,48 @@ import {
   ScrollView,
 } from "react-native";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import * as SecureStore from 'expo-secure-store';
+import { useRouter } from "expo-router";
+import { getUserbyId } from "@/services/api";
+
 
 export default function ProfileScreen() {
+  const [user, setUser] = useState([]);
+  const router = useRouter();
+
+
+
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const token = await SecureStore.getItemAsync('userId'); 
+        if (token) {
+          // Token exists, check user location or do any other checks
+          //checkUserLocation();
+          fetchUserData(token);  
+
+        } else {
+          // No token found, redirect to login page
+          router.push('/login');
+        }
+      } catch (error) {
+        console.error("Error fetching token:", error);
+        router.push('/login');
+      }
+    };
+    checkToken();
+  }, [router]);
+
+  const fetchUserData = async (token) => {
+    try {
+      const response = await getUserbyId(token);
+      setUser(response);
+      console.log(user);
+    } catch (error) {
+      console.error("Error fetching user by id:", error);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -31,15 +71,15 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account Details</Text>
         <View style={styles.row}>
-          <FontAwesome5 name="user" size={20} color="#FF7F50" />
+          <FontAwesome5 name="user" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>John Doe</Text>
         </View>
         <View style={styles.row}>
-          <Ionicons name="mail" size={20} color="#FF7F50" />
+          <Ionicons name="mail" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>johndoe@example.com</Text>
         </View>
         <View style={styles.row}>
-          <Ionicons name="call" size={20} color="#FF7F50" />
+          <Ionicons name="call" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>+123 456 7890</Text>
         </View>
       </View>
@@ -48,11 +88,11 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Saved Addresses</Text>
         <TouchableOpacity style={styles.row}>
-          <MaterialIcons name="location-on" size={20} color="#FF7F50" />
+          <MaterialIcons name="location-on" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>123 Food Street, City</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="add-circle" size={20} color="#FF7F50" />
+          <Ionicons name="add-circle" size={20} color="#D32F2F" />
           <Text style={styles.addButtonText}>Add Address</Text>
         </TouchableOpacity>
       </View>
@@ -61,11 +101,11 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferences</Text>
         <View style={styles.row}>
-          <Ionicons name="fast-food" size={20} color="#FF7F50" />
+          <Ionicons name="fast-food" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Favorite Cuisine: Italian</Text>
         </View>
         <View style={styles.row}>
-          <Ionicons name="leaf" size={20} color="#FF7F50" />
+          <Ionicons name="leaf" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Dietary Preference: Vegan</Text>
         </View>
       </View>
@@ -74,15 +114,15 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App Settings</Text>
         <TouchableOpacity style={styles.row}>
-          <Ionicons name="notifications" size={20} color="#FF7F50" />
+          <Ionicons name="notifications" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Notifications</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.row}>
-          <Ionicons name="help-circle" size={20} color="#FF7F50" />
+          <Ionicons name="help-circle" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Help Center</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.row}>
-          <Ionicons name="log-out" size={20} color="#FF7F50" />
+          <Ionicons name="log-out" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Logout</Text>
         </TouchableOpacity>
       </View>
@@ -97,7 +137,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    backgroundColor: "#FF7F50",
+    backgroundColor: "#D32F2F",
     paddingVertical: 30,
   },
   avatar: {
@@ -123,7 +163,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   editButtonText: {
-    color: "#FF7F50",
+    color: "#D32F2F",
     fontWeight: "bold",
   },
   section: {
@@ -154,7 +194,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     marginLeft: 5,
-    color: "#FF7F50",
+    color: "#D32F2F",
     fontSize: 16,
     fontWeight: "bold",
   },

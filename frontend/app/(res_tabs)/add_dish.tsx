@@ -182,8 +182,8 @@ export default function AddDishScreen() {
 
           {/* Profile Picture Upload */}
           <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-            {foodImage ? (
-              <Image source={{ uri: foodImage }} style={styles.profileImage} />
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
               <FontAwesome name="camera" size={40} color="#B07A7A" />
             )}

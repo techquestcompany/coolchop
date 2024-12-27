@@ -6,9 +6,10 @@ const crypto = require("crypto");
 require("dotenv").config();
 
 // Function to generate a random 4-digit verification code
-/*const generateVerificationCode = () => {
+const generateVerificationCode = () => {
   return Math.floor(1000 + Math.random() * 9000).toString(); 
 };
+
 
 // Function to send verification email
 const sendVerificationEmail = async (email, code) => {
@@ -29,10 +30,21 @@ const sendVerificationEmail = async (email, code) => {
 
   try {
     await transporter.sendMail(mailOptions);
+    // Find user by email
+    const existingUser = await User.findOne({ where: { email } });
+    if (!existingUser) {
+      return { status: 400, error: "Email can't be found" };
+    }
+
+    // Update user's record with the verification code
+    await existingUser.update({
+      code,
+    });
+
   } catch (error) {
     console.error('Error sending verification email:', error);
   }
-};*/
+};
 
 // Login function
 exports.login = async (req, res) => {
@@ -59,10 +71,10 @@ exports.login = async (req, res) => {
     });
 
     // Generate a random 4-digit verification code
-    //const verificationCode = generateVerificationCode();
+    const verificationCode = generateVerificationCode();
 
     // Send verification email
-    //await sendVerificationEmail(user.email, verificationCode);
+    await sendVerificationEmail(user.email, verificationCode);
 
     // Encrypt user id
     const user_id = await encrypt(user.id.toString());
@@ -217,7 +229,7 @@ exports.forgottenPassword = async (req, res) => {
   });
 
   // Send email with reset link
-  /*const transporter = nodemailer.createTransport({
+  const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
@@ -238,7 +250,7 @@ exports.forgottenPassword = async (req, res) => {
   } catch (error) {
     console.error('Error sending reset email:', error);
     res.status(500).json({ error: 'Failed to send password reset email' });
-  }*/
+  }
 };
 
 // Password Reset function

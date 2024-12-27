@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons'; 
+import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { signUp, api } from '../services/api';
-import Toast from 'react-native-toast-message'; 
+import Toast from 'react-native-toast-message';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
@@ -56,9 +56,9 @@ export default function SignUpScreen() {
         Toast.show({
           type: 'error',
           text1: 'Sign up Failed',
-          text2: response.message || 'Please try again.',  
+          text2: response.message || 'Please try again.',
         });
-      }   
+      }
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -78,7 +78,7 @@ export default function SignUpScreen() {
       Alert.alert('Permission Denied', 'We need permission to access your media library.');
       return;
     }
-  
+
     // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -86,11 +86,11 @@ export default function SignUpScreen() {
       aspect: [4, 3],
       quality: 1,
     });
-  
+
     if (!result.canceled) {
       // Get the URI of the selected image
       const sourceUri = result.assets[0].uri;
-  
+
       try {
         const fileInfo = await FileSystem.getInfoAsync(sourceUri);
         const formData = new FormData();
@@ -99,7 +99,7 @@ export default function SignUpScreen() {
           name: fileInfo.uri.split('/').pop(),
           type: 'image/jpeg',
         });
-  
+
         // Upload the image to your server
         const response = await api.post('/upload/upload_image', formData, {
           headers: {
@@ -119,7 +119,7 @@ export default function SignUpScreen() {
         Alert.alert('Error', 'Failed to upload the image');
       }
     }
-  };*/
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -136,6 +136,17 @@ export default function SignUpScreen() {
           {/* Title */}
           <Text style={styles.title}>Sign Up</Text>
           <Text style={styles.subTitle}>Please sign up to get started 😊</Text>
+
+            {/* Profile Picture Upload */}
+            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <FontAwesome name="camera" size={40} color="#B07A7A" />
+            )}
+            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
+          </TouchableOpacity>
+
 
           {/* Name Input */}
           <InputField
@@ -154,7 +165,7 @@ export default function SignUpScreen() {
             onChangeText={setEmail}
           />
 
-          
+
           {/* Phone Input */}
           <InputField
             iconName="phone"
@@ -173,7 +184,14 @@ export default function SignUpScreen() {
             onChangeText={setPassword}
           />
 
-         
+          {/* Re-type Password Input */}
+          <InputField
+            iconName="lock"
+            placeholder="Re-type Password"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
 
           {/* Sign Up Button */}
           <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
