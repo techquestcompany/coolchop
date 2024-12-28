@@ -3,7 +3,7 @@ import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, StyleSheet 
 import { router } from 'expo-router';
 import { verify, getUserData } from '../services/api';
 import Toast from 'react-native-toast-message';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 
 const VerificationScreen = () => {
@@ -24,7 +24,8 @@ const VerificationScreen = () => {
   const handleVerify = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('userId'); 
+      const token = await SecureStore.getItemAsync('userId');
+      console.log(token) 
       if (!token) {
         throw new Error('No authentication token found');
       }

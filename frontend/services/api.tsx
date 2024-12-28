@@ -1,11 +1,11 @@
 import axios from 'axios';
                    
 
-const API_URL = 'http://localhost:8082/api';
+const API_URL = 'http://172.20.10.4:3000/api';
+// const API_URL = 'http://192.168.0.103:3000/api';
 
 
-
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -156,7 +156,7 @@ export const loginRestaurant = async (restaurantId: string, password: string, la
 
 export const submitDishes = async (dishes: Dish[]): Promise<any> => {
   try {
-    const response = await api.post('/restaurant/dishes', { dishes });
+    const response = await api.post('/restaurant/dish', { dishes });
     console.log("Response data:", response.data);
     return response.data;
   } catch (error) {
@@ -178,7 +178,7 @@ export const getAllRestaurants = async () => {
 // Get restaurant by ID
 export const getRestaurantById = async (id: string) => {
   try {
-    const response = await api.get('restaurants=/myrestaurant', {
+    const response = await api.get('restaurant/myrestaurant', {
       headers: {
         Authorization: `Bearer ${id}`,
       },
@@ -193,7 +193,7 @@ export const getRestaurantById = async (id: string) => {
 // Get all dishes
 export const getAllDishes = async () => {
   try {
-    const response = await api.get('dish/dishes');
+    const response = await api.get('restaurant/dishes');
     return response.data;
   } catch (error) {
     console.error('Error fetching dishes', error);
@@ -204,7 +204,7 @@ export const getAllDishes = async () => {
 // Get dish by ID
 export const getDishById = async (id: string) => {
   try {
-    const response = await api.get('dish/mydishes', {
+    const response = await api.get('restaurant/mydishes', {
       headers: {
         Authorization: `Bearer ${id}`,
       },
@@ -223,6 +223,21 @@ export const verifyToken = async (token: string) => {
     const response = await api.post('/user/token', { token }); 
     return response.data.isValid; 
   } catch (error) {
+    throw error;
+  }
+};
+
+// Get uset by ID
+export const getUserbyId = async (id: string) => {
+  try {
+    const response = await api.get('user/id', {
+      headers: {
+        Authorization: `Bearer ${id}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching user with id: ${id}`, error);
     throw error;
   }
 };

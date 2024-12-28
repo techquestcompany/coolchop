@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Animated, ActivityIndicator, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { submitDishes } from '../../services/api';
+import { submitDishes, api } from '../../services/api';
 import Toast from 'react-native-toast-message'; 
 import LottieView from 'lottie-react-native'; 
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
+import * as FileSystem from 'expo-file-system';
+
 
 const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType, multiline }) => {
   return (
@@ -34,7 +36,9 @@ export default function AddDishScreen() {
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [foodImage, setFoodImage] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
+  const [imageName, setImageName] = useState('');
+
 
 
     // Fade-in animation for the title
@@ -48,7 +52,7 @@ export default function AddDishScreen() {
 
 
   const handleAddDish = () => {
-    const newDish = { dishName, description, price, ingredients, category, foodImage };
+    const newDish = { dishName, description, price, ingredients, category, imageName };
     setDishes([...dishes, newDish]);
 
     // Clear input fields after adding
@@ -106,25 +110,56 @@ export default function AddDishScreen() {
     }
   };
 
-    // Select Profile Image
-    const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Permission to access camera roll is required!");
-      return;
-    }
+     // Select Profile Image
+     const pickImage = async () => {
+      // Request permission to access media library
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need permission to access your media library.');
+        return;
+      }
+    
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+    
+      if (!result.canceled) {
+        // Get the URI of the selected image
+        const sourceUri = result.assets[0].uri;
+    
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(sourceUri);
+          const formData = new FormData();
+          formData.append('file', {
+            uri: sourceUri,
+            name: fileInfo.uri.split('/').pop(),
+            type: 'image/jpeg',
+          });
+    
+          // Upload the image to your server
+          const response = await api.post('/upload/upload_image', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          if (response.data.success) {
+            const serverImageUrl = response.data.url;
+            setProfileImage(serverImageUrl);
+            setImageName(response.data.imageName);
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-    }
-  };
+          } else {
+            Alert.alert('Error', 'Failed to upload the image');
+          }
+        } catch (error) {
+          console.error('Error uploading the image:', error);
+          Alert.alert('Error', 'Failed to upload the image');
+        }
+      }
+    };
   
   return (
     <SafeAreaView style={styles.container}>
@@ -147,8 +182,8 @@ export default function AddDishScreen() {
 
           {/* Profile Picture Upload */}
           <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-            {foodImage ? (
-              <Image source={{ uri: foodImage }} style={styles.profileImage} />
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
               <FontAwesome name="camera" size={40} color="#B07A7A" />
             )}

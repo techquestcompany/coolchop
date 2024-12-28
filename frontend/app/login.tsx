@@ -6,6 +6,8 @@ import { login } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
 import * as Location from 'expo-location';
+import * as SecureStore from 'expo-secure-store';
+
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText }) => {
   return (

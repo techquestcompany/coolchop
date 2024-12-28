@@ -4,11 +4,14 @@ const authRoutes = require('./routes/authRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const orderRoutes = require("./routes/ordersRouter");
-const fileUploadsRoutes = require("./routes/uploadRoutes");
+const uploadsRoutes = require("./routes/uploadRoutes");
 const { Server } = require("socket.io");
 const cors = require('cors');
 const http = require('http');  // Import http module to attach WebSocket
 require('dotenv').config();
+const path = require('path');
+
+
 
 const app = express();
 
@@ -27,17 +30,15 @@ socketServer.on("disconnect", () => {
   console.log("WebSocket connection disconnected");
 });
 
-// Default route for /api
-app.get('/api', (req, res) => {
-  res.send('API Root is working');
-});
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 
 // API Routes
 app.use('/api/user', authRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/restaurant', restaurantRoutes);
 app.use('/api/order', orderRoutes);
-app.use("/api/uploadFile", fileUploadsRoutes);
+app.use("/api/upload", uploadsRoutes);
 
 // Sync database  
 sequelize.sync().then(() => {
@@ -46,7 +47,7 @@ sequelize.sync().then(() => {
   console.error('Unable to sync database:', err);
 });
 
-const PORT = process.env.PORT || 8082;
+const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || 'http://192.168.68.9:8082'; 
 
 server.listen(PORT, () => {

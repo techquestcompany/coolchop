@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import LottieView from 'lottie-react-native'; 
+import Entypo from '@expo/vector-icons/Entypo';
 
 export default function AuthScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -22,7 +23,7 @@ export default function AuthScreen() {
         
         {/* Cool Animation using Lottie */}
         <LottieView
-          source={require('../../assets/animations/welcome.json')}
+          source={require('../../assets/animations/fork.json')}
           autoPlay
           loop
           style={styles.lottieAnimation}
@@ -30,11 +31,11 @@ export default function AuthScreen() {
         
         {/* Animated Title */}
         <Animated.View style={{ opacity: fadeAnim }}>
-          <Text style={styles.title}>Welcome</Text>
+          <Text style={styles.title}>Restaurant</Text>
         </Animated.View>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/add_restaurants')}>
-          <Image source={require('../../assets/images/customer.webp')} style={styles.icon} />
+        <Entypo name="add-to-list" size={24} color="black" style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Add Restaurant</Text>
             <Text style={styles.arrow}>→</Text>
@@ -42,7 +43,7 @@ export default function AuthScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/manage_res')}>
-          <Image source={require('../../assets/images/vendor.webp')} style={styles.icon} />
+        <Entypo name="add-user" size={24} color="black" style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Manage Restaurant</Text>
             <Text style={styles.arrow}>→</Text>

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons'; 
+import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { signUp, uploadImage } from '../services/api';
-import Toast from 'react-native-toast-message'; 
+import { signUp, api } from '../services/api';
+import Toast from 'react-native-toast-message';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
   return (
@@ -30,6 +32,7 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profileImage, setProfileImage] = useState(null);
+  const [imageName, setImageName] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Handle Sign Up
@@ -41,7 +44,7 @@ export default function SignUpScreen() {
 
     try {
       setLoading(true);
-      const response = await signUp(name, email, phone, password);
+      const response = await signUp(name, email, phone, password, imageName);
       if (response.message == "User created successfully") {
         Toast.show({
           type: 'success',
@@ -53,9 +56,9 @@ export default function SignUpScreen() {
         Toast.show({
           type: 'error',
           text1: 'Sign up Failed',
-          text2: response.message || 'Please try again.',  
+          text2: response.message || 'Please try again.',
         });
-      }   
+      }
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -68,49 +71,55 @@ export default function SignUpScreen() {
   };
 
    // Select Profile Image
-   /*const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Permission to access camera roll is required!");
+   const pickImage = async () => {
+    // Request permission to access media library
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need permission to access your media library.');
       return;
     }
 
+    // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [4, 3],
       quality: 1,
     });
 
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-    }
+      // Get the URI of the selected image
+      const sourceUri = result.assets[0].uri;
 
-    try{
-      console.log(result.assets[0].uri);
-      const response = await uploadImage(result.assets[0].uri);
-      console.log(response);
-      if (response.message == "Restaurant registered successfully") {
-        Toast.show({
-          type: 'success',
-          text1: 'Registration Successful',
-          text2: 'Your restaurant has been registered!',
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(sourceUri);
+        const formData = new FormData();
+        formData.append('file', {
+          uri: sourceUri,
+          name: fileInfo.uri.split('/').pop(),
+          type: 'image/jpeg',
         });
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Registration Failed',
-          text2: response.message || 'Please try again.',
+
+        // Upload the image to your server
+        const response = await api.post('/upload/upload_image', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
+        if (response.data.success) {
+          const serverImageUrl = response.data.url;
+          setProfileImage(serverImageUrl);
+          setImageName(response.data.imageName);
+
+        } else {
+          Alert.alert('Error', 'Failed to upload the image');
+        }
+      } catch (error) {
+        console.error('Error uploading the image:', error);
+        Alert.alert('Error', 'Failed to upload the image');
       }
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Registration Failed',
-        text2: error.message || 'Something went wrong.',
-      });
     }
-  };*/
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -127,6 +136,17 @@ export default function SignUpScreen() {
           {/* Title */}
           <Text style={styles.title}>Sign Up</Text>
           <Text style={styles.subTitle}>Please sign up to get started 😊</Text>
+
+            {/* Profile Picture Upload */}
+            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <FontAwesome name="camera" size={40} color="#B07A7A" />
+            )}
+            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
+          </TouchableOpacity>
+
 
           {/* Name Input */}
           <InputField
@@ -145,7 +165,7 @@ export default function SignUpScreen() {
             onChangeText={setEmail}
           />
 
-          
+
           {/* Phone Input */}
           <InputField
             iconName="phone"
@@ -164,7 +184,14 @@ export default function SignUpScreen() {
             onChangeText={setPassword}
           />
 
-         
+          {/* Re-type Password Input */}
+          <InputField
+            iconName="lock"
+            placeholder="Re-type Password"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
 
           {/* Sign Up Button */}
           <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>

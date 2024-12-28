@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, FlatList, Alert, Modal } from 'react-native';
 import axios from 'axios';
-                     
-const vendorOrders = () => {
+
+const VendorOrders = () => {
   const [searchValue, setSearchValue] = useState('');
   const [status, setStatus] = useState('all');
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false); // Control modal visibility
-  const [orderToDelete, setOrderToDelete] = useState(null); // Store the order to be deleted
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
   const [filteredOrders, setFilteredOrders] = useState([
     { orderNumber: '001', customerName: 'John Doe', foodItem: 'Burger', amount: '$12.99', address: '123 Main St', status: 'pending' },
     { orderNumber: '002', customerName: 'Jane Smith', foodItem: 'Pizza', amount: '$15.99', address: '456 Elm St', status: 'completed' },
@@ -14,25 +14,24 @@ const vendorOrders = () => {
     { orderNumber: '004', customerName: 'Lucy Brown', foodItem: 'Salad', amount: '$9.99', address: '101 Pine St', status: 'pending' },
   ]);
 
-  // Filter orders based on search and status
   const handleSearch = () => {
-    const filtered = orders.filter((order) => 
-      (order.status === status || status === 'all') && 
-      (order.customerName.toLowerCase().includes(searchValue.toLowerCase()) || 
-      order.foodItem.toLowerCase().includes(searchValue.toLowerCase()))
+    const filtered = filteredOrders.filter(
+      (order) =>
+        (status === 'all' || order.status === status) &&
+        (order.customerName.toLowerCase().includes(searchValue.toLowerCase()) ||
+          order.foodItem.toLowerCase().includes(searchValue.toLowerCase()))
     );
     setFilteredOrders(filtered);
   };
 
-  // Delete order function
   const handleDelete = async () => {
     if (orderToDelete) {
       try {
         const response = await axios.delete(`http://localhost:3000/api/orders/${orderToDelete.orderNumber}`);
         if (response.status === 200) {
-          Alert.alert('Order Successfully deleted');
+          Alert.alert('Order successfully deleted');
           setFilteredOrders(filteredOrders.filter((order) => order.orderNumber !== orderToDelete.orderNumber));
-          setOpenDeleteDialog(false); // Close the modal after successful deletion
+          setOpenDeleteDialog(false);
         }
       } catch (error) {
         console.error('Error deleting order:', error);
@@ -41,7 +40,6 @@ const vendorOrders = () => {
     }
   };
 
-  // Render the modal for confirmation
   const renderDeleteModal = () => (
     <Modal
       visible={openDeleteDialog}
@@ -54,10 +52,10 @@ const vendorOrders = () => {
           <Text style={styles.modalText}>Are you sure you want to delete this order?</Text>
           <View style={styles.modalButtons}>
             <TouchableOpacity style={styles.modalButton} onPress={() => setOpenDeleteDialog(false)}>
-              <Text style={styles.modalButtonText}>No</Text>
+              <Text style={styles.modalButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalButton} onPress={handleDelete}>
-              <Text style={styles.modalButtonText}>Yes</Text>
+            <TouchableOpacity style={[styles.modalButton, styles.modalConfirmButton]} onPress={handleDelete}>
+              <Text style={[styles.modalButtonText, styles.modalConfirmText]}>Delete</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -66,39 +64,23 @@ const vendorOrders = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: 'white' }]}>
-      <View>
-        <Text style={styles.title}>Order History</Text>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Order History</Text>
 
-      <View style={styles.secondContainer}>
-        <TextInput
-          value={searchValue}
-          onChangeText={(text) => setSearchValue(text)}
-          placeholder="Search by Name or Food Item"
-          style={styles.searchInput}
-          onEndEditing={handleSearch} // Trigger search when text input ends
-        />
-
-        <View style={styles.statusContainer}>
+      <View style={styles.statusContainer}>
+        {['all', 'completed', 'pending'].map((tab) => (
           <TouchableOpacity
-            style={[styles.statusButton, status === 'completed' && styles.activeStatus]}
-            onPress={() => setStatus('completed')}
+            key={tab}
+            style={[styles.statusButton, status === tab && styles.activeStatus]}
+            onPress={() => setStatus(tab)}
           >
-            <Text style={styles.statusButtonText}>Completed</Text>
+            <Text style={styles.statusButtonText}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.statusButton, status === 'pending' && styles.activeStatus]}
-            onPress={() => setStatus('pending')}
-          >
-            <Text style={styles.statusButtonText}>Pending</Text>
-          </TouchableOpacity>
-        
-        </View>
+        ))}
       </View>
 
       <View style={styles.tableContainer}>
-        <View style={styles.tableRow}>
+        <View style={styles.tableHeaderRow}>
           <Text style={[styles.tableCell, styles.tableHeader]}>Order ID</Text>
           <Text style={[styles.tableCell, styles.tableHeader]}>Food Item</Text>
           <Text style={[styles.tableCell, styles.tableHeader]}>Amount</Text>
@@ -116,12 +98,14 @@ const vendorOrders = () => {
               <Text style={styles.tableCell}>{item.foodItem}</Text>
               <Text style={styles.tableCell}>{item.amount}</Text>
               <Text style={styles.tableCell}>{item.address}</Text>
-              <Text style={styles.tableCell}>{item.status}</Text>
+              <Text style={[styles.tableCell, item.status === 'completed' ? styles.completedStatus : styles.pendingStatus]}>
+                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+              </Text>
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => {
-                  setOrderToDelete(item); // Set the order to be deleted
-                  setOpenDeleteDialog(true); // Open the delete modal
+                  setOrderToDelete(item);
+                  setOpenDeleteDialog(true);
                 }}
               >
                 <Text style={styles.deleteButtonText}>Delete</Text>
@@ -131,7 +115,7 @@ const vendorOrders = () => {
         />
       </View>
 
-      {renderDeleteModal()} {/* Show the modal */}
+      {renderDeleteModal()}
     </SafeAreaView>
   );
 };
@@ -140,79 +124,105 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#f8f9fa',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  secondContainer: {
+    color: '#343a40',
     marginBottom: 20,
+    marginTop: 20,
+    textAlign: 'center',
+  },
+  searchContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   searchInput: {
-    backgroundColor: 'white',
-    borderColor: '#ccc',
+    flex: 1,
+    backgroundColor: '#fff',
+    borderColor: '#ced4da',
     borderWidth: 1,
     borderRadius: 5,
     padding: 10,
-    marginBottom: 10,
     fontSize: 16,
-    width: '70%',
+    marginRight: 10,
+  },
+  searchButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontSize: 16,
   },
   statusContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '28%',
+    justifyContent: 'space-around',
+    marginBottom: 20,
   },
   statusButton: {
-    padding: 10,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 5,
-    width: '30%',
-    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: '#e9ecef',
   },
   activeStatus: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#17a2b8',
   },
   statusButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: '#fff',
   },
   tableContainer: {
-    marginTop: 20,
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 10,
     padding: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#dee2e6',
+    paddingBottom: 10,
   },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: '#dee2e6',
   },
   tableCell: {
     flex: 1,
-    fontSize: 16,
     textAlign: 'center',
-    color: 'black',
+    fontSize: 14,
+    color: '#495057',
   },
   tableHeader: {
     fontWeight: 'bold',
-    backgroundColor: '#f0f0f0',
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
+    color: '#343a40',
   },
   deleteButton: {
-    backgroundColor: 'red',
-    color: 'white',
-    padding: 10,
+    backgroundColor: '#dc3545',
     borderRadius: 5,
-    alignItems: 'center',
+    padding: 5,
   },
   deleteButtonText: {
-    color: 'white',
+    color: '#fff',
+    fontSize: 14,
+  },
+  completedStatus: {
+    color: '#28a745',
+  },
+  pendingStatus: {
+    color: '#ffc107',
   },
   modalOverlay: {
     flex: 1,
@@ -221,29 +231,36 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     padding: 20,
     borderRadius: 10,
     alignItems: 'center',
   },
   modalText: {
     fontSize: 18,
+    color: '#212529',
     marginBottom: 20,
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   modalButton: {
-    padding: 10,
-    backgroundColor: '#f5f5f5',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 5,
+    backgroundColor: '#6c757d',
     marginHorizontal: 10,
+  },
+  modalConfirmButton: {
+    backgroundColor: '#dc3545',
   },
   modalButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: '#fff',
+  },
+  modalConfirmText: {
+    fontWeight: 'bold',
   },
 });
 
-export default vendorOrders;
+export default VendorOrders;
