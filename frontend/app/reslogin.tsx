@@ -38,19 +38,18 @@ export default function SignInScreen() {
 
 // Function to check if token is valid
 const checkTokenValidity = async () => {
-  const token = await SecureStore.getItemAsync('userId');
-  console.log(token)
+  const token = await SecureStore.getItemAsync('restaurantId');
   if (token) {
     try {
       const isValid = await verifyToken(token);
       if (!isValid) {
-        await SecureStore.deleteItemAsync('userId'); // Remove expired or invalid token securely
+        await SecureStore.deleteItemAsync('restaurantId'); // Remove expired or invalid token securely
       } else {
-        router.push('/(tabs)');
+        router.push('/(res_tabs)');
       }
     } catch (error) {
       console.error("Token verification failed:", error);
-      await SecureStore.deleteItemAsync('userId'); // Remove invalid token securely
+      await SecureStore.deleteItemAsync('restaurantId'); // Remove invalid token securely
     }
   }
 };
@@ -71,9 +70,9 @@ const checkTokenValidity = async () => {
       const location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
 
-      const response = await loginRestaurant(restaurantId, password, latitude, longitude);
+      const response = await loginRestaurant(restaurantId, latitude, longitude);
       if (response.message == "Login successful") {
-        await SecureStore.setItemAsync('userId', response.user.id); // Securely store the token
+        await SecureStore.setItemAsync('restaurantId', response.restaurant.id); // Securely store the token
         Toast.show({
           type: 'success',
           text1: 'Login Successful 😊',
@@ -123,13 +122,13 @@ const checkTokenValidity = async () => {
           />
 
           {/* Password Input */}
-          <InputField
+          {/* <InputField
             iconName="lock"
             placeholder="Enter password"
             secureTextEntry={true}
             value={password}
             onChangeText={setPassword}
-          />
+          /> */}
 
           {/* Remember Me and Forgot Password */}
           <View style={styles.options}>
@@ -142,7 +141,7 @@ const checkTokenValidity = async () => {
               <Text>Remember me</Text>
             </View>
             <TouchableOpacity>
-              <Text style={styles.forgotPassword}>Forgot Password?</Text>
+              <Text style={styles.forgotPassword}>Forgot Id?</Text>
             </TouchableOpacity>
           </View>
 
@@ -157,7 +156,7 @@ const checkTokenValidity = async () => {
 
           {/* Sign Up Link */}
           <Text style={styles.footerText}>
-           Contact the coolchop team if you don't have an account
+           Contact the coolchop team if your account hasn't been verified
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>

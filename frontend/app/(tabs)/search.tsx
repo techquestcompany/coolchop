@@ -1,53 +1,126 @@
-import React from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, Image } from 'react-native';
-
-const DATA = [
-  {
-    id: '1',
-    name: "Sweet Mummy's Joint",
-    rating: 3.5,
-    visits: 85,
-    deliveryTime: '30 mins',
-    imageUrl: 'https://example.com/image1.jpg', // Replace with actual image URLs
-  },
-  {
-    id: '2',
-    name: "Sweet Mummy's Joint",
-    rating: 3.5,
-    visits: 85,
-    deliveryTime: '30 mins',
-    imageUrl: 'https://example.com/image2.jpg', // Replace with actual image URLs
-  },
-  // Add more data as needed
-];
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, FlatList, StyleSheet, Image, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
+import { getAllDishes, getAllRestaurants, baseURL } from '@/services/api'; // Ensure getAllRestaurants is defined
 
 const SearchScreen = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dishes, setDishes] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [isDishes, setIsDishes] = useState(true); // Toggle between dishes and restaurants
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchData();
+  }, [isDishes]);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      if (isDishes) {
+        const dishData = await getAllDishes();
+        setDishes(dishData);
+        setFilteredData(dishData);
+      } else {
+        const restaurantData = await getAllRestaurants();
+        setRestaurants(restaurantData);
+        setFilteredData(restaurantData);
+      }
+      setIsLoading(false);
+    } catch (err) {
+      setError('Failed to fetch data.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    if (text === '') {
+      setFilteredData(isDishes ? dishes : restaurants);
+    } else {
+      const filtered = (isDishes ? dishes : restaurants).filter((item) =>
+        (isDishes ? item.dishName : item.restaurantName)
+          .toLowerCase()
+          .includes(text.toLowerCase())
+      );
+      setFilteredData(filtered);
+    }
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
-      <Image source={{ uri: item.imageUrl }} style={styles.image} />
+      <Image
+        source={{
+          uri: `${baseURL}/public/uploads/${isDishes ? item.profileImage : item.profileImage}`,
+        }}
+        style={styles.image}
+      />
       <View style={styles.infoContainer}>
-        <Text style={styles.title}>{item.name}</Text>
-        <Text style={styles.rating}>⭐ {item.rating} - {item.visits} visits</Text>
-        <Text style={styles.deliveryTime}>{item.deliveryTime}</Text>
+        <Text style={styles.title}>{isDishes ? item.dishName : item.restaurantName}</Text>
+        <Text style={styles.rating}>
+          {isDishes ? `⭐ 10.0 - ${item.visits} visits` : `Rating: ⭐ ${item.rating}`}
+        </Text>
+        {isDishes && <Text style={styles.deliveryTime}>{item.price}</Text>}
       </View>
     </View>
   );
 
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Food Category</Text>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.header}>Food & Restaurant Category</Text>
+      {/* Filter Bar */}
+      <View style={styles.filterBar}>
+        <TouchableOpacity
+          style={[styles.filterButton, isDishes && styles.activeFilter]}
+          onPress={() => setIsDishes(true)}
+        >
+          <Text style={styles.filterText}>Dishes</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, !isDishes && styles.activeFilter]}
+          onPress={() => setIsDishes(false)}
+        >
+          <Text style={styles.filterText}>Restaurants</Text>
+        </TouchableOpacity>
+      </View>
+      {/* Search Input */}
       <TextInput
         style={styles.searchInput}
-        placeholder="Search food category"
+        placeholder={`Search ${isDishes ? 'dishes' : 'restaurants'}`}
         placeholderTextColor="#888"
+        value={searchQuery}
+        onChangeText={handleSearch}
       />
+      {/* List */}
       <FlatList
-        data={DATA}
+        data={filteredData}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', marginTop: 16 }}>
+            No {isDishes ? 'dishes' : 'restaurants'} found.
+          </Text>
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -61,6 +134,25 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
+  },
+  filterBar: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  filterButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eee',
+  },
+  activeFilter: {
+    backgroundColor: '#D32F2F',
+  },
+  filterText: {
+    fontSize: 16,
+    color: '#fff',
   },
   searchInput: {
     height: 48,

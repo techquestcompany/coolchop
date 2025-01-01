@@ -155,7 +155,7 @@ const seedDishes = async () => {
       // Array of sample dish data
       const dishData = [
         {
-          profileImage: "https://example.com/dish1.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Spaghetti Carbonara",
           price: 12.99,
           category: "Pasta",
@@ -163,7 +163,7 @@ const seedDishes = async () => {
           restaurantId: "R001"
         },
         {
-          profileImage: "https://example.com/dish2.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Margherita Pizza",
           price: 9.99,
           category: "Pizza",
@@ -171,7 +171,7 @@ const seedDishes = async () => {
           restaurantId: "R002"
         },
         {
-          profileImage: "https://example.com/dish3.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Caesar Salad",
           price: 7.99,
           category: "Salad",
@@ -179,7 +179,7 @@ const seedDishes = async () => {
           restaurantId: "R003"
         },
         {
-          profileImage: "https://example.com/dish4.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "BBQ Ribs",
           price: 15.99,
           category: "BBQ",
@@ -187,7 +187,7 @@ const seedDishes = async () => {
           restaurantId: "R004"
         },
         {
-          profileImage: "https://example.com/dish5.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Vegetable Stir-fry",
           price: 8.99,
           category: "Vegetarian",
@@ -195,7 +195,7 @@ const seedDishes = async () => {
           restaurantId: "R005"
         },
         {
-          profileImage: "https://example.com/dish6.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Grilled Salmon",
           price: 18.99,
           category: "Seafood",
@@ -203,7 +203,7 @@ const seedDishes = async () => {
           restaurantId: "R006"
         },
         {
-          profileImage: "https://example.com/dish7.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Beef Burger",
           price: 10.99,
           category: "Fast Food",
@@ -211,7 +211,7 @@ const seedDishes = async () => {
           restaurantId: "R007"
         },
         {
-          profileImage: "https://example.com/dish8.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Chicken Tacos",
           price: 11.49,
           category: "Mexican",
@@ -219,7 +219,7 @@ const seedDishes = async () => {
           restaurantId: "R008"
         },
         {
-          profileImage: "https://example.com/dish9.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Lobster Bisque",
           price: 16.99,
           category: "Soup",
@@ -227,7 +227,7 @@ const seedDishes = async () => {
           restaurantId: "R009"
         },
         {
-          profileImage: "https://example.com/dish10.jpg",
+          profileImage: "1735667226982.jpg",
           dishName: "Vegan Buddha Bowl",
           price: 12.49,
           category: "Vegan",
@@ -251,4 +251,4 @@ const seedDishes = async () => {
   
   seedDishes();
 
-seedRestaurants();
+//seedRestaurants();

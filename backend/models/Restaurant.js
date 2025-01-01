@@ -9,7 +9,7 @@ const Restaurant = sequelize.define('Restaurant', {
   },
   restaurantId: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: false
   },
   restaurantName: {
     type: DataTypes.STRING,
@@ -49,7 +49,8 @@ const Restaurant = sequelize.define('Restaurant', {
   },
   verificationStatus:{
     type: DataTypes.STRING,
-    default:"Not Verified"
+    allowNull: false,
+    defaultValue :"Not Verified"
   }
 }, {});
 

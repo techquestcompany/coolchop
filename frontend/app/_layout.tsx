@@ -45,7 +45,8 @@ export default function RootLayout() {
         <Stack.Screen name="reslogin" options={{ headerShown: false }} />
         <Stack.Screen name="order" options={{ headerShown: false }} />
         <Stack.Screen name="order_cust" options={{ headerShown: false }} />
-        <Stack.Screen name="info" options={{ headerShown: false }} />
+        <Stack.Screen name="res_info" options={{ headerShown: false }} />
+        <Stack.Screen name="dish_info" options={{ headerShown: false }} />
         <Stack.Screen name="forgot_password" options={{ headerShown: false }} />
         <Stack.Screen name="manage_users" options={{ headerShown: false }} />
         <Stack.Screen name="manage_res" options={{ headerShown: false }} />
@@ -62,6 +63,7 @@ export default function RootLayout() {
         <Stack.Screen name="UserHome" options={{ headerShown: false }} />
         <Stack.Screen name="UserSupport" options={{ headerShown: false }} />
         <Stack.Screen name="logout" options={{ headerShown: false }} />
+        <Stack.Screen name="edit_profile" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         <Toast />
       </Stack>

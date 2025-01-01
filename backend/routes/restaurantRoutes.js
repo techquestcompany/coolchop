@@ -9,5 +9,7 @@ router.get('/restaurants', resController.getAllRestaurants);
 router.get('/myrestaurant', resController.getRestaurantById);
 router.get('/dishes', resController.getAllDishes);
 router.get('/mydishes', resController.getDishById);
+router.post('/token', resController.verifyResId);
+
 
 module.exports = router;

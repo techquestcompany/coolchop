@@ -6,50 +6,52 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as SecureStore from 'expo-secure-store';
-import { useRouter } from "expo-router";
-import { getUserbyId } from "@/services/api";
+import { getUserData, baseURL } from "@/services/api";
+import { router } from "expo-router";
 
 
 export default function ProfileScreen() {
   const [user, setUser] = useState([]);
-  const router = useRouter();
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
 
   useEffect(() => {
-    const checkToken = async () => {
-      try {
-        const token = await SecureStore.getItemAsync('userId'); 
-        if (token) {
-          // Token exists, check user location or do any other checks
-          //checkUserLocation();
-          fetchUserData(token);  
+    fectUser();
+  }, []);
 
-        } else {
-          // No token found, redirect to login page
-          router.push('/login');
-        }
-      } catch (error) {
-        console.error("Error fetching token:", error);
-        router.push('/login');
-      }
-    };
-    checkToken();
-  }, [router]);
-
-  const fetchUserData = async (token) => {
+  const fectUser = async () => {
+    setIsLoading(true);
     try {
-      const response = await getUserbyId(token);
-      setUser(response);
-      console.log(user);
-    } catch (error) {
-      console.error("Error fetching user by id:", error);
+      const userId = await SecureStore.getItemAsync('userId');
+      const data = await getUserData(userId);
+      setUser(data);
+    } catch (err) {
+      setError("Failed to load restaurant data.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#D32F2F" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: "red", textAlign: "center" }}>{error}</Text>
+      </View>
+    );
+  }
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -57,12 +59,12 @@ export default function ProfileScreen() {
         <Image
           style={styles.avatar}
           source={{
-            uri: "https://via.placeholder.com/150",
+            uri: `${baseURL}/public/uploads/${user.profileImage}`,
           }}
         />
-        <Text style={styles.name}>John Doe</Text>
+        <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.tagline}>Foodie Lover 🍔</Text>
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity style={styles.editButton} onPress={() => router.push('/edit_profile')}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
@@ -72,15 +74,15 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Account Details</Text>
         <View style={styles.row}>
           <FontAwesome5 name="user" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>John Doe</Text>
+          <Text style={styles.rowText}> {user.name}</Text>
         </View>
         <View style={styles.row}>
           <Ionicons name="mail" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>johndoe@example.com</Text>
+          <Text style={styles.rowText}>{user.email}</Text>
         </View>
         <View style={styles.row}>
           <Ionicons name="call" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>+123 456 7890</Text>
+          <Text style={styles.rowText}>{user.phone}</Text>
         </View>
       </View>
 

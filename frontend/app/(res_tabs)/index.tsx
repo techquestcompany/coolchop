@@ -1,9 +1,11 @@
 
-import * as React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer,useNavigation } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { View, Text, Button, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { baseURL, getAllRestaurants } from '@/services/api';
+import * as SecureStore from 'expo-secure-store';
 import vendorOrders from "../vendorOrders"
 import Settings from "../vendorSettings"
 import SupportScreen from '../Support';
@@ -13,7 +15,24 @@ const Drawer = createDrawerNavigator();
 
 
 export default function App() {
-  const userProfileImage = 'https://via.placeholder.com/40';
+  const [profile, setProfile] = useState('');
+
+  useEffect(() => {
+    getProfileImage();
+  }, []);
+
+
+   const getProfileImage = async () => {
+
+    const token = await SecureStore.getItemAsync('restaurantId');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const user = await getAllRestaurants(token);
+    setProfile(user.profileImage);
+  
+   }
 
   return (
     
@@ -30,7 +49,7 @@ export default function App() {
           <View style={styles.headerRightContainer}>
             <TouchableOpacity style={styles.profileContainer}>
               <Image
-                source={{ uri: userProfileImage }}
+                source={{  uri: `${baseURL}/public/uploads/${profile}` }}
                 style={styles.profileImage}
               />
             </TouchableOpacity>

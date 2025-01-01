@@ -70,7 +70,7 @@ export default function AddDishScreen() {
       setLoading(true);
   
       // Get restaurantId from local storage
-      const restaurantId = await SecureStore.getItemAsync('resId');
+      const restaurantId = await SecureStore.getItemAsync('restaurantId');
       if (!restaurantId) {
         Alert.alert('Error', 'Restaurant ID not found. Please log in again.');
         return;
@@ -90,7 +90,7 @@ export default function AddDishScreen() {
           text1: 'Dishes saved successfully',
           text2: 'Your dish has been submitted!',
         });
-        router.push('/reslogin');
+        router.push('/add_dish');
       } else {
         Toast.show({
           type: 'error',

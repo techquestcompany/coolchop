@@ -25,7 +25,6 @@ const VerificationScreen = () => {
     try {
       setLoading(true);
       const token = await SecureStore.getItemAsync('userId');
-      console.log(token) 
       if (!token) {
         throw new Error('No authentication token found');
       }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import  React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
@@ -7,11 +7,31 @@ import UserHome from '../UserHome';
 import UserSettings from '../UserSettings';
 import UserSupport from '../UserSupport';
 import Logout from '../logout';
+import { baseURL, getUserData } from '@/services/api';
+import * as SecureStore from 'expo-secure-store';
+
 
 const Drawer = createDrawerNavigator();
 
 export default function App() {
-  const userProfileImage = 'https://via.placeholder.com/40';
+  const [profile, setProfile] = useState('');
+
+  useEffect(() => {
+    getProfileImage();
+  }, []);
+
+
+   const getProfileImage = async () => {
+
+    const token = await SecureStore.getItemAsync('userId');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const user = await getUserData(token);
+    setProfile(user.profileImage);
+  
+   }
 
   return (
       <Drawer.Navigator
@@ -28,7 +48,7 @@ export default function App() {
             <View style={styles.headerRightContainer}>
               <TouchableOpacity style={styles.profileContainer}>
                 <Image
-                  source={{ uri: userProfileImage }}
+                  source={{ uri: `${baseURL}/public/uploads/${profile}`}}
                   style={styles.profileImage}
                 />
               </TouchableOpacity>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, Button, Modal, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { confimrUserLocation, getAllDishes, getAllRestaurants } from '../services/api';
+import { baseURL, confimrUserLocation, getAllDishes, getAllRestaurants } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 
 const HomeScreen = () => {
@@ -97,14 +97,14 @@ const HomeScreen = () => {
           data={restaurant}
           horizontal
           renderItem={({ item }) => (
-            <View style={styles.restaurantCard}>
-              <Image source={{ uri: item.profileImage }} style={styles.restaurantImage} />
+            <TouchableOpacity style={styles.restaurantCard} onPress={() => router.push(`/res_info?id=${item.id}`)}>
+              <Image source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }} style={styles.restaurantImage} />
               <View style={styles.restaurantInfo}>
                 <Text style={styles.restaurantName}>{item.restaurantName}</Text>
                 <Text style={styles.restaurantDescription}>Brief description here</Text>
                 <Text style={styles.restaurantLocation}>Location</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
           keyExtractor={(item) => item.id}
         />
@@ -116,15 +116,15 @@ const HomeScreen = () => {
         <FlatList
           data={dish}
           renderItem={({ item }) => (
-            <View style={styles.dishCard}>
-              <Image source={{ uri: item.profileImage }} style={styles.dishImage} />
+            <TouchableOpacity style={styles.dishCard} onPress={() => router.push(`/dish_info?id=${item.id}`)}>
+              <Image source={{ uri: `${baseURL}/public/uploads/${item.profileImage}`}} style={styles.dishImage} />
               <View style={styles.dishInfo}>
                 <Text style={styles.dishName}>{item.dishName}</Text>
                 <Text style={styles.dishDescription}>{item.ingredients}</Text>
                 <Text style={styles.dishLocation}>{item.category}</Text>
-                <Text style={styles.dishPrice}>${item.price}</Text>
+                <Text style={styles.dishPrice}>₵{item.price}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
           keyExtractor={(item) => item.id}
         />

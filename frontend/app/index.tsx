@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import LottieView from 'lottie-react-native'; 
-import { verifyToken } from '../services/api';
+import { verifyResToken, verifyToken } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 
 export default function AuthScreen() {
@@ -18,14 +18,14 @@ export default function AuthScreen() {
     }).start();
   }, [fadeAnim]);
   useEffect(() => {
-    checkTokenValidity();
+    checkUserTokenValidity();
+    checkResTokenValidity();
   }, [router]);
 
 
 // Function to check if token is valid
-const checkTokenValidity = async () => {
+const checkUserTokenValidity = async () => {
   const token = await SecureStore.getItemAsync('userId');
-  console.log(token)
   if (token) {
     try {
       const isValid = await verifyToken(token);
@@ -37,6 +37,23 @@ const checkTokenValidity = async () => {
     } catch (error) {
       console.error("Token verification failed:", error);
       await SecureStore.deleteItemAsync('userId'); // Remove invalid token securely
+    }
+  }
+};
+// Function to check if token is valid
+const checkResTokenValidity = async () => {
+  const token = await SecureStore.getItemAsync('restaurantId');
+  if (token) {
+    try {
+      const isValid = await verifyResToken(token);
+      if (!isValid) {
+        await SecureStore.deleteItemAsync('restaurantId'); // Remove expired or invalid token securely
+      } else {
+        router.push('/(res_tabs)');
+      }
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      await SecureStore.deleteItemAsync('restaurantId'); // Remove invalid token securely
     }
   }
 };
