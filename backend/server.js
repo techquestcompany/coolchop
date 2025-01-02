@@ -5,6 +5,7 @@ const locationRoutes = require('./routes/locationRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const orderRoutes = require("./routes/ordersRouter");
 const uploadsRoutes = require("./routes/uploadRoutes");
+const cartRoutes = require("./routes/cartRoutes");
 const { Server } = require("socket.io");
 const cors = require('cors');
 const http = require('http');  // Import http module to attach WebSocket
@@ -39,6 +40,7 @@ app.use('/api/location', locationRoutes);
 app.use('/api/restaurant', restaurantRoutes);
 app.use('/api/order', orderRoutes);
 app.use("/api/upload", uploadsRoutes);
+app.use("/api/cart", cartRoutes);
 
 // Sync database  
 sequelize.sync().then(() => {

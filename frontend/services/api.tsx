@@ -255,9 +255,9 @@ export const verifyResToken = async (token: string) => {
 
 
 // Function to add a dish to the cart
-export const addToCart = async (userId: number, dishId: number, quantity: number = 1) => {
+export const addDishToCart = async (user_id: string, dishId: string, quantity: number = 1) => {
   try {
-    const response = await api.post('/cart/add', { userId, dishId, quantity });
+    const response = await api.post('/cart/add', { user_id, dishId, quantity });
     return response.data;
   } catch (error) {
     console.error('Error adding to cart:', error);
@@ -266,9 +266,9 @@ export const addToCart = async (userId: number, dishId: number, quantity: number
 };
 
 // Function to get cart items for a user
-export const getCartItems = async (userId: number) => {
+export const getCartItems = async (user_id: string) => {
   try {
-    const response = await api.get('/cart/get', { params: { userId } });
+    const response = await api.get('/cart/get', { params: { user_id } });
     return response.data;
   } catch (error) {
     console.error('Error fetching cart items:', error);
@@ -277,9 +277,9 @@ export const getCartItems = async (userId: number) => {
 };
 
 // Function to delete a dish from the cart
-export const deleteFromCart = async (userId: number, dishId: number) => {
+export const deleteFromCart = async (user_id: string, dishId: string) => {
   try {
-    const response = await api.delete('/cart/remove', { data: { userId, dishId } });
+    const response = await api.delete('/cart/remove', { data: { user_id, dishId } });
     return response.data;
   } catch (error) {
     console.error('Error removing from cart:', error);

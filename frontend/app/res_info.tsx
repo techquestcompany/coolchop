@@ -7,11 +7,16 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Animated,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { getRestaurantById, getDishesByRestaurantId, baseURL } from "@/services/api"; 
-import AntDesign from '@expo/vector-icons/AntDesign';
+import { router, useLocalSearchParams } from "expo-router";
+import { getRestaurantById, getDishesByRestaurantId, baseURL, addDishToCart } from "@/services/api"; 
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Toast from 'react-native-toast-message';
+import * as SecureStore from 'expo-secure-store';
+import LottieView from 'lottie-react-native'; 
+
+
 
 
 const RestaurantInfoScreen = () => {
@@ -20,6 +25,8 @@ const RestaurantInfoScreen = () => {
   const [dishes, setDishes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCartButton, setShowCartButton] = useState(false);
+  const bounceAnimation = new Animated.Value(0);
 
   useEffect(() => {
     if (id) {
@@ -27,14 +34,20 @@ const RestaurantInfoScreen = () => {
     }
   }, [id]);
 
+
+  useEffect(() => {
+    if (showCartButton) {
+      bounce();
+    }
+  }, [showCartButton]);
+
+
   const fetchRestaurantInfo = async (id) => {
     try {
       const restaurantData = await getRestaurantById(id);
       const dishesData = await getDishesByRestaurantId(id);
       setRestaurant(restaurantData);
       setDishes(dishesData);
-      console.log(dishes)
-      console.log(restaurant)
       setIsLoading(false);
     } catch (err) {
       setError("Failed to load restaurant information.");
@@ -46,13 +59,33 @@ const RestaurantInfoScreen = () => {
   const addToCart = async (dishId) => {
     try {
       const userId = await SecureStore.getItemAsync('userId');
-      const response = await addToCart(userId, dishId);
-      Toast.show({ type: 'success', text1: 'Added to cart!' });
+
+      const response = await addDishToCart(userId, dishId);
+      if (response.message == "Item added to cart"){
+        Toast.show({ type: 'success', text1: 'Added to cart!' });
+        setShowCartButton(true)
+      }
     } catch (err) {
       Toast.show({ type: 'error', text1: 'Failed to add to cart' });
     }
   };
 
+  const bounce = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceAnimation, {
+          toValue: -10,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnimation, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
   
   const categorizeDishes = () => {
     const starters = dishes.filter((dish) => dish.category === "Starter");
@@ -83,6 +116,7 @@ const RestaurantInfoScreen = () => {
   const { starters, mainCourse, dessert, others } = categorizeDishes();
 
   return (
+    <>
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
@@ -131,8 +165,8 @@ const RestaurantInfoScreen = () => {
                     </Text>
                   </View>
 
-                  <TouchableOpacity onPress={() => addToCart(dish.id)}>
-                    <AntDesign name="shoppingcart" size={24} color="black" />
+                  <TouchableOpacity style={styles.addCart} onPress={() => addToCart(dish.id)}>
+                    <FontAwesome5 name="cart-plus" size={24} color="#D32F2F" />
                   </TouchableOpacity>
 
                 </View>
@@ -144,6 +178,29 @@ const RestaurantInfoScreen = () => {
         ))}
       </View>
     </ScrollView>
+    {showCartButton && (
+      <Animated.View
+        style={[
+          styles.cartButtonContainer,
+          { transform: [{ translateY: bounceAnimation }] },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => router.push("/cart")}
+        >
+        <LottieView
+          source={require('../assets/animations/cart.json')}
+          autoPlay
+          loop
+          style={styles.lottieAnimation}
+        />
+        </TouchableOpacity>
+      </Animated.View>
+    )}
+
+    <Toast ref={(ref) => Toast.setRef(ref)} />
+    </>
   );
 };
 
@@ -242,6 +299,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  addCart: {
+    marginTop: 30,
+    marginRight: 15,
+  },
+  cartButtonContainer: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+  },
+  cartButton: {
+    backgroundColor: "#fff",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  lottieAnimation: {
+    width: 50,
+    height: 50,
   },
 });
 

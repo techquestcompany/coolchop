@@ -1,7 +1,12 @@
 const Cart = require('../models/Cart');
+const { encrypt, decrypt } = require("../utils/encryption");
+
 
 exports.addToCart = async (req, res) => {
-  const { userId, dishId, quantity } = req.body;
+  const { user_id, dishId, quantity } = req.body;
+
+  const userId = await decrypt(user_id.toString());
+
 
   if (!userId || !dishId) {
     return res.status(400).json({ message: 'userId and dishId are required' });
@@ -28,7 +33,9 @@ exports.addToCart = async (req, res) => {
 };
 
 exports.getCart = async (req, res) => {
-  const { userId } = req.query;
+  const { user_id } = req.query;
+
+  const userId = await decrypt(user_id.toString());
 
   if (!userId) {
     return res.status(400).json({ message: 'userId is required' });
@@ -44,7 +51,10 @@ exports.getCart = async (req, res) => {
 };
 
 exports.removeFromCart = async (req, res) => {
-  const { userId, dishId } = req.body;
+  const { user_id, dishId } = req.body;
+
+  const userId = await decrypt(user_id.toString());
+
 
   if (!userId || !dishId) {
     return res.status(400).json({ message: 'userId and dishId are required' });
