@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, Image, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
 import { getAllDishes, getAllRestaurants, baseURL } from '@/services/api'; // Ensure getAllRestaurants is defined
+import { router } from 'expo-router';
 
 const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,7 +50,7 @@ const SearchScreen = () => {
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.itemContainer}>
+    <TouchableOpacity style={styles.itemContainer} onPress={() => isDishes ? router.push(`/dish_info?id=${item.id}`) : router.push(`/res_info?id=${item.id}`)}>
       <Image
         source={{
           uri: `${baseURL}/public/uploads/${isDishes ? item.profileImage : item.profileImage}`,
@@ -63,7 +64,7 @@ const SearchScreen = () => {
         </Text>
         {isDishes && <Text style={styles.deliveryTime}>{item.price}</Text>}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (isLoading) {

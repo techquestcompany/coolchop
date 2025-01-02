@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import UserHome from '../UserHome';
 import UserSettings from '../UserSettings';
 import UserSupport from '../UserSupport';
@@ -61,8 +62,8 @@ export default function App() {
           component={UserHome}
           options={{
             drawerActiveBackgroundColor: '#D32F2F',
-            drawerIcon: () => <FontAwesome name="shopping-cart" size={20} color="gray" />,
-            drawerActiveTintColor: 'gray',
+            drawerIcon: () => <FontAwesome name="shopping-cart" size={20} color="black" />,
+            drawerActiveTintColor: 'black',
           }}
         />
         <Drawer.Screen
@@ -70,8 +71,8 @@ export default function App() {
           component={UserSettings}
           options={{
             drawerActiveBackgroundColor: '#D32F2F',
-            drawerIcon: () => <FontAwesome name="cogs" size={20} color="gray" />,
-            drawerActiveTintColor: 'gray',
+            drawerIcon: () => <FontAwesome name="cogs" size={20} color="black" />,
+            drawerActiveTintColor: 'black',
           }}
         />
         <Drawer.Screen
@@ -79,7 +80,7 @@ export default function App() {
           component={UserSupport}
           options={{
             drawerActiveBackgroundColor: '#D32F2F',
-            drawerIcon: () => <Ionicons name="help" size={20} color="gray" />,
+            drawerIcon: () => <Ionicons name="help" size={20} color="black" />,
             drawerActiveTintColor: 'black',
           }}
         />
@@ -88,8 +89,8 @@ export default function App() {
           component={Logout}
           options={{
             drawerActiveBackgroundColor: '#D32F2F',
-            drawerIcon: () => <FontAwesome name="cogs" size={20} color="gray" />,
-            drawerActiveTintColor: 'gray',
+            drawerIcon: () =><MaterialIcons name="logout" size={24} color="black" />,
+            drawerActiveTintColor: 'black',
           }}
         />
       </Drawer.Navigator>

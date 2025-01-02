@@ -64,6 +64,7 @@ export default function RootLayout() {
         <Stack.Screen name="UserSupport" options={{ headerShown: false }} />
         <Stack.Screen name="logout" options={{ headerShown: false }} />
         <Stack.Screen name="edit_profile" options={{ headerShown: false }} />
+        <Stack.Screen name="cart" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         <Toast />
       </Stack>

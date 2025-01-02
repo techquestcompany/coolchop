@@ -135,13 +135,23 @@ exports.createDishes = async (req, res) => {
   }
 
   try {
+
+    const updatedDishes = dishes.map((dish) => {
+      if (!dish.restaurantId) {
+        throw new Error('Missing restaurantId in dish');
+      }
+      const decryptedRestaurantId = decrypt(dish.restaurantId.toString());
+      return { ...dish, restaurantId: decryptedRestaurantId };
+    });
+
     // Save all dishes
-    const createdDishes = await Dish.bulkCreate(dishes);
+    const createdDishes = await Dish.bulkCreate(updatedDishes);
 
     res.status(201).json({
       message: 'Dishes saved successfully',
     });
   } catch (error) {
+    console.error('Error saving dishes:', error);
     res.status(500).json({ message: 'Error saving dishes', error });
   }
 };
@@ -159,9 +169,9 @@ exports.getAllRestaurants = async (req, res) => {
 // Get a restaurant by ID
 exports.getRestaurantById = async (req, res) => {
   try {
-    const id = req.headers.authorization.split(' ')[1]; 
+    const restaurantId = req.headers.authorization.split(' ')[1]; 
 
-    const restaurantId = await decrypt(id.toString());
+    //const restaurantId = await decrypt(id.toString());
 
     const restaurant = await Restaurant.findOne({ where: { id: restaurantId } });
     if (restaurant) {
@@ -174,6 +184,28 @@ exports.getRestaurantById = async (req, res) => {
     res.status(500).json({ message: 'Error retrieving restaurant', error });
   }
 };
+
+// Get dishes by restaurant ID
+exports.getDishesByRestaurantId = async (req, res) => {
+  try {
+    // Extract and decrypt restaurant ID from headers
+    const restaurantId = req.headers.authorization.split(' ')[1]; 
+    //const restaurantId = await decrypt(id.toString());
+
+    // Fetch all dishes associated with the restaurant ID
+    const dishes = await Dish.findAll({ where: { restaurantId } });
+
+    if (dishes && dishes.length > 0) {
+      res.status(200).json(dishes);
+    } else {
+      res.status(404).json({ message: 'No dishes found for this restaurant' });
+    }
+  } catch (error) {
+    console.error('Error retrieving dishes:', error);
+    res.status(500).json({ message: 'Error retrieving dishes', error });
+  }
+};
+
 
 
 // Get all dishes
@@ -188,15 +220,19 @@ exports.getAllDishes = async (req, res) => {
 
 // Get a dish by ID
 exports.getDishById = async (req, res) => {
-  const { id } = req.params;
   try {
-    const dish = await Dish.findByPk(id);
-    if (dish) {
-      res.status(200).json(dish);
+    const dish_id = req.headers.authorization.split(' ')[1]; 
+
+   // const dishId = await decrypt(dish_id.toString());
+
+    const dishes = await Dish.findOne({ where: { id: dish_id } });
+    if (dishes) {
+      res.status(200).json(dishes);
     } else {
       res.status(404).json({ message: 'Dish not found' });
     }
   } catch (error) {
+    console.error('Error retrieving dish:', error);
     res.status(500).json({ message: 'Error retrieving dish', error });
   }
 };

@@ -7,6 +7,7 @@ router.post('/login', resController.login);
 router.post('/dish', resController.createDishes);
 router.get('/restaurants', resController.getAllRestaurants);
 router.get('/myrestaurant', resController.getRestaurantById);
+router.get('/restaurant_dish', resController.getDishesByRestaurantId);
 router.get('/dishes', resController.getAllDishes);
 router.get('/mydishes', resController.getDishById);
 router.post('/token', resController.verifyResId);

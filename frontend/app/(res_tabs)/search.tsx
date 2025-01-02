@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { getAllDishes, baseURL } from '@/services/api';
+import { router } from 'expo-router';
 
 
 const SearchScreen = () => {
@@ -40,14 +41,14 @@ const SearchScreen = () => {
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.itemContainer}>
+    <TouchableOpacity style={styles.itemContainer} onPress={() => router.push(`/dish_info?id=${item.id}`)}>
       <Image source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }}  style={styles.image} />
       <View style={styles.infoContainer}>
         <Text style={styles.title}>{item.dishName}</Text>
         <Text style={styles.rating}>⭐ 10.0 - {item.visits} visits</Text>
         <Text style={styles.deliveryTime}>{item.price}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (isLoading) {

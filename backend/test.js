@@ -160,7 +160,7 @@ const seedDishes = async () => {
           price: 12.99,
           category: "Pasta",
           ingredients: "Spaghetti, Egg, Parmesan Cheese, Pancetta, Black Pepper",
-          restaurantId: "R001"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -168,7 +168,7 @@ const seedDishes = async () => {
           price: 9.99,
           category: "Pizza",
           ingredients: "Tomato Sauce, Mozzarella Cheese, Basil",
-          restaurantId: "R002"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -176,7 +176,7 @@ const seedDishes = async () => {
           price: 7.99,
           category: "Salad",
           ingredients: "Romaine Lettuce, Croutons, Parmesan Cheese, Caesar Dressing",
-          restaurantId: "R003"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -184,7 +184,7 @@ const seedDishes = async () => {
           price: 15.99,
           category: "BBQ",
           ingredients: "Pork Ribs, BBQ Sauce, Spices",
-          restaurantId: "R004"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -192,7 +192,7 @@ const seedDishes = async () => {
           price: 8.99,
           category: "Vegetarian",
           ingredients: "Broccoli, Bell Peppers, Carrots, Soy Sauce, Garlic",
-          restaurantId: "R005"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -200,7 +200,7 @@ const seedDishes = async () => {
           price: 18.99,
           category: "Seafood",
           ingredients: "Salmon, Lemon, Olive Oil, Dill",
-          restaurantId: "R006"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -208,7 +208,7 @@ const seedDishes = async () => {
           price: 10.99,
           category: "Fast Food",
           ingredients: "Beef Patty, Lettuce, Tomato, Cheese, Bun",
-          restaurantId: "R007"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -216,7 +216,7 @@ const seedDishes = async () => {
           price: 11.49,
           category: "Mexican",
           ingredients: "Chicken, Tortilla, Salsa, Lettuce, Cheese",
-          restaurantId: "R008"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -224,7 +224,7 @@ const seedDishes = async () => {
           price: 16.99,
           category: "Soup",
           ingredients: "Lobster, Cream, Onion, Garlic, Sherry",
-          restaurantId: "R009"
+          restaurantId: "1"
         },
         {
           profileImage: "1735667226982.jpg",
@@ -232,7 +232,7 @@ const seedDishes = async () => {
           price: 12.49,
           category: "Vegan",
           ingredients: "Quinoa, Sweet Potato, Chickpeas, Avocado, Tahini Sauce",
-          restaurantId: "R010"
+          restaurantId: "1"
         }
       ];
   

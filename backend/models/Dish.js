@@ -4,7 +4,7 @@ const sequelize = require('../config/db');
 const Dish = sequelize.define('Dish', {
   id: {
     type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    autoIncrement: true,
     primaryKey: true,
   },
   profileImage: {

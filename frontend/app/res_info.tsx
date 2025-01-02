@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -6,79 +6,146 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  TextInput,
+  ActivityIndicator,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
+import { getRestaurantById, getDishesByRestaurantId, baseURL } from "@/services/api"; 
+import AntDesign from '@expo/vector-icons/AntDesign';
+import Toast from 'react-native-toast-message';
 
-export default function App() {
+
+const RestaurantInfoScreen = () => {
+  const { id } = useLocalSearchParams();
+  const [restaurant, setRestaurant] = useState(null);
+  const [dishes, setDishes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (id) {
+      fetchRestaurantInfo(id);
+    }
+  }, [id]);
+
+  const fetchRestaurantInfo = async (id) => {
+    try {
+      const restaurantData = await getRestaurantById(id);
+      const dishesData = await getDishesByRestaurantId(id);
+      setRestaurant(restaurantData);
+      setDishes(dishesData);
+      console.log(dishes)
+      console.log(restaurant)
+      setIsLoading(false);
+    } catch (err) {
+      setError("Failed to load restaurant information.");
+      setIsLoading(false);
+    }
+  };
+
+
+  const addToCart = async (dishId) => {
+    try {
+      const userId = await SecureStore.getItemAsync('userId');
+      const response = await addToCart(userId, dishId);
+      Toast.show({ type: 'success', text1: 'Added to cart!' });
+    } catch (err) {
+      Toast.show({ type: 'error', text1: 'Failed to add to cart' });
+    }
+  };
+
+  
+  const categorizeDishes = () => {
+    const starters = dishes.filter((dish) => dish.category === "Starter");
+    const mainCourse = dishes.filter((dish) => dish.category === "Main Course");
+    const dessert = dishes.filter((dish) => dish.category === "Dessert");
+    const others = dishes.filter(
+      (dish) => !["Starters", "Main Course", "Dessert"].includes(dish.category)
+    );
+    return { starters, mainCourse, dessert, others };
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#ffa500" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: "red", textAlign: "center" }}>{error}</Text>
+      </View>
+    );
+  }
+
+  const { starters, mainCourse, dessert, others } = categorizeDishes();
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Pizzaman Chicken-man</Text>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchBar}>
-        <Ionicons name="arrow-back" size={24} color="black" />
-        <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={20} color="gray" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search restaurants..."
-          />
-        </View>
+        <Text style={styles.headerText}>{restaurant.restaurantName}</Text>
       </View>
 
       {/* Featured Banner */}
       <View style={styles.banner}>
         <Image
           style={styles.bannerImage}
-          source={{ uri: "https://via.placeholder.com/300x150" }}
+          source={{ uri: `${baseURL}/public/uploads/${restaurant.profileImage}` }}
+          resizeMode="cover"
         />
         <View style={styles.bannerDetails}>
-          <Text style={styles.bannerTitle}>Chapel Square</Text>
-          <Text style={styles.bannerSubtitle}>⭐ 4.3 | 45 visits</Text>
+          <Text style={styles.bannerTitle}>{restaurant.address}</Text>
+          <Text style={styles.bannerSubtitle}>
+            ⭐ {restaurant.rating} | {restaurant.reviews} reviews
+          </Text>
           <Text style={styles.bannerDelivery}>
-            Delivery time: GHS 15.00 to GHS 50.00
+            {/* Delivery fee: ${restaurant.deliveryFee.toFixed(2)} */}
           </Text>
         </View>
       </View>
 
-      {/* Menu Options */}
+      {/* Menu Sections */}
       <View style={styles.menuTabs}>
-        <Text style={styles.menuTab}>Menu 1</Text>
-        <Text style={styles.menuTab}>Menu 2</Text>
-        <Text style={styles.menuTab}>Menu 3</Text>
-        <Text style={styles.menuTab}>Menu 4</Text>
-      </View>
+        {[
+          { title: "Starters", data: starters },
+          { title: "Main Course", data: mainCourse },
+          { title: "Dessert", data: dessert },
+          { title: "Others", data: others },
+        ].map(({ title, data }) => (
+          <View key={title} style={styles.menuSection}>
+            <Text style={styles.menuTitle}>{title}</Text>
+            {data.length > 0 ? (
+              data.map((dish) => (
+                <View key={dish.id} style={styles.dishCard}>
+                  <Image
+                    style={styles.dishImage}
+                    source={{ uri: `${baseURL}/public/uploads/${dish.profileImage}` }}
+                  />
+                  <View style={styles.dishDetails}>
+                    <Text style={styles.dishName}>{dish.dishName}</Text>
+                    <Text style={styles.dishPrice}>
+                      ${dish.price.toFixed(2)}
+                    </Text>
+                  </View>
 
-      {/* Restaurant List */}
-      <ScrollView style={styles.restaurantList}>
-        {[...Array(5)].map((_, index) => (
-          <View key={index} style={styles.restaurantCard}>
-            <Image
-              style={styles.restaurantImage}
-              source={{
-                uri: "https://via.placeholder.com/100x100",
-              }}
-            />
-            <View style={styles.restaurantDetails}>
-              <Text style={styles.restaurantName}>Sweet Mummy's Joint</Text>
-              <Text style={styles.restaurantRating}>⭐ 3.5 | 85 visits</Text>
-              <Text style={styles.restaurantDelivery}>Delivery time</Text>
-            </View>
+                  <TouchableOpacity onPress={() => addToCart(dish.id)}>
+                    <AntDesign name="shoppingcart" size={24} color="black" />
+                  </TouchableOpacity>
+
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noDishesText}>No dishes available</Text>
+            )}
           </View>
         ))}
-      </ScrollView>
-
-      {/* View Order Button */}
-      <TouchableOpacity style={styles.viewOrderButton}>
-        <Text style={styles.viewOrderText}>VIEW ORDER</Text>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -93,31 +160,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eaeaea",
   },
   headerText: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eaeaea",
-  },
-  searchWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    marginLeft: 10,
-    padding: 10,
-    backgroundColor: "#f1f1f1",
-    borderRadius: 10,
-  },
-  searchInput: {
-    marginLeft: 5,
-    fontSize: 14,
-    flex: 1,
   },
   banner: {
     backgroundColor: "#fff",
@@ -128,7 +172,7 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     width: "100%",
-    height: 150,
+    height: 200,
     borderRadius: 10,
   },
   bannerDetails: {
@@ -136,33 +180,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   bannerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
   },
   bannerSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: "gray",
   },
   bannerDelivery: {
-    fontSize: 12,
+    fontSize: 14,
     color: "gray",
   },
   menuTabs: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-  },
-  menuTab: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  restaurantList: {
     paddingHorizontal: 15,
     marginTop: 10,
   },
-  restaurantCard: {
+  menuSection: {
+    marginBottom: 20,
+  },
+  menuTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  dishCard: {
     flexDirection: "row",
     backgroundColor: "#fff",
     marginBottom: 10,
@@ -174,41 +215,34 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
   },
-  restaurantImage: {
+  dishImage: {
     width: 80,
     height: 80,
     borderRadius: 10,
   },
-  restaurantDetails: {
+  dishDetails: {
     flex: 1,
     marginLeft: 10,
+    justifyContent: "center",
   },
-  restaurantName: {
+  dishName: {
     fontSize: 16,
     fontWeight: "bold",
   },
-  restaurantRating: {
+  dishPrice: {
+    fontSize: 14,
+    color: "#333",
+    marginTop: 5,
+  },
+  noDishesText: {
     fontSize: 14,
     color: "gray",
-    marginVertical: 5,
   },
-  restaurantDelivery: {
-    fontSize: 12,
-    color: "gray",
-  },
-  viewOrderButton: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: "#ffa500",
-    paddingVertical: 15,
+  center: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    borderRadius: 10,
-  },
-  viewOrderText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
   },
 });
+
+export default RestaurantInfoScreen;

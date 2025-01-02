@@ -191,6 +191,20 @@ export const getRestaurantById = async (id: string) => {
   }
 };
 
+export const getDishesByRestaurantId = async (id: string) => {
+  try {
+    const response = await api.get('restaurant/restaurant_dish', {
+      headers: {
+        Authorization: `Bearer ${id}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching restaurant with ID: ${id}`, error);
+    throw error;
+  }
+};
+
 // Get all dishes
 export const getAllDishes = async () => {
   try {
@@ -235,6 +249,40 @@ export const verifyResToken = async (token: string) => {
     const response = await api.post('/restaurant/token', { token }); 
     return response.data.isValid; 
   } catch (error) {
+    throw error;
+  }
+};
+
+
+// Function to add a dish to the cart
+export const addToCart = async (userId: number, dishId: number, quantity: number = 1) => {
+  try {
+    const response = await api.post('/cart/add', { userId, dishId, quantity });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    throw error;
+  }
+};
+
+// Function to get cart items for a user
+export const getCartItems = async (userId: number) => {
+  try {
+    const response = await api.get('/cart/get', { params: { userId } });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching cart items:', error);
+    throw error;
+  }
+};
+
+// Function to delete a dish from the cart
+export const deleteFromCart = async (userId: number, dishId: number) => {
+  try {
+    const response = await api.delete('/cart/remove', { data: { userId, dishId } });
+    return response.data;
+  } catch (error) {
+    console.error('Error removing from cart:', error);
     throw error;
   }
 };

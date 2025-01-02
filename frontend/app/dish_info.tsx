@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { getDishById } from "@/services/api"; 
+import { baseURL, getDishById } from "@/services/api"; 
 
 const DishInfoScreen = () => {
   const { id } = useLocalSearchParams();
@@ -53,17 +53,17 @@ const DishInfoScreen = () => {
   return (
     <ScrollView style={styles.container}>
       {/* Dish Image */}
-      <Image
+      <Image 
         style={styles.dishImage}
-        source={{ uri: `${dish.image}` }}
+        source={{ uri: `${baseURL}/public/uploads/${dish.profileImage}` }}
         resizeMode="cover"
       />
 
       {/* Dish Details */}
       <View style={styles.detailsContainer}>
-        <Text style={styles.title}>{dish.name}</Text>
+        <Text style={styles.title}>{dish.dishName}</Text>
         <Text style={styles.subtitle}>⭐ {dish.rating} | {dish.reviews} reviews</Text>
-        <Text style={styles.price}>Price: ${dish.price.toFixed(2)}</Text>
+        <Text style={styles.price}>Price: ₵{dish.price.toFixed(2)}</Text>
         <Text style={styles.description}>{dish.description}</Text>
       </View>
 
