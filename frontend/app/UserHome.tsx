@@ -67,7 +67,6 @@ const HomeScreen = () => {
     try {
       const response = await getAllRestaurants();
       setRestaurant(response);
-      console.log(restaurant);
     } catch (error) {
       console.error("Error fetching restaurants:", error);
     }

@@ -129,20 +129,23 @@ exports.addRestaurant = async (req, res) => {
 exports.createDishes = async (req, res) => {
   const { dishes } = req.body;
 
-
   if (!dishes || !Array.isArray(dishes)) {
     return res.status(400).json({ message: 'Invalid input, dishes must be an array' });
   }
 
   try {
 
-    const updatedDishes = dishes.map((dish) => {
+    const updatedDishes = await Promise.all(
+      dishes.map(async (dish) => {
       if (!dish.restaurantId) {
         throw new Error('Missing restaurantId in dish');
       }
-      const decryptedRestaurantId = decrypt(dish.restaurantId.toString());
+      const decryptedRestaurantId = await decrypt(dish.restaurantId.toString());
       return { ...dish, restaurantId: decryptedRestaurantId };
-    });
+    })
+    );
+
+
 
     // Save all dishes
     const createdDishes = await Dish.bulkCreate(updatedDishes);

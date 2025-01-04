@@ -106,7 +106,7 @@ export default function AddDishScreen() {
           text1: 'Dishes saved successfully',
           text2: 'Your dish has been submitted!',
         });
-        router.replace('/add_dish');
+        router.push('/(res_tabs)');
       } else {
         Toast.show({
           type: 'error',
@@ -265,7 +265,7 @@ export default function AddDishScreen() {
                   )}
                   <Text style={styles.dishName}>{dish.dishName}</Text>
                   <Text style={styles.dishDetails}>Category: {dish.category}</Text>
-                  <Text style={styles.dishDetails}>Price: ${dish.price}</Text>
+                  <Text style={styles.dishDetails}>Price: ₵{dish.price}</Text>
                 </View>
               ))}
             </View>

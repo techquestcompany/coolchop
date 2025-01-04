@@ -4,7 +4,7 @@ import axios from 'axios';
 export const API_URL = 'http://172.20.10.4:3000/api';
 export const baseURL = 'http://172.20.10.4:3000';
 // const API_URL = 'http://192.168.0.103:3000/api';
-
+//154.161.20.4/32
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -283,6 +283,37 @@ export const deleteFromCart = async (user_id: string, dishId: string) => {
     return response.data;
   } catch (error) {
     console.error('Error removing from cart:', error);
+    throw error;
+  }
+};
+
+// Function to save an order
+export const saveOrder = async (order: {
+  userId: string;
+  items: { id: string; quantity: number }[];
+  note?: string;
+}) => {
+  try {
+    const response = await api.post('/orders/save', order);
+    return response.data;
+  } catch (error) {
+    console.error('Error saving order:', error);
+    throw error;
+  }
+};
+
+
+// Function to update the quantity of a dish in the cart
+export const updateCartQuantity = async (userId: string, dishId: string, quantity: number) => {
+  try {
+    const response = await api.put('/cart/update-quantity', {
+      userId,
+      dishId,
+      quantity,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating cart quantity:', error);
     throw error;
   }
 };
