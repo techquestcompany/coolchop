@@ -77,7 +77,7 @@ const checkResTokenValidity = async () => {
           <Text style={styles.title}>Welcome</Text>
         </Animated.View>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/customer')}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/login')}>
           <Image source={require('../assets/images/customer.webp')} style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Customer</Text>
@@ -85,8 +85,8 @@ const checkResTokenValidity = async () => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/vendor')}>
-          <Image source={require('../assets/images/vendor.webp')} style={styles.icon} />
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/reslogin')}>
+          <Image source={require('../assets/images/vendor_home.webp')} style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Vendor</Text>
             <Text style={styles.arrow}>→</Text>

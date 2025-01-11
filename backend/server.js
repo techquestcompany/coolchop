@@ -50,7 +50,6 @@ sequelize.sync().then(() => {
 });
 
 const PORT = process.env.PORT || 3000;
-const BASE_URL = process.env.BASE_URL || 'http://192.168.68.9:8082'; 
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

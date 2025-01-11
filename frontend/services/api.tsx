@@ -4,7 +4,7 @@ import axios from 'axios';
 export const API_URL = 'http://172.20.10.4:3000/api';
 export const baseURL = 'http://172.20.10.4:3000';
 // const API_URL = 'http://192.168.0.103:3000/api';
-//154.161.20.4/32
+//13.60.180.213
 
 export const api = axios.create({
   baseURL: API_URL,
