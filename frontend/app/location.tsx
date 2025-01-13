@@ -1,32 +1,37 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity } from 'react-native';
-import users from '../assets/users.json'
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Modal, Button } from 'react-native';
 import UserMarker from '@/components/UserMarker';
 import ResMarker from '@/components/ResMarker';
 import ListItem from '@/components/ListItem';
 import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/bottom-sheet'
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { getAllRestaurants } from '@/services/api';
+import { getAllRestaurants, getUserData, updateUserCoordinates } from '@/services/api';
+import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 
 
 export default function App() {
   const [selectedRestaurant, setSelectedRestaurant ] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
+  const [user, setUser] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRestaurants, setFilteredRestaurants] = useState(restaurants);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 7.9465, // Approximate latitude for Ghana
+    longitude: -1.0232, // Approximate longitude for Ghana
+    latitudeDelta: 2.5, 
+    longitudeDelta: 2.5, 
+  });
+  const [showPopup, setShowPopup] = useState(true);
+  
 
   useEffect(() => {
     fetchRestaurants();
+    fectUser();
   }, []);
 
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 5.6037,
-    longitude: -0.1870,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  })
 
     // ref
     const bottomSheetRef = useRef<BottomSheet>(null);
@@ -48,6 +53,16 @@ export default function App() {
     };
   
 
+    const fectUser = async () => {
+      try {
+        const userId = await SecureStore.getItemAsync('userId');
+        const data = await getUserData(userId);
+        setUser(data);
+      } catch (err) {
+        console.log("Failed to load restaurant data.");
+      }
+    };
+
     const handleSearch = (query: string) => {
       setSearchQuery(query);
       if (query.trim() === '') {
@@ -61,10 +76,37 @@ export default function App() {
       }
     };
 
+    const handleSaveCoordinates = async ({ latitude, longitude }) => {
+      try {
+        const userId = await SecureStore.getItemAsync('userId'); 
+        const response = await updateUserCoordinates(userId, latitude, longitude);
+        console.log('Coordinates updated successfully:', response);
+      } catch (error) {
+        console.error('Failed to update coordinates:', error);
+      }
+    };
+    
+
+
   return (
     <GestureHandlerRootView  style={styles.container}>
-           {/* Top Bar */}
-           <View style={styles.topBar}>
+
+      {/* Popup Instructions */}
+      <Modal visible={showPopup} transparent animationType="slide">
+        <View style={styles.popupContainer}>
+          <View style={styles.popup}>
+            <Text style={styles.popupTitle}>Set Your Location</Text>
+            <Text style={styles.popupMessage}>
+              Drag the marker to adjust your location or tap the "Set Location" button to
+              confirm your current position.
+            </Text>
+            <Button title="Got it!" onPress={() => setShowPopup(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Top Bar */}
+      <View style={styles.topBar}>
         <TextInput
           style={styles.searchInput}
           placeholder="Search restaurants..."
@@ -83,11 +125,21 @@ export default function App() {
        region={mapRegion}
       >
 
-        {users.map((user) => <UserMarker key={user.id} user={user} />)}
+        {/* {user.map((user) => <UserMarker key={user.id} user={user} />)} */}
+        <UserMarker key={user.id} user={user} onSaveCoordinates={handleSaveCoordinates} />
 
         {restaurants.map((res) => <ResMarker key={res.id} res={res} onPress={() => setSelectedRestaurant(res)} />)}
 
       </MapView>
+
+          {/* Set Location Button */}
+    <TouchableOpacity
+      style={styles.setLocationButton}
+      onPress={() => router.push('/(tabs)')}
+    >
+      <Text style={styles.setLocationButtonText}>Set Location</Text>
+    </TouchableOpacity>
+
 
     {/* Display selected restaurant */}
       {selectedRestaurant && (
@@ -143,6 +195,29 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginVertical: 5,
   },
+  popupContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  popup: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    alignItems: 'center',
+  },
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  popupMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   topBar: {
     position: 'absolute',
     top: 20,
@@ -172,5 +247,22 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  setLocationButton: {
+    position: 'absolute',
+    bottom: 90,
+    left: '10%',
+    right: '10%',
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+  },
+  setLocationButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

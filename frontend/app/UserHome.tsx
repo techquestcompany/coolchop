@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, Button, Modal, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { baseURL, confimrUserLocation, getAllDishes, getAllRestaurants } from '../services/api';
+import { baseURL, confimrUserLocation, getAllDishes, getAllRestaurants, getUserData } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 
 const HomeScreen = () => {
@@ -17,7 +17,7 @@ const HomeScreen = () => {
       try {
         const token = await SecureStore.getItemAsync('userId'); 
         if (token) {
-           //checkUserLocation();
+           checkUserLocation(token);
           fetchRestaurants();
           fetchDishes();
         } else {
@@ -48,12 +48,49 @@ const HomeScreen = () => {
 
   const checkUserLocation = async (token) => {
     const userData = await confimrUserLocation(token); 
-    console.log(userData);
     if (userData.confirmLocation == false) {
       router.push('/location');
+      setUserLocation("Yet to get user location");
+    } else {
+      const location = await getUserData(token);
+
+
+    // Get latitude and longitude
+    const { latitude, longitude } = location;
+
+    // Convert to human-readable address
+    const locationName = await getLocationName(latitude, longitude);
+
+    // Set user location
+    setUserLocation(locationName);
     }
-    setUserLocation("Yet to get user location");
   };
+
+  const getLocationName = async (latitude, longitude) => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
+  
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Coolchop/1.0 (yawanokye99@gmail.com)", 
+        },
+      });
+  
+      const data = await response.json();
+  
+      if (data && data.display_name) {
+        const locationName = data.display_name.split(",")[0];
+        return locationName;
+      } else {
+        console.error("Error fetching location name:", data);
+        return "Unknown Location";
+      }
+    } catch (error) {
+      console.error("Failed to fetch location name:", error);
+      return "Unknown Location";
+    }
+  };
+  
 
   const confirmLogout = async () => {
     setLoading(true);
@@ -87,7 +124,13 @@ const HomeScreen = () => {
   return (
     <View style={styles.container}>
 
-      <Text style={styles.locationText}>Your location now is {userLocation || 'Fetching location...'}</Text>
+    <Text style={styles.locationText}>
+      Your location is, <Text style={styles.boldText}>{userLocation}</Text>
+      {' '}
+      <Text style={styles.changeText} onPress={() => router.push('/location')}>
+        Change
+      </Text>
+    </Text>
 
       {/* Restaurants Section */}
       <View style={styles.sectionContainer}>
@@ -100,8 +143,8 @@ const HomeScreen = () => {
               <Image source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }} style={styles.restaurantImage} />
               <View style={styles.restaurantInfo}>
                 <Text style={styles.restaurantName}>{item.restaurantName}</Text>
-                <Text style={styles.restaurantDescription}>Brief description here</Text>
-                <Text style={styles.restaurantLocation}>Location</Text>
+                <Text style={styles.restaurantDescription}>{item.description}</Text>
+                <Text style={styles.restaurantLocation}>{item.address} . Rating: {item.rating}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -306,6 +349,14 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  boldText: {
+    fontWeight: 'bold', // Makes text bold
+  },
+  changeText: {
+    color: 'red', // Red text color
+    fontStyle: 'italic', // Italic style
+    textDecorationLine: 'underline', // Underline for clickable appearance
   },
 });
 

@@ -133,9 +133,9 @@ export const uploadImage = async (profileImage: string) => {
   
 
 // Function to handle restaurant resgistration
-export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string, profileImage: string) => {
+export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string, description: string, profileImage: string) => {
   try {
-    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, profileImage});
+    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, description, profileImage});
     return response.data;
   } catch (error) {
     console.error('Error resgistering restaurant:', error);
@@ -314,6 +314,28 @@ export const updateCartQuantity = async (userId: string, dishId: string, quantit
     return response.data;
   } catch (error) {
     console.error('Error updating cart quantity:', error);
+    throw error;
+  }
+};
+
+
+// Function to update the user's coordinates
+export const updateUserCoordinates = async (
+  userId: string,
+  latitude: number,
+  longitude: number,
+  confirmLocation: boolean = true
+) => {
+  try {
+    const response = await api.put('/user/update-coordinates', {
+      userId,
+      latitude,
+      longitude,
+      confirmLocation,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user coordinates:', error);
     throw error;
   }
 };

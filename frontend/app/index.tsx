@@ -85,7 +85,7 @@ const checkResTokenValidity = async () => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/reslogin')}>
+        <TouchableOpacity style={styles.card} onPress={() => router.push('/add_restaurants')}>
           <Image source={require('../assets/images/vendor_home.webp')} style={styles.icon} />
           <View style={styles.cardText}>
             <Text style={styles.optionTitle}>Vendor</Text>

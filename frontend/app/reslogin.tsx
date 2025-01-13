@@ -103,7 +103,7 @@ const checkTokenValidity = async () => {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
+            <FontAwesome name="arrow-left" size={30} color="#D32F2F" />
           </TouchableOpacity>
 
           {/* CoolChop Logo */}
@@ -178,6 +178,7 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 20,
+    marginTop: 20,
   },
   logo: {
     width: 180,

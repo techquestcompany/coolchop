@@ -127,7 +127,7 @@ export default function SignUpScreen() {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
+            <FontAwesome name="arrow-left" size={30} color="#D32F2F" />
           </TouchableOpacity>
 
           {/* CoolChop Logo */}
@@ -208,6 +208,14 @@ export default function SignUpScreen() {
             <Text style={styles.linkText}>Terms of Service</Text> and acknowledge that you have read our{' '}
             <Text style={styles.linkText}>Privacy Policy</Text>.
           </Text>
+
+          {/* Login Link */}
+          <Text style={{marginTop: 20, marginBottom: 30,}}>
+            Already have an account?{' '}
+            <TouchableOpacity onPress={() => router.push('/login')}>
+              <Text style={{ color: '#D32F2F', }} >Login</Text>
+            </TouchableOpacity>
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
       <Toast ref={(ref) => Toast.setRef(ref)} />
@@ -228,6 +236,7 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 20,
+    marginTop: 20,
   },
   logo: {
     width: 180,

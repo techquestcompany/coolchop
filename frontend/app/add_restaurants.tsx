@@ -31,6 +31,7 @@ export default function RestaurantRegistrationScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [description, setDescription] = useState('');
   const [profileImage, setProfileImage] = useState('');
   const [imageName, setImageName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,7 +45,7 @@ export default function RestaurantRegistrationScreen() {
 
     try {
       setLoading(true);
-      const response = await registerRestaurant(restaurantName, email, phone, address, imageName);
+      const response = await registerRestaurant(restaurantName, email, phone, address, description, imageName);
       if (response.message == "Restaurant registered successfully") {
         Toast.show({
           type: 'success',
@@ -56,6 +57,7 @@ export default function RestaurantRegistrationScreen() {
         setEmail('');
         setProfileImage('');
         setImageName('');
+        setDescription('');
         setRestaurantName('');
         setPhone('');
       } else {
@@ -133,7 +135,7 @@ export default function RestaurantRegistrationScreen() {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
+            <FontAwesome name="arrow-left" size={30} color="#D32F2F" />
           </TouchableOpacity>
 
           {/* Logo */}
@@ -188,6 +190,14 @@ export default function RestaurantRegistrationScreen() {
             onChangeText={setAddress}
           />
 
+          {/* Description Input */}
+          <InputField
+            iconName="pencil-square-o"
+            placeholder="Restaurant Description"
+            value={description}
+            onChangeText={setDescription}
+          />
+
 
 
           {/* Register Button */}
@@ -218,6 +228,7 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 20,
+    marginTop: 20,
   },
   imagePicker: {
     alignItems: 'center',

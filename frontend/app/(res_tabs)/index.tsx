@@ -1,18 +1,14 @@
-
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer,useNavigation } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { View, Text, Button, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { baseURL, getAllRestaurants } from '@/services/api';
 import * as SecureStore from 'expo-secure-store';
-import vendorOrders from "../vendorOrders"
-import Settings from "../vendorSettings"
+import vendorOrders from "../vendorOrders";
+import Settings from "../vendorSettings";
 import SupportScreen from '../Support';
+
 const Drawer = createDrawerNavigator();
-
-
-
 
 export default function App() {
   const [profile, setProfile] = useState('');
@@ -21,9 +17,7 @@ export default function App() {
     getProfileImage();
   }, []);
 
-
-   const getProfileImage = async () => {
-
+  const getProfileImage = async () => {
     const token = await SecureStore.getItemAsync('restaurantId');
     if (!token) {
       throw new Error('No authentication token found');
@@ -31,12 +25,11 @@ export default function App() {
 
     const user = await getAllRestaurants(token);
     setProfile(user.profileImage);
-  
-   }
+  };
 
   return (
-    
-      <Drawer.Navigator initialRouteName="vendorOrders"  
+    <Drawer.Navigator
+      initialRouteName="vendorOrders"
       screenOptions={{
         headerTitle: 'COOL CHOP',
         headerStyle: {
@@ -44,61 +37,66 @@ export default function App() {
         },
         headerTitleStyle: {
           fontWeight: 'bold',
+          color: '#000',
+        },
+        drawerStyle: {
+          backgroundColor: '#FFFFFF', // Drawer background
+        },
+        drawerActiveBackgroundColor: '#D32F2F', // Active item background
+        drawerActiveTintColor: '#FFFFFF', // Active item text color
+        drawerInactiveTintColor: '#000000', // Inactive item text color
+        drawerItemStyle: {
+          borderRadius: 10, // Rounded corners for the active bar
+          marginVertical: 5, // Add spacing between items
         },
         headerRight: () => (
           <View style={styles.headerRightContainer}>
             <TouchableOpacity style={styles.profileContainer}>
               <Image
-                source={{  uri: `${baseURL}/public/uploads/${profile}` }}
+                source={{ uri: `${baseURL}/public/uploads/${profile}` }}
                 style={styles.profileImage}
               />
             </TouchableOpacity>
           </View>
         ),
       }}
-      >
-        <Drawer.Screen name="vendorOrders" component={vendorOrders} options={{
-          drawerActiveBackgroundColor:"#D32F2F",
-          drawerIcon:()=>(
-            <FontAwesome name="shopping-cart" colour="gray" size={20} />
+    >
+      <Drawer.Screen
+        name="vendorOrders"
+        component={vendorOrders}
+        options={{
+          drawerIcon: () => (
+            <FontAwesome name="shopping-cart" color="gray" size={20} />
           ),
-          drawerActiveTintColor:"gray"
-        }} />
-        <Drawer.Screen name="Settings" component={Settings} options={{
-          drawerActiveBackgroundColor:"#D32F2F",
-          drawerIcon:() =>(
-            <FontAwesome name='cogs' size={20} color="gray" />
-              
+        }}
+      />
+      <Drawer.Screen
+        name="Settings"
+        component={Settings}
+        options={{
+          drawerIcon: () => (
+            <FontAwesome name="cogs" size={20} color="gray" />
           ),
-          drawerActiveTintColor:"gray"
-        }} />
-
-
-      <Drawer.Screen name="Help" component={SupportScreen} options={{
-          drawerActiveBackgroundColor:"#D32F2F",
-          drawerIcon:() =>(
-            <Ionicons name='help' size={20} color="gray" />
-              
+        }}
+      />
+      <Drawer.Screen
+        name="Help"
+        component={SupportScreen}
+        options={{
+          drawerIcon: () => (
+            <Ionicons name="help" size={20} color="gray" />
           ),
-          drawerActiveTintColor:"black"
-        }} />
-      </Drawer.Navigator>
-  
+        }}
+      />
+    </Drawer.Navigator>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   headerRightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 10,
-  },
-  headerLocation: {
-    color: '#fff',
-    marginRight: 10,
-    fontSize: 14,
   },
   profileContainer: {
     width: 40,
