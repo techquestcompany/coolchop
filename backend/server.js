@@ -6,6 +6,8 @@ const restaurantRoutes = require('./routes/restaurantRoutes');
 const orderRoutes = require("./routes/ordersRouter");
 const uploadsRoutes = require("./routes/uploadRoutes");
 const cartRoutes = require("./routes/cartRoutes");
+const ratingsRoutes = require("./routes/ratingsRoute");
+const reviewRoutes = require("./routes/reviewRoute");
 const { Server } = require("socket.io");
 const cors = require('cors');
 const http = require('http'); 
@@ -42,6 +44,8 @@ app.use('/api/restaurant', restaurantRoutes);
 app.use('/api/order', orderRoutes);
 app.use("/api/upload", uploadsRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/ratings", ratingsRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 
 // Webhook Route for CI/CD
@@ -53,7 +57,7 @@ app.post('/webhook', (req, res) => {
     console.log('Webhook triggered by push event');
 
     // Run deployment commands
-    exec('cd ./coolchop_backend && git pull && npm install && pm2 restart server', (err, stdout, stderr) => {
+    exec('cd /home/ubuntu/coolchop_backend && git pull && npm install && pm2 restart server', (err, stdout, stderr) => {
       if (err) {
         console.error('Deployment failed:', stderr);
         return res.status(500).send('Deployment failed');

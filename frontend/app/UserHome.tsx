@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, Button, Modal, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, Button, Modal, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { baseURL, confimrUserLocation, getAllDishes, getAllRestaurants, getUserData } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
@@ -17,7 +17,7 @@ const HomeScreen = () => {
       try {
         const token = await SecureStore.getItemAsync('userId'); 
         if (token) {
-           checkUserLocation(token);
+          checkUserLocation(token);
           fetchRestaurants();
           fetchDishes();
         } else {
@@ -122,7 +122,7 @@ const HomeScreen = () => {
 
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
 
     <Text style={styles.locationText}>
       Your location is, <Text style={styles.boldText}>{userLocation}</Text>
@@ -144,7 +144,7 @@ const HomeScreen = () => {
               <View style={styles.restaurantInfo}>
                 <Text style={styles.restaurantName}>{item.restaurantName}</Text>
                 <Text style={styles.restaurantDescription}>{item.description}</Text>
-                <Text style={styles.restaurantLocation}>{item.address} . Rating: {item.rating}</Text>
+                <Text style={styles.restaurantLocation}>{item.address} . Ratings: {item.ratings}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -191,7 +191,7 @@ const HomeScreen = () => {
           <Button title="Cancel" onPress={onLogoutClose} />
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -351,12 +351,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   boldText: {
-    fontWeight: 'bold', // Makes text bold
+    fontWeight: 'bold',
   },
   changeText: {
-    color: 'red', // Red text color
-    fontStyle: 'italic', // Italic style
-    textDecorationLine: 'underline', // Underline for clickable appearance
+    color: 'red', 
+    fontStyle: 'italic', 
+    textDecorationLine: 'underline',
   },
 });
 

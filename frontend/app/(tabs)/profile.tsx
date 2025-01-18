@@ -112,22 +112,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Other Settings */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Settings</Text>
-        <TouchableOpacity style={styles.row}>
-          <Ionicons name="notifications" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>Notifications</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.row}>
-          <Ionicons name="help-circle" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>Help Center</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.row}>
-          <Ionicons name="log-out" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
     </ScrollView>
   );
 }

@@ -304,10 +304,10 @@ export const saveOrder = async (order: {
 
 
 // Function to update the quantity of a dish in the cart
-export const updateCartQuantity = async (userId: string, dishId: string, quantity: number) => {
+export const updateCartQuantity = async (user_id: string, dishId: string, quantity: number) => {
   try {
     const response = await api.put('/cart/update-quantity', {
-      userId,
+      user_id,
       dishId,
       quantity,
     });
@@ -327,7 +327,7 @@ export const updateUserCoordinates = async (
   confirmLocation: boolean = true
 ) => {
   try {
-    const response = await api.put('/user/update-coordinates', {
+    const response = await api.put('/location/confirm', {
       userId,
       latitude,
       longitude,
@@ -336,6 +336,119 @@ export const updateUserCoordinates = async (
     return response.data;
   } catch (error) {
     console.error('Error updating user coordinates:', error);
+    throw error;
+  }
+};
+
+
+
+// Function to save a rating
+export const saveRating = async (userId: string, restaurantId: string, rating: number, userRating: number) => {
+  try {
+    const response = await api.post('/ratings/add', {
+      userId,
+      restaurantId,
+      rating,
+      userRating,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error saving rating:', error);
+    throw error;
+  }
+};
+
+// Function to fetch the user's rating for a restaurant
+export const getUserRating = async (userId: string, restaurantId: string) => {
+  try {
+    const response = await api.get(`/ratings/${restaurantId}`, {
+      params: { userId },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user rating:', error);
+    throw error;
+  }
+};
+
+// Function to save a review
+export const saveReview = async (userId: string, restaurantId: string, review: string) => {
+  try {
+    const response = await api.post('/reviews/add', {
+      userId,
+      restaurantId,
+      review,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error saving review:', error);
+    throw error;
+  }
+};
+
+// Function to fetch reviews for a restaurant
+export const getReviews = async (restaurantId: string) => {
+  try {
+    const response = await api.get(`/reviews/${restaurantId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    throw error;
+  }
+};
+
+
+// Function to save a rating
+export const saveDishRating = async (userId: string, dishId: string, rating: number, userRating: number) => {
+  try {
+    const response = await api.post('/ratings/add-dish', {
+      userId,
+      dishId,
+      rating,
+      userRating,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error saving rating:', error);
+    throw error;
+  }
+};
+
+// Function to fetch the user's rating for a restaurant
+export const getUserDishRating = async (userId: string, dishId: string) => {
+  try {
+    const response = await api.get(`/ratings/${dishId}`, {
+      params: { userId },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user rating:', error);
+    throw error;
+  }
+};
+
+// Function to save a review
+export const saveDishReview = async (userId: string, dishId: string, review: string) => {
+  try {
+    const response = await api.post('/reviews/add-dish', {
+      userId,
+      dishId,
+      review,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error saving review:', error);
+    throw error;
+  }
+};
+
+// Function to fetch reviews for a restaurant
+export const getDishReviews = async (dishId: string) => {
+  try {
+    const response = await api.get(`/reviews/${dishId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
     throw error;
   }
 };

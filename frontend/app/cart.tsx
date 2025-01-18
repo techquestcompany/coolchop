@@ -28,6 +28,7 @@ const CartScreen = () => {
       const userId = await SecureStore.getItemAsync("userId");
 
       const items = await getCartItems(userId);
+      
 
       const dishPromises = items.map(async (item) => {
         const dish = await getDishById(item.dishId);
@@ -37,9 +38,13 @@ const CartScreen = () => {
           quantity: item.quantity, 
         };
       });
+      console.log(dishPromises)
+
 
       const dishes = await Promise.all(dishPromises);
+      console.log(dishes)
       setCartItems(dishes);
+      console.log(cartItems)
       setIsLoading(false);
     } catch (err) {
       console.error("Failed to fetch cart items:", err);
