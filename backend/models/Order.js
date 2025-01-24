@@ -1,13 +1,16 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-const User = require("./User");
-const Cart = require("./Cart");
+const User = require('./User');
 
 const Order = sequelize.define("Order", {
   orderNumber: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
+  },
+  items: {
+    type: DataTypes.JSON, 
+    allowNull: false,
   },
   totalAmount: {
     type: DataTypes.FLOAT,
@@ -17,7 +20,7 @@ const Order = sequelize.define("Order", {
     type: DataTypes.ENUM('pending', 'preparing', 'on_delivery', 'delivered'),
     defaultValue: 'pending',
   },
-  suggestions: {
+  note: {
     type: DataTypes.STRING,
     allowNull: true, 
   },
@@ -25,21 +28,6 @@ const Order = sequelize.define("Order", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  cartId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  }
-});
-
-// Establishing associations
-Order.belongsTo(User, {
-  foreignKey: 'userId',
-  as: 'customer',
-});
-
-Order.belongsTo(Cart, {
-  foreignKey: 'cartId',
-  as: 'cart',
 });
 
 module.exports = Order;

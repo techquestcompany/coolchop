@@ -6,6 +6,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import UserSettings from '../UserSettings';
 import UserHome from '../UserHome';
 import Cart from '../cart';
+import Orders from '../order';
 import UserSupport from '../UserSupport';
 import Logout from '../logout';
 import { baseURL, getUserData } from '@/services/api';
@@ -83,6 +84,14 @@ export default function App() {
         options={{
           drawerIcon: () => <FontAwesome name="shopping-cart" size={20} color="black" />,
           drawerLabel: "Cart"
+        }}
+      />
+      <Drawer.Screen
+        name="order"
+        component={Orders}
+        options={{
+          drawerIcon: () => <FontAwesome name="motorcycle" size={20} color="black" />,
+          drawerLabel: "Orders"
         }}
       />
       <Drawer.Screen

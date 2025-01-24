@@ -41,7 +41,7 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/api/user', authRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/restaurant', restaurantRoutes);
-app.use('/api/order', orderRoutes);
+app.use('/api/orders', orderRoutes);
 app.use("/api/upload", uploadsRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/ratings", ratingsRoutes);
@@ -51,9 +51,10 @@ app.use("/api/reviews", reviewRoutes);
 // Webhook Route for CI/CD
 app.post('/webhook', (req, res) => {
   const payload = req.body;
+  res.status(200).send('Webhook received');
 
   // Check if the event is a GitHub push event
-  if (req.headers['x-github-event'] === 'push') {
+  if (req.headers['x-github-event'] === 'push' || req.headers['x-github-event'] === 'ping') {
     console.log('Webhook triggered by push event');
 
     // Run deployment commands
@@ -70,6 +71,7 @@ app.post('/webhook', (req, res) => {
     res.status(400).send('Event not handled');
   }
 });
+
 
 
 // Sync database  

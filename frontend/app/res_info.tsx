@@ -30,6 +30,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Toast from "react-native-toast-message";
 import * as SecureStore from "expo-secure-store";
 import LottieView from "lottie-react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 const RestaurantInfoScreen = () => {
   const { id } = useLocalSearchParams();
@@ -200,6 +201,7 @@ const RestaurantInfoScreen = () => {
               {/* Header */}
               <View style={styles.header}>
                 <Text style={styles.headerText}>
+                <Ionicons name="arrow-back" size={24} color="black" style={{position: 'absolute', left: 10,}} onPress={() => router.back()} />
                   {restaurant.restaurantName}
                 </Text>
               </View>

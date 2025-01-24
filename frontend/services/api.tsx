@@ -1,10 +1,11 @@
 import axios from 'axios';
                    
 
-export const API_URL = 'http://172.20.10.4:3000/api';
-export const baseURL = 'http://172.20.10.4:3000';
+export const API_URL = 'http://13.60.180.213:3000/api';
+export const baseURL = 'http://13.60.180.213:3000';
 // const API_URL = 'http://192.168.0.103:3000/api';
 //13.60.180.213
+// 172.20.10.5
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -289,7 +290,7 @@ export const deleteFromCart = async (user_id: string, dishId: string) => {
 
 // Function to save an order
 export const saveOrder = async (order: {
-  userId: string;
+  user_id: string;
   items: { id: string; quantity: number }[];
   note?: string;
 }) => {
@@ -301,6 +302,49 @@ export const saveOrder = async (order: {
     throw error;
   }
 };
+
+// Function to fetch an order by user ID
+export const fetchOrder = async (user_id: string) => {
+  try {
+    const response = await api.get(`/orders/get`, {
+      params: { user_id }, 
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching order:', error);
+    throw error;
+  }
+};
+
+
+// Function to delete an order by ID
+export const deleteOrder = async (orderId: string, userId?: string) => {
+  try {
+    const payload = userId ? { userId } : {};
+    const response = await api.delete(`/orders/${orderId}`, { data: payload });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    throw error;
+  }
+};
+
+// Function to update an existing order
+export const updateOrder = async (orderId: string, updatedData: Partial<{
+  items: { id: string; quantity: number }[];
+  totalAmount: number;
+  note?: string;
+  status?: string;
+}>) => {
+  try {
+    const response = await api.put(`/orders/${orderId}`, updatedData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating order:', error);
+    throw error;
+  }
+};
+
 
 
 // Function to update the quantity of a dish in the cart

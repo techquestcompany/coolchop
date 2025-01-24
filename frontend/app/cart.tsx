@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { getCartItems, deleteFromCart, updateCartQuantity, saveOrder, getDishById, baseURL } from "@/services/api";
 import * as SecureStore from "expo-secure-store";
+import { router } from "expo-router";
 
 const CartScreen = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -38,13 +39,10 @@ const CartScreen = () => {
           quantity: item.quantity, 
         };
       });
-      console.log(dishPromises)
 
 
       const dishes = await Promise.all(dishPromises);
-      console.log(dishes)
       setCartItems(dishes);
-      console.log(cartItems)
       setIsLoading(false);
     } catch (err) {
       console.error("Failed to fetch cart items:", err);
@@ -80,9 +78,9 @@ const CartScreen = () => {
 
   const handleSaveOrder = async () => {
     try {
-      const userId = await SecureStore.getItemAsync("userId");
+      const user_id = await SecureStore.getItemAsync("userId");
       const order = {
-        userId,
+        user_id,
         items: cartItems.map((item) => ({
           id: item.id,
           quantity: item.quantity,
@@ -91,11 +89,13 @@ const CartScreen = () => {
       };
       await saveOrder(order);
       alert("Order placed successfully!");
+      router.push("/order");
     } catch (err) {
       console.error("Failed to save order:", err);
       alert("Failed to place order. Please try again.");
     }
   };
+  
 
   if (isLoading) {
     return (
