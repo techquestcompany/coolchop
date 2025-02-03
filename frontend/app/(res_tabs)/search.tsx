@@ -1,37 +1,71 @@
-import React from 'react';
-import { View, Text, TextInput, FlatList, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { getAllDishes, baseURL } from '@/services/api';
+import { router } from 'expo-router';
 
-const DATA = [
-  {
-    id: '1',
-    name: "Sweet Mummy's Joint",
-    rating: 3.5,
-    visits: 85,
-    deliveryTime: '30 mins',
-    imageUrl: 'https://example.com/image1.jpg', // Replace with actual image URLs
-  },
-  {
-    id: '2',
-    name: "Sweet Mummy's Joint",
-    rating: 3.5,
-    visits: 85,
-    deliveryTime: '30 mins',
-    imageUrl: 'https://example.com/image2.jpg', // Replace with actual image URLs
-  },
-  // Add more data as needed
-];
 
 const SearchScreen = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dishes, setDishes] = useState([]);
+  const [filteredDishes, setFilteredDishes] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchDishes();
+  }, []);
+
+  const fetchDishes = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getAllDishes();
+      setDishes(response);
+      setFilteredDishes(response);
+      setIsLoading(false);
+    } catch (err) {
+      setError('Failed to fetch dishes.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    if (text === '') {
+      setFilteredDishes(dishes);
+    } else {
+      const filtered = dishes.filter((dish) =>
+        dish.dishName.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredDishes(filtered);
+    }
+  };
+
   const renderItem = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <Image source={{ uri: item.imageUrl }} style={styles.image} />
+    <TouchableOpacity style={styles.itemContainer} onPress={() => router.push(`/dish_info?id=${item.id}`)}>
+      <Image source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }}  style={styles.image} />
       <View style={styles.infoContainer}>
-        <Text style={styles.title}>{item.name}</Text>
-        <Text style={styles.rating}>⭐ {item.rating} - {item.visits} visits</Text>
-        <Text style={styles.deliveryTime}>{item.deliveryTime}</Text>
+        <Text style={styles.title}>{item.dishName}</Text>
+        <Text style={styles.rating}>⭐ 10.0 - {item.visits} visits</Text>
+        <Text style={styles.deliveryTime}>{item.price}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -40,12 +74,19 @@ const SearchScreen = () => {
         style={styles.searchInput}
         placeholder="Search food category"
         placeholderTextColor="#888"
+        value={searchQuery}
+        onChangeText={handleSearch}
       />
       <FlatList
-        data={DATA}
+        data={filteredDishes}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', marginTop: 16 }}>
+            No dishes found.
+          </Text>
+        }
       />
     </View>
   );

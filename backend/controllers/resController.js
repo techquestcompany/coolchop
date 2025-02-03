@@ -1,7 +1,7 @@
 const Restaurant = require('../models/Restaurant');
 const Dish = require('../models/Dish');
 const bcrypt = require('bcryptjs');
-const { encrypt } = require('../utils/encryption');
+const { encrypt, decrypt } = require('../utils/encryption');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
@@ -38,16 +38,6 @@ const sendEmail = async (email, restaurantId) => {
   
     try {
       await transporter.sendMail(mailOptions);
-      // Find user by email
-      const existingUser = await Restaurant.findOne({ where: { email } });
-      if (!existingUser) {
-        return { status: 400, error: "Email can't be found" };
-      }
-  
-      // Update user's record with the restaurant id
-      await existingUser.update({
-        restaurantId, 
-      });
   
     } catch (error) {
       console.error('Error sending  email:', error);
@@ -59,21 +49,16 @@ const sendEmail = async (email, restaurantId) => {
 // Login function
 exports.login = async (req, res) => {
   try {
-    const { restaurantId,longitude, latitude } = req.body;
+    const { restaurantId, longitude, latitude } = req.body;
 
     // Check if user exists
     const restaurant = await Restaurant.findOne({ where: { restaurantId } });
 
     if (!restaurant) {
-      return res.status(400).json({ error: 'Invalid id or password' });
+      return res.status(400).json({ error: 'Invalid id ' });
     }
 
-    // Check if the password is correct
-   // const isMatch = await bcrypt.compare(password, restaurant.password);
 
-    //if (!isMatch) {
-    //  return res.status(400).json({ error: 'Invalid id or password' });
-    //}
 
     await restaurant.update({
       longitude,
@@ -82,10 +67,15 @@ exports.login = async (req, res) => {
 
 
   
+    //encrypt restaurant id
+    const res_id = await encrypt(restaurant.id.toString());
 
     // If login is successful, return restaurant data
     res.status(200).json({
-      message: 'Login successful'
+      message: 'Login successful',
+      restaurant: {
+        id: res_id,
+      },
     });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -98,7 +88,7 @@ exports.login = async (req, res) => {
 // Signup function
 exports.addRestaurant = async (req, res) => {
   try {
-    const { restaurantName, email, phone, address, profileImage } = req.body;
+    const { restaurantName, email, phone, address, description, profileImage } = req.body;
 
     if (!restaurantName || !email || !phone || !address || !profileImage ) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -117,22 +107,19 @@ exports.addRestaurant = async (req, res) => {
     await sendEmail(email, restaurantId);
 
     const restaurant = await Restaurant.create({
+      restaurantId,
       restaurantName,
       email,
       phone,
       address,
+      description,
       profileImage,
-      verificationStatus
     });
 
-      //encrypt restaurant id
-      const res_id = await encrypt(restaurant.id.toString());
+
 
     res.status(201).json({
       message: 'Restaurant registered successfully',
-      restaurant: {
-        id: res_id,
-      },
     });
   } catch (error) {
     res.status(500).json({ error: 'Error creating user' });
@@ -143,19 +130,32 @@ exports.addRestaurant = async (req, res) => {
 exports.createDishes = async (req, res) => {
   const { dishes } = req.body;
 
-
   if (!dishes || !Array.isArray(dishes)) {
     return res.status(400).json({ message: 'Invalid input, dishes must be an array' });
   }
 
   try {
+
+    const updatedDishes = await Promise.all(
+      dishes.map(async (dish) => {
+      if (!dish.restaurantId) {
+        throw new Error('Missing restaurantId in dish');
+      }
+      const decryptedRestaurantId = await decrypt(dish.restaurantId.toString());
+      return { ...dish, restaurantId: decryptedRestaurantId };
+    })
+    );
+
+
+
     // Save all dishes
-    const createdDishes = await Dish.bulkCreate(dishes);
+    const createdDishes = await Dish.bulkCreate(updatedDishes);
 
     res.status(201).json({
       message: 'Dishes saved successfully',
     });
   } catch (error) {
+    console.error('Error saving dishes:', error);
     res.status(500).json({ message: 'Error saving dishes', error });
   }
 };
@@ -172,18 +172,45 @@ exports.getAllRestaurants = async (req, res) => {
 
 // Get a restaurant by ID
 exports.getRestaurantById = async (req, res) => {
-  const { id } = req.params;
   try {
-    const restaurant = await Restaurant.findByPk(id);
+    const restaurantId = req.headers.authorization.split(' ')[1]; 
+
+    //const restaurantId = await decrypt(id.toString());
+
+    const restaurant = await Restaurant.findOne({ where: { id: restaurantId } });
     if (restaurant) {
       res.status(200).json(restaurant);
     } else {
       res.status(404).json({ message: 'Restaurant not found' });
     }
   } catch (error) {
+    console.error('Error retrieving restaurant:', error);
     res.status(500).json({ message: 'Error retrieving restaurant', error });
   }
 };
+
+// Get dishes by restaurant ID
+exports.getDishesByRestaurantId = async (req, res) => {
+  try {
+    // Extract and decrypt restaurant ID from headers
+    const restaurantId = req.headers.authorization.split(' ')[1]; 
+    //const restaurantId = await decrypt(id.toString());
+
+    // Fetch all dishes associated with the restaurant ID
+    const dishes = await Dish.findAll({ where: { restaurantId } });
+
+    if (dishes && dishes.length > 0) {
+      res.status(200).json(dishes);
+    } else {
+      res.status(404).json({ message: 'No dishes found for this restaurant' });
+    }
+  } catch (error) {
+    console.error('Error retrieving dishes:', error);
+    res.status(500).json({ message: 'Error retrieving dishes', error });
+  }
+};
+
+
 
 // Get all dishes
 exports.getAllDishes = async (req, res) => {
@@ -197,15 +224,45 @@ exports.getAllDishes = async (req, res) => {
 
 // Get a dish by ID
 exports.getDishById = async (req, res) => {
-  const { id } = req.params;
   try {
-    const dish = await Dish.findByPk(id);
-    if (dish) {
-      res.status(200).json(dish);
+    const dish_id = req.headers.authorization.split(' ')[1]; 
+
+   // const dishId = await decrypt(dish_id.toString());
+
+    const dishes = await Dish.findOne({ where: { id: dish_id } });
+    if (dishes) {
+      res.status(200).json(dishes);
     } else {
       res.status(404).json({ message: 'Dish not found' });
     }
   } catch (error) {
+    console.error('Error retrieving dish:', error);
     res.status(500).json({ message: 'Error retrieving dish', error });
+  }
+};
+
+
+exports.verifyResId = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required' });
+  }
+
+  try {
+    // Decrypt the token to get the user ID
+    const userId = await decrypt(token);
+
+    // Check if the user exists in the database
+    const userExists = await Restaurant.findOne({ where: { id: userId } });
+
+    if (userExists) {
+      res.status(200).json({ exists: true });
+    } else {
+      res.status(404).json({ exists: false, message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(500).json({ message: 'Error verifying token', error });
   }
 };

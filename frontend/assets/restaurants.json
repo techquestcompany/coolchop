@@ -1,0 +1,46 @@
+[
+  {
+    "id": 101,
+    "name": "Kofi's Kitchen",
+    "location": {
+      "latitude": 5.6094,
+      "longitude": -0.1945
+    },
+    "status": "open",
+    "profileImage": "https://th.bing.com/th/id/OIP.7nsXVVE-9y4C6y_ImUCHgQHaE8?rs=1&pid=ImgDetMain",
+    "rating": 4.9
+  },
+  {
+    "id": 102,
+    "name": "Ama's Chop Bar",
+    "location": {
+      "latitude": 5.6145,
+      "longitude": -0.2057
+    },
+    "status": "busy",
+    "profileImage": "https://th.bing.com/th/id/OIP.7nsXVVE-9y4C6y_ImUCHgQHaE8?rs=1&pid=ImgDetMain",
+    "rating": 4.9
+  },
+  {
+    "id": 103,
+    "name": "Kojo's Grill",
+    "location": {
+      "latitude": 5.5993,
+      "longitude": -0.1826
+    },
+    "status": "open",
+    "profileImage": "https://th.bing.com/th/id/OIP.7nsXVVE-9y4C6y_ImUCHgQHaE8?rs=1&pid=ImgDetMain",
+    "rating": 4.9
+  },
+  {
+    "id": 104,
+    "name": "Akua's Delight",
+    "location": {
+      "latitude": 5.6161,
+      "longitude": -0.1963
+    },
+    "status": "closed",
+    "profileImage": "https://th.bing.com/th/id/OIP.7nsXVVE-9y4C6y_ImUCHgQHaE8?rs=1&pid=ImgDetMain",
+    "rating": 4.9
+  }
+]

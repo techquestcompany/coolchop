@@ -9,9 +9,13 @@ const Restaurant = sequelize.define('Restaurant', {
   },
   restaurantId: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: false
   },
   restaurantName: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  description: {
     type: DataTypes.STRING,
     allowNull: false
   },
@@ -47,9 +51,20 @@ const Restaurant = sequelize.define('Restaurant', {
     allowNull: false,
     defaultValue: false
   },
+  ratings: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0
+  },
+  reviews: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
   verificationStatus:{
     type: DataTypes.STRING,
-    default:"Not Verified"
+    allowNull: false,
+    defaultValue :"Not Verified"
   }
 }, {});
 

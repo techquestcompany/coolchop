@@ -95,7 +95,7 @@ exports.signup = async (req, res) => {
   try {
     const { name, email, phone, password, profileImage } = req.body;
 
-    if (!name || !email || !phone || !password || profileImage) {
+    if (!name || !email || !phone || !password || !profileImage) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -162,11 +162,16 @@ exports.getUserData = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    const userId = await encrypt(user.id.toString());
+
     res.status(200).json({
+      id: userId,
       name: user.name,
       email: user.email,
       longitude: user.longitude,
       latitude: user.latitude,
+      phone: user.phone,
+      profileImage: user.profileImage,
     });
   } catch (error) {
     console.error("Error getting user data:", error);
@@ -189,26 +194,7 @@ exports.searchUser = async (req, res) => {
   }
 };
 
-exports.getUserById = async (req, res) => {
-  try {
-    const { userId } = req.query;
 
-    if (!userId) {
-      return res.status(400).send("User ID parameter is required");
-    }
-
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json(user);
-  } catch (error) {
-    console.error("Error fetching user by ID:", error.message);
-    res.status(500).json({ message: error.message });
-  }
-};
 
 exports.forgottenPassword = async (req, res) => {
   const { email } = req.body;
@@ -275,5 +261,72 @@ exports.getAllUsers = async (req, res) => {
   const getUsers = await User.findAll();
   if (getUsers) {
     res.status(200).json(getUsers);
+  }
+};
+
+
+exports.verifyUserId = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required' });
+  }
+
+  try {
+    // Decrypt the token to get the user ID
+    const userId = await decrypt(token);
+
+    // Check if the user exists in the database
+    const userExists = await User.findOne({ where: { id: userId } });
+
+    if (userExists) {
+      res.status(200).json({ exists: true });
+    } else {
+      res.status(404).json({ exists: false, message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(500).json({ message: 'Error verifying token', error });
+  }
+};
+
+// Update user location
+exports.updateUserLocation = async (req, res) => {
+  try {
+    const { userId } = req.body
+    // Extract token from the Authorization header
+    const token = userId;
+    if (!token) {
+      return res.status(401).json({ error: "Authentication token missing" });
+    }
+
+    // Decrypt token to get user ID
+    const decoded = await decrypt(token);
+    const user = await User.findOne({ where: { id: decoded } });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Extract coordinates and confirmLocation from request body
+    const { latitude, longitude, confirmLocation } = req.body;
+    if (latitude === undefined || longitude === undefined || confirmLocation === undefined) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Update user location and confirmLocation
+    user.latitude = latitude;
+    user.longitude = longitude;
+    user.confirm_location = confirmLocation;
+
+    // Save changes to the database
+    await user.save();
+
+    res.status(200).json({
+      message: "User location updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating user location:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };

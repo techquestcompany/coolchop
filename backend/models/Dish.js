@@ -3,8 +3,8 @@ const sequelize = require('../config/db');
 
 const Dish = sequelize.define('Dish', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true,
   },
   profileImage: {
@@ -27,9 +27,23 @@ const Dish = sequelize.define('Dish', {
     type: DataTypes.TEXT, 
     allowNull: false,
   },
+  description: {
+    type: DataTypes.TEXT, 
+    allowNull: false,
+  },
   restaurantId: {
     type: DataTypes.STRING,
     allowNull: false,
+  },
+  ratings: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+    defaultValue: 0
+  },
+  reviews: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
   },
   createdAt: {
   type: DataTypes.DATE,

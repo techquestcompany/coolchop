@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "name": "Kwame Appiah",
+    "location": {
+      "latitude": 5.6037,
+      "longitude": -0.1870
+    },
+    "description": "I am a foodie",
+    "profileImage": "https://netstorage-tuko.akamaized.net/images/0fgjhs3sg5f72hphmg.jpg"
+  }
+]

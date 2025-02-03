@@ -84,7 +84,7 @@ const handleSignIn = async () => {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <FontAwesome name="arrow-left" size={24} color="#D32F2F" />
+            <FontAwesome name="arrow-left" size={30} color="#D32F2F" />
           </TouchableOpacity>
 
           {/* CoolChop Logo */}
@@ -138,8 +138,8 @@ const handleSignIn = async () => {
           {/* Sign Up Link */}
           <Text style={styles.footerText}>
             Don’t have an account?{' '}
-            <TouchableOpacity>
-              <Text style={styles.signUpText} onPress={() => router.push('/signup')}>Sign Up</Text>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.signUpText} >Sign Up</Text>
             </TouchableOpacity>
           </Text>
         </ScrollView>
@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 20,
+    marginTop: 20,
   },
   logo: {
     width: 180,

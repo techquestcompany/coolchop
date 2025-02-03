@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,52 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import * as SecureStore from 'expo-secure-store';
+import { baseURL, getRestaurantById } from "@/services/api";
 
 export default function VendorProfileScreen() {
+  const [restaurant, setRestaurant] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+
+  useEffect(() => {
+    fetchRestaurant();
+  }, []);
+
+  const fetchRestaurant = async () => {
+    setIsLoading(true);
+    try {
+      const restaurantId = await SecureStore.getItemAsync('restaurantId');
+      const data = await getRestaurantById(restaurantId);
+      setRestaurant(data);
+    } catch (err) {
+      setError("Failed to load restaurant data.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#D32F2F" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: "red", textAlign: "center" }}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -17,36 +59,36 @@ export default function VendorProfileScreen() {
         <Image
           style={styles.avatar}
           source={{
-            uri: "https://via.placeholder.com/150",
+            uri: `${baseURL}/public/uploads/${restaurant.profileImage}`,
           }}
         />
-        <Text style={styles.name}>Vendor Name</Text>
+        <Text style={styles.name}>{restaurant.restaurantName}</Text>
         <Text style={styles.tagline}>Delivering Happiness 🚚</Text>
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity style={styles.editButton} onPress={() => router.push('/edit_profile')}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
 
       {/* Business Info */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Business Details</Text>
+        <Text style={styles.sectionTitle}>{restaurant.restaurantName}</Text>
         <View style={styles.row}>
           <FontAwesome5 name="store" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Business Name: Foodies Heaven</Text>
         </View>
         <View style={styles.row}>
           <Ionicons name="mail" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>vendor@example.com</Text>
+          <Text style={styles.rowText}>{restaurant.email}</Text>
         </View>
         <View style={styles.row}>
           <Ionicons name="call" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>+123 456 7890</Text>
+          <Text style={styles.rowText}>{restaurant.phone}</Text>
         </View>
       </View>
 
       {/* Address Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Business Address</Text>
+        <Text style={styles.sectionTitle}>{restaurant.address}</Text>
         <TouchableOpacity style={styles.row}>
           <MaterialIcons name="location-on" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>123 Market Street, City</Text>

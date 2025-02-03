@@ -51,18 +51,34 @@ export default function AddDishScreen() {
     }, [fadeAnim]);
 
 
-  const handleAddDish = () => {
-    const newDish = { dishName, description, price, ingredients, category, imageName };
-    setDishes([...dishes, newDish]);
-
-    // Clear input fields after adding
-    setDishName('');
-    setDescription('');
-    setPrice('');
-    setIngredients('');
-    setCategory('');
-  };
-
+    const handleAddDish = () => {
+      if (!dishName || !description || !price || !ingredients || !category || !profileImage) {
+        Alert.alert('Error', 'Please fill in all fields and upload an image.');
+        return;
+      }
+    
+      const newDish = {
+        dishName,
+        description,
+        price,
+        ingredients,
+        category,
+        profileImage: imageName,
+        path: profileImage,
+      };
+    
+      setDishes([...dishes, newDish]);
+    
+      // Clear input fields and image after adding
+      setDishName('');
+      setDescription('');
+      setPrice('');
+      setIngredients('');
+      setCategory('');
+      setProfileImage(null);
+      setImageName('');
+    };
+    
 
   const handleSubmit = async () => {
  
@@ -70,7 +86,7 @@ export default function AddDishScreen() {
       setLoading(true);
   
       // Get restaurantId from local storage
-      const restaurantId = await SecureStore.getItemAsync('resId');
+      const restaurantId = await SecureStore.getItemAsync('restaurantId');
       if (!restaurantId) {
         Alert.alert('Error', 'Restaurant ID not found. Please log in again.');
         return;
@@ -90,7 +106,7 @@ export default function AddDishScreen() {
           text1: 'Dishes saved successfully',
           text2: 'Your dish has been submitted!',
         });
-        router.push('/reslogin');
+        router.push('/(res_tabs)');
       } else {
         Toast.show({
           type: 'error',
@@ -244,9 +260,12 @@ export default function AddDishScreen() {
               <Text style={styles.dishesTitle}>Added Dishes:</Text>
               {dishes.map((dish, index) => (
                 <View key={index} style={styles.dishItem}>
+                  {dish.path && (
+                    <Image source={{ uri: dish.path }} style={styles.dishImage} />
+                  )}
                   <Text style={styles.dishName}>{dish.dishName}</Text>
                   <Text style={styles.dishDetails}>Category: {dish.category}</Text>
-                  <Text style={styles.dishDetails}>Price: ${dish.price}</Text>
+                  <Text style={styles.dishDetails}>Price: ₵{dish.price}</Text>
                 </View>
               ))}
             </View>
@@ -359,6 +378,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
+  dishImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 10,
+    marginBottom: 10,
+  },  
   lottieAnimation: {
     width: 150,
     height: 150,
