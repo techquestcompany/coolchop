@@ -109,6 +109,7 @@ export default function SignUpScreen() {
         if (response.data.success) {
           const serverImageUrl = response.data.url;
           setProfileImage(serverImageUrl);
+          console.log(profileImage)
           setImageName(response.data.imageName);
 
         } else {
