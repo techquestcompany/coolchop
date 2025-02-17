@@ -26,6 +26,3 @@ exports.uploadUserImage =  (req, res) => {
     res.json({ success: true, url: imageUrl, imageName : req.file.filename });
   });
 };
-
-
-
