@@ -25,9 +25,9 @@ interface Dish {
 }
 
 // Function to handle user signup
-export const signUp = async (name: string, email: string, phone: string,  password: string, profileImage: string) => {
+export const signUp = async (name: string, email: string, phone: string,  password: string) => {
   try {
-    const response = await api.post('/user/signup', {name, email, phone, password, profileImage});
+    const response = await api.post('/user/signup', {name, email, phone, password});
     return response.data;
   } catch (error:string) {
     if (error.response) {

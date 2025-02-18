@@ -44,7 +44,7 @@ export default function SignUpScreen() {
 
     try {
       setLoading(true);
-      const response = await signUp(name, email, phone, password, imageName);
+      const response = await signUp(name, email, phone, password);
       if (response.message == "User created successfully") {
         Toast.show({
           type: 'success',
@@ -139,14 +139,14 @@ export default function SignUpScreen() {
           <Text style={styles.subTitle}>Please sign up to get started 😊</Text>
 
             {/* Profile Picture Upload */}
-            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+            {/* <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
               <FontAwesome name="camera" size={40} color="#B07A7A" />
             )}
             <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
 
           {/* Name Input */}
