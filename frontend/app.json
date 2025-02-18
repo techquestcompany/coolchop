@@ -21,7 +21,7 @@
       "bundleIdentifier": "com.eugeneanokye99.coolchop"
     },
     "android": {
-      "googleServicesFile": "./google-services.json"
+      "allowClearTextTraffic": true
     },
     "web": {
       "bundler": "metro",
