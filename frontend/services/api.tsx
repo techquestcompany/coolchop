@@ -1,11 +1,12 @@
 import axios from 'axios';
                    
 
-export const API_URL = 'http://13.60.180.213:3000/api';
-export const baseURL = 'http://13.60.180.213:3000';
+export const API_URL = 'http://13.60.180.213:4000/api';
+export const baseURL = 'http://13.60.180.213:4000';
 // const API_URL = 'http://192.168.0.103:3000/api';
 //13.60.180.213
 // 172.20.10.5
+// https://coolchop-backend.onrender.com
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -24,9 +25,9 @@ interface Dish {
 }
 
 // Function to handle user signup
-export const signUp = async (name: string, email: string, phone: string,  password: string, profileImage: string) => {
+export const signUp = async (name: string, email: string, phone: string,  password: string) => {
   try {
-    const response = await api.post('/user/signup', {name, email, phone, password, profileImage});
+    const response = await api.post('/user/signup', {name, email, phone, password});
     return response.data;
   } catch (error:string) {
     if (error.response) {
@@ -124,7 +125,6 @@ export const uploadImage = async (profileImage: string) => {
         'Content-Type': 'multipart/form-data',
       },
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error('Error uploading photo:', error);

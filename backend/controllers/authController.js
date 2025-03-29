@@ -93,9 +93,9 @@ exports.login = async (req, res) => {
 // Signup function
 exports.signup = async (req, res) => {
   try {
-    const { name, email, phone, password, profileImage } = req.body;
+    const { name, email, phone, password } = req.body;
 
-    if (!name || !email || !phone || !password || !profileImage) {
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -112,7 +112,7 @@ exports.signup = async (req, res) => {
       email,
       phone,
       password: hashedPassword,
-      profileImage,
+      // profileImage,
     });
 
     res.status(201).json({
