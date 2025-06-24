@@ -1,363 +1,213 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, Button, Modal, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { baseURL, confimrUserLocation, getAllDishes, getAllRestaurants, getUserData } from '../services/api';
+import React, { useEffect, useState, useCallback,useContext } from 'react';
+import { View, Text, TextInput, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
+import { getUserData, getAllDishes, baseURL } from '@/services/api';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+import debounce from 'lodash/debounce';
+import { useCart } from '@/context/CartContext';
 
-const HomeScreen = () => {
-  const [userLocation, setUserLocation] = useState(null);
-  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [restaurant, setRestaurant] = useState([]);
-  const [dish, setDish] = useState([]);
-  const router = useRouter();
+const Drawer = createDrawerNavigator();
+
+const HomePage = () => {
+  const [username, setUsername] = useState('');
+  const [location, setLocation] = useState(null);
+  const [dishes, setDishes] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const { cartItems, addToCart, incrementQuantity, decrementQuantity } = useCart();
 
   useEffect(() => {
-    const checkToken = async () => {
-      try {
-        const token = await SecureStore.getItemAsync('userId'); 
-        if (token) {
-          checkUserLocation(token);
-          fetchRestaurants();
-          fetchDishes();
-        } else {
-          // No token found, redirect to login page
-          router.push('/login');
-        }
-      } catch (error) {
-        console.error("Error fetching token:", error);
-        router.push('/login');
+    const checkAuth = async () => {
+      const token = await SecureStore.getItemAsync('token');
+      if (!token) {
+        router.push('login');
+      } else {
+        fetchUserData(token);
       }
     };
-    checkToken();
-  }, [router]);
+    checkAuth();
+  }, []);
 
-  const handleLogout = () => {
-    onLogoutOpen();
-  };
+  useEffect(() => {
+    fetchDishes();
+  }, [searchQuery, page]);
 
-  const onLogoutOpen = () => setIsLogoutDialogOpen(true);
-  const onLogoutClose = () => setIsLogoutDialogOpen(false);
-
-  const handleItemPress = (type, item) => {
-    router.push({
-      pathname: '/info',
-      params: { type, item: JSON.stringify(item) },
-    });
-  };
-
-  const checkUserLocation = async (token) => {
-    const userData = await confimrUserLocation(token); 
-    if (userData.confirmLocation == false) {
-      router.push('/location');
-      setUserLocation("Yet to get user location");
-    } else {
-      const location = await getUserData(token);
-
-
-    // Get latitude and longitude
-    const { latitude, longitude } = location;
-
-    // Convert to human-readable address
-    const locationName = await getLocationName(latitude, longitude);
-
-    // Set user location
-    setUserLocation(locationName);
-    }
-  };
-
-  const getLocationName = async (latitude, longitude) => {
+  const fetchUserData = async (token) => {
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`;
-  
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": "Coolchop/1.0 (yawanokye99@gmail.com)", 
-        },
-      });
-  
-      const data = await response.json();
-  
-      if (data && data.display_name) {
-        const locationName = data.display_name.split(",")[0];
-        return locationName;
-      } else {
-        console.error("Error fetching location name:", data);
-        return "Unknown Location";
-      }
-    } catch (error) {
-      console.error("Failed to fetch location name:", error);
-      return "Unknown Location";
-    }
-  };
-  
-
-  const confirmLogout = async () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      router.push('/logout'); 
-    }, 1000);
-  };
-
-  const fetchRestaurants = async () => {
-    try {
-      const response = await getAllRestaurants();
-      setRestaurant(response);
-    } catch (error) {
-      console.error("Error fetching restaurants:", error);
+      const userData = await getUserData(token);
+      setUsername(userData.name || 'User');
+    } catch (err) {
+      console.error('Failed to fetch user data:', err);
     }
   };
 
+  const fetchLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.error('Permission to access location was denied');
+      return;
+    }
+    const location = await Location.getCurrentPositionAsync({});
+    setLocation(location);
+  };
 
   const fetchDishes = async () => {
     try {
-      const response = await getAllDishes();
-      setDish(response);
-      console.log(dish);
+      const response = await getAllDishes(searchQuery, page);
+      setDishes((prev) => (page === 1 ? response.data : [...prev, ...response.data]));
     } catch (error) {
-      console.error("Error fetching dishes:", error);
+      console.error('Failed to fetch dishes:', error);
     }
   };
 
+  const debouncedSearch = useCallback(
+    debounce((query) => {
+      setSearchQuery(query);
+      setPage(1);
+    }, 500), []
+  );
+
+  const handleLoadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    setPage((prevPage) => prevPage + 1);
+    setLoadingMore(false);
+  };
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)} style={styles.headerContainer}>
+        <Text style={styles.headerText}> {username}⌄</Text>
+      </TouchableOpacity>
+      {menuVisible && (
+        <View style={styles.dropdownMenu}>
+          <TouchableOpacity onPress={() => router.push('/userProfile')}>
+            <Text style={styles.dropdownItem}>Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/userOrder')}>
+            <Text style={styles.dropdownItem}>Orders</Text>
+          </TouchableOpacity>
 
-    <Text style={styles.locationText}>
-      Your location is, <Text style={styles.boldText}>{userLocation}</Text>
-      {' '}
-      <Text style={styles.changeText} onPress={() => router.push('/location')}>
-        Change
-      </Text>
-    </Text>
-
-      {/* Restaurants Section */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Restaurants</Text>
-        <FlatList
-          data={restaurant}
-          horizontal
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.restaurantCard} onPress={() => router.push(`/res_info?id=${item.id}`)}>
-              <Image source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }} style={styles.restaurantImage} />
-              <View style={styles.restaurantInfo}>
-                <Text style={styles.restaurantName}>{item.restaurantName}</Text>
-                <Text style={styles.restaurantDescription}>{item.description}</Text>
-                <Text style={styles.restaurantLocation}>{item.address} . Ratings: {item.ratings}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
-        />
-      </View>
-
-      {/* Dishes Section */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Dishes</Text>
-        <FlatList
-          data={dish}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.dishCard} onPress={() => router.push(`/dish_info?id=${item.id}`)}>
-              <Image source={{ uri: `${baseURL}/public/uploads/${item.profileImage}`}} style={styles.dishImage} />
-              <View style={styles.dishInfo}>
-                <Text style={styles.dishName}>{item.dishName}</Text>
-                <Text style={styles.dishDescription}>{item.ingredients}</Text>
-                <Text style={styles.dishLocation}>{item.category}</Text>
-                <Text style={styles.dishPrice}>₵{item.price}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
-        />
-      </View>
-
-      {/* Logout Confirmation Modal */}
-      <Modal
-        visible={isLogoutDialogOpen}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={onLogoutClose}
-      >
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalText}>Are you sure you want to logout?</Text>
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <TouchableOpacity style={styles.modalButton} onPress={confirmLogout}>
-              <Text style={styles.modalButtonText}>Confirm Logout</Text>
-            </TouchableOpacity>
-          )}
-          <Button title="Cancel" onPress={onLogoutClose} />
+          <TouchableOpacity onPress={() => router.push('/Support')}>
+            <Text style={styles.dropdownItem}>Support</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => {
+            SecureStore.deleteItemAsync('token');
+            router.replace('/login');
+          }}>
+            <Text style={styles.dropdownItem}>Logout</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </ScrollView>
+      )}
+
+      <TextInput
+        style={styles.input}
+        placeholder="Search restaurants"
+        onChangeText={debouncedSearch}
+      />
+      <Text style={styles.title}>Featured Foods</Text>
+
+      {dishes.length === 0 ? (
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>No dishes found.</Text>
+      ) : (
+        <FlatList
+          data={dishes}
+          keyExtractor={(item, index) => `${item.dishId}-${index}`}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+            <Image
+           source={{ uri: encodeURI(`${baseURL}/public/uploads/${item.profileImage}`) }}
+            style={styles.image}
+            onError={(e) => console.log('Image load error:', e.nativeEvent.error)}
+        />
+
+              <Text style={styles.item}>Name: {item.dishName}</Text>
+              <Text style={styles.item}>Price: {item.price}</Text>
+              <TouchableOpacity style={styles.button} onPress={() => addToCart(item)}>
+                <Text style={styles.buttonText}>Add to Cart</Text>
+              </TouchableOpacity>
+
+              {cartItems.find((cartItem) => cartItem.id === item.id) && (
+                <View style={styles.quantityContainer}>
+                  <TouchableOpacity onPress={() => decrementQuantity(item.id)}>
+                    <Text style={styles.quantityButton}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.quantityText}>
+                    {cartItems.find((cartItem) => cartItem.id === item.id)?.quantity}
+                  </Text>
+                  <TouchableOpacity onPress={() => incrementQuantity(item.id)}>
+                    <Text style={styles.quantityButton}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? <ActivityIndicator size="large" /> : null}
+        />
+      )}
+
+      <TouchableOpacity onPress={() => router.push('/cartPage')} style={styles.cartIconContainer}>
+        <MaterialIcons name="shopping-cart" size={24} color="black" />
+        <Text style={styles.cartCount}>{cartItems.length}</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-  },
-  hamburgerButton: {
-    position: 'absolute',
-    top: 30,
-    left: 20,
-    padding: 10,
-    backgroundColor: '#333',
-    borderRadius: 5,
-    zIndex: 1,  
-  },
-  hamburgerText: {
-    color: 'white',
-    fontSize: 24,
-  },
-  locationText: {
-    marginTop: 20,
-    color: '#999',
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#D32F2F',
-    marginBottom: 20,
-  },
-  searchContainer: {
+  container: { padding: 20, flex: 1, backgroundColor: '#fff' },
+  header: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
+  input: { height: 40, borderColor: 'gray', borderWidth: 1, marginBottom: 10, paddingHorizontal: 8 },
+  title: { fontSize: 18, fontWeight: 'bold', marginVertical: 10 },
+  card: { padding: 10, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 },
+  image: { width: '100%', height: 150, borderRadius: 8 },
+  item: { fontSize: 16, marginVertical: 5 },
+  button: { backgroundColor: '#28a745', padding: 10, borderRadius: 5, marginTop: 5 },
+  buttonText: { color: '#fff', textAlign: 'center' },
+  cartIconContainer: { position: 'absolute', top: 10, right: 20, flexDirection: 'row', alignItems: 'center' },
+  cartCount: { marginLeft: 5, fontWeight: 'bold', fontSize: 16 },
+  headerContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  searchInput: {
-    width: '80%',
-    padding: 10,
-    borderRadius: 20,
-    backgroundColor: '#F1F1F1',
-    textAlign: 'center',
-  },
-  sectionContainer: {
-    marginTop: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  dishCard: {
+  headerText: { fontSize: 24, fontWeight: 'bold' },
+  dropdownMenu: {
+    backgroundColor: '#f9f9f9',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+  },
+  dropdownItem: {
+    paddingVertical: 8,
+    fontSize: 16,
+    borderBottomColor: '#eee',
+    borderBottomWidth: 1,
+  },
+  quantityContainer: {
     flexDirection: 'row',
-    marginBottom: 15,
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  dishImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-  },
-  dishInfo: {
-    marginLeft: 10,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  dishName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  dishDescription: {
-    fontSize: 14,
-    color: '#555',
-  },
-  dishLocation: {
-    fontSize: 12,
-    color: '#777',
-  },
-  dishPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#D32F2F',
-  },
-  restaurantCard: {
-    width: 200,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    padding: 10,
-    marginRight: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  restaurantImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: 15,
-  },
-  restaurantInfo: {
+    alignItems: 'center',
     marginTop: 10,
   },
-  restaurantName: {
+  quantityButton: {
+    fontSize: 20,
+    paddingHorizontal: 10,
+  },
+  quantityText: {
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  restaurantDescription: {
-    fontSize: 14,
-    color: '#555',
-    marginVertical: 4,
-  },
-  restaurantLocation: {
-    fontSize: 12,
-    color: '#777',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: 300,
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#333',
-  },
-  modalButton: {
-    marginTop: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    backgroundColor: '#D32F2F',
-  },
-  modalButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  boldText: {
-    fontWeight: 'bold',
-  },
-  changeText: {
-    color: 'red', 
-    fontStyle: 'italic', 
-    textDecorationLine: 'underline',
+    marginHorizontal: 5,
   },
 });
 
-export default HomeScreen;
+export default HomePage;

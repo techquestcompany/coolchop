@@ -10,24 +10,39 @@ const SearchScreen = () => {
   const [filteredDishes, setFilteredDishes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
 
   useEffect(() => {
     fetchDishes();
   }, []);
 
-  const fetchDishes = async () => {
+  const fetchDishes = async (pageNumber = 1) => {
     setIsLoading(true);
     try {
-      const response = await getAllDishes();
-      setDishes(response);
-      setFilteredDishes(response);
+      const response = await getAllDishes(pageNumber);
+      const newDishes = response.data.data;
+  
+      if (pageNumber === 1) {
+        setDishes(newDishes);
+        setFilteredDishes(newDishes);
+      } else {
+        const updatedDishes = [...dishes, ...newDishes];
+        setDishes(updatedDishes);
+        setFilteredDishes(updatedDishes);
+      }
+  
+      setPage(pageNumber);
+      setHasMore(pageNumber < response.totalPages);
       setIsLoading(false);
-    } catch (err) {
-      setError('Failed to fetch dishes.');
+    }catch (err) {
+      console.error('Fetch error:', err?.response?.data || err.message || err);
+      setError('Failed to fetch dishes.');       
       setIsLoading(false);
     }
-  };
-
+    
+  
   const handleSearch = (text) => {
     setSearchQuery(text);
     if (text === '') {
@@ -46,7 +61,8 @@ const SearchScreen = () => {
       <View style={styles.infoContainer}>
         <Text style={styles.title}>{item.dishName}</Text>
         <Text style={styles.rating}>⭐ 10.0 - {item.visits} visits</Text>
-        <Text style={styles.deliveryTime}>{item.price}</Text>
+        <Text style={styles.deliveryTime}>Price{item.price}</Text>
+        <Text style={styles.deliveryTime}>Price{item.description}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -78,16 +94,27 @@ const SearchScreen = () => {
         onChangeText={handleSearch}
       />
       <FlatList
-        data={filteredDishes}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <Text style={{ textAlign: 'center', marginTop: 16 }}>
-            No dishes found.
-          </Text>
-        }
-      />
+  data={filteredDishes}
+  renderItem={renderItem}
+  keyExtractor={(item) => item.id.toString()}
+  contentContainerStyle={styles.list}
+  ListEmptyComponent={
+    <Text style={{ textAlign: 'center', marginTop: 16 }}>
+      No dishes found.
+    </Text>
+  }
+  ListFooterComponent={
+    hasMore && !searchQuery ? (
+      <TouchableOpacity
+        style={styles.loadMoreButton}
+        onPress={() => fetchDishes(page + 1)}
+      >
+        <Text style={styles.loadMoreText}>Load More</Text>
+      </TouchableOpacity>
+    ) : null
+  }
+/>
+
     </View>
   );
 };
@@ -144,5 +171,5 @@ const styles = StyleSheet.create({
     color: '#888',
   },
 });
-
+}
 export default SearchScreen;

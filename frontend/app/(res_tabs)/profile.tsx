@@ -13,11 +13,11 @@ import { router } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
 import { baseURL, getRestaurantById } from "@/services/api";
 
+
 export default function VendorProfileScreen() {
-  const [restaurant, setRestaurant] = useState([]);
+  const [restaurantData, setRestaurantData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
 
   useEffect(() => {
     fetchRestaurant();
@@ -26,9 +26,9 @@ export default function VendorProfileScreen() {
   const fetchRestaurant = async () => {
     setIsLoading(true);
     try {
-      const restaurantId = await SecureStore.getItemAsync('restaurantId');
-      const data = await getRestaurantById(restaurantId);
-      setRestaurant(data);
+      const token = await SecureStore.getItemAsync('token');
+      const data = await getRestaurantById(token);
+      setRestaurantData(data);
     } catch (err) {
       setError("Failed to load restaurant data.");
     } finally {
@@ -59,44 +59,40 @@ export default function VendorProfileScreen() {
         <Image
           style={styles.avatar}
           source={{
-            uri: `${baseURL}/public/uploads/${restaurant.profileImage}`,
+            uri: `${baseURL}/public/uploads/${restaurantData.profileImage}`,
           }}
         />
-        <Text style={styles.name}>{restaurant.restaurantName}</Text>
+        <Text style={styles.name}>{restaurantData.restaurantName}</Text>
         <Text style={styles.tagline}>Delivering Happiness 🚚</Text>
-        <TouchableOpacity style={styles.editButton} onPress={() => router.push('/edit_profile')}>
+        <TouchableOpacity style={styles.editButton} onPress={() => router.push('/editVendorScreen')}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
 
       {/* Business Info */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{restaurant.restaurantName}</Text>
+        <Text style={styles.sectionTitle}>{restaurantData.restaurantName}</Text>
         <View style={styles.row}>
           <FontAwesome5 name="store" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Business Name: Foodies Heaven</Text>
         </View>
         <View style={styles.row}>
           <Ionicons name="mail" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>{restaurant.email}</Text>
+          <Text style={styles.rowText}>{restaurantData.email}</Text>
         </View>
         <View style={styles.row}>
           <Ionicons name="call" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>{restaurant.phone}</Text>
+          <Text style={styles.rowText}>{restaurantData.phone}</Text>
         </View>
       </View>
 
       {/* Address Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{restaurant.address}</Text>
-        <TouchableOpacity style={styles.row}>
+        <Text style={styles.sectionTitle}>Address</Text>
+        <View style={styles.row}>
           <MaterialIcons name="location-on" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>123 Market Street, City</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="add-circle" size={20} color="#D32F2F" />
-          <Text style={styles.addButtonText}>Edit Address</Text>
-        </TouchableOpacity>
+          <Text style={styles.rowText}>{restaurantData.address}</Text>
+        </View>
       </View>
 
       {/* Operational Hours */}
@@ -104,12 +100,8 @@ export default function VendorProfileScreen() {
         <Text style={styles.sectionTitle}>Operational Hours</Text>
         <View style={styles.row}>
           <Ionicons name="time" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>9:00 AM - 9:00 PM</Text>
+          <Text style={styles.rowText}>{restaurantData.operationalHours || "9:00 am - 11:00 pm"}</Text>
         </View>
-        <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="create" size={20} color="#D32F2F" />
-          <Text style={styles.addButtonText}>Edit Hours</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Payment Details */}
@@ -117,12 +109,8 @@ export default function VendorProfileScreen() {
         <Text style={styles.sectionTitle}>Payment Information</Text>
         <View style={styles.row}>
           <Ionicons name="card" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>Bank Account: **** 1234</Text>
+          <Text style={styles.rowText}>{restaurantData.paymentInfo || "N/A"}</Text>
         </View>
-        <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="add-circle" size={20} color="#D32F2F" />
-          <Text style={styles.addButtonText}>Update Payment Info</Text>
-        </TouchableOpacity>
       </View>
 
       {/* App Settings */}

@@ -1,8 +1,11 @@
-import axios from 'axios';
+import axios from "axios";
                    
+                                    
+export const API_URL = 'http://192.168.65.9:3000/api';
+export const baseURL = 'http://192.168.65.9:3000';
 
-export const API_URL = 'http://13.60.180.213:3000/api';
-export const baseURL = 'http://13.60.180.213:3000';
+//export const API_URL = "https://www.coolchop.info.anglabytestudio.com/api"
+//export const BASE_URL = "https://www.coolchop.info.anglabytestudio.com/"
 // const API_URL = 'http://192.168.0.103:3000/api';
 //13.60.180.213
 // 172.20.10.5
@@ -24,35 +27,50 @@ interface Dish {
 }
 
 // Function to handle user signup
-export const signUp = async (name: string, email: string, phone: string,  password: string, profileImage: string) => {
+export const signUp = async (name: string, email: string, phone: string,  password: string, role: string) => {
   try {
-    const response = await api.post('/user/signup', {name, email, phone, password, profileImage});
+    const response = await api.post('/user/signup', {name, email, phone, password,role});
     return response.data;
   } catch (error:string) {
     if (error.response) {
-      // Backend returned a response with an error
+      
       console.error('Server Error:', error.response.data);
     } else {
-      // Other error (network issues, timeout, etc.)
+      
       console.error('Error signing up:', error.message);
     }
     throw error;
   }
 };
 
-// Function to handle user login
-export const login = async (email: string, password: string, latitude: string, longitude: string) => {
+export const login = async (email: string, password: string) => {
   try {
-    const response = await api.post('/user/login', { email, password, latitude, longitude });
+    console.log("Attempting to log in with:", email, password);
+
+    const response = await api.post('/user/login', { email, password });
+    
+    console.log("Login Response:", response.data); 
+
     return response.data;
   } catch (error) {
-    console.error('Error logging in:', error);
+    if (error.response) {
+    
+      console.error("Server Error:", error.response.data);
+      console.error("Status Code:", error.response.status);
+    } else if (error.request) {
+      // The request was made, but no response was received
+      console.error("No response received:", error.request);
+    } else {
+      // Something happened in setting up the request
+      console.error("Request Error:", error.message);
+    }
     throw error;
   }
 };
 
+
 // Function to handle getting user data
-export const confimrUserLocation = async (token: string) => {
+export const confirmUserLocation = async (token: string) => {
   try {
     const response = await api.get('/location/check', {
       headers: {
@@ -93,16 +111,64 @@ export const getUserData = async (token: string) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Error getting user data:', error);
+    console.error('Error getting user data:', error); 
+    throw error;
+  }
+};
+export const getAllUsers = async (page =1 , limit=10) => {
+  try {
+    const response = await api.get(`/user/allUsers?page=${page}&limit=${limit}`, 
+      
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error getting user data:', error?.response.data);
+    throw error;
+  }
+};
+
+export const approveRestaurantById = async (id) =>{
+  try {
+    const response = await api.patch(`/restaurant/approve/${id}`, 
+      
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error getting user data:', error?.response.data);
+    throw error;
+  }
+}
+
+
+export const deleteUserById = async (id) => {
+  try {
+    const response = await api.delete(`/user/${id}`, 
+      
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error getting user data:', error?.response.data);
+    throw error;
+  }
+};
+
+export const updateUserData = async (data, token) => {
+  try {
+    const response = await api.put('/user/update_data', data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user data:', error);
     throw error;
   }
 };
 
 
-// Function to handle user login
+// Function to verify the user account 
 export const  verify = async (email: string, code: string) => {
   try {
-    const response = await api.post('/user/verify', { email, code });
+    const response = await api.post('/user/verify', { email, code });           
     return response.data;
   } catch (error) {
     console.error('Error verifying code:', error);
@@ -110,11 +176,34 @@ export const  verify = async (email: string, code: string) => {
   }
 };
 
+// Function 
+export const passResetVerifyCode = async (email: string, code: string) => {
+  try {
+    const response = await api.post('/user/verify', { email, code });
+    console.log('Verification response:', response.data); 
+    return response.data;  
+  } catch (error) {
+    console.error('Error verifying code:', error.response?.data);
+    throw error.response?.data || { message: 'Unknown error' };
+  }
+};
+
+
+export const sendVerification= async (email: string)=>{
+  try {
+    const response = await api.post('/user/forgottenPassword', { email });
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying code:', error);
+    throw error;
+  }
+
+}
 export const uploadImage = async (profileImage: string) => {
   const formData = new FormData();
   formData.append('profileImage', {
     uri: profileImage,
-    type: 'image/jpeg', // Adjust this based on the image type
+    type: 'image/jpeg', //Adjust this based on the image type
     name: 'profileImage.jpg', // Provide a filename
   });
 
@@ -134,20 +223,20 @@ export const uploadImage = async (profileImage: string) => {
   
 
 // Function to handle restaurant resgistration
-export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string, description: string, profileImage: string) => {
+export const registerRestaurant = async (restaurantName: string, email: string, phone: string, address: string, description: string,password:string) => {
   try {
-    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, description, profileImage});
+    const response = await api.post('/restaurant/signup', {restaurantName, email, phone, address, description,password});
     return response.data;
   } catch (error) {
-    console.error('Error resgistering restaurant:', error);
+    console.error('Error registering restaurant:', error);
     throw error;
   }
 };
 
 // Function to handle restaurant login
-export const loginRestaurant = async (restaurantId: string, latitude: string, longitude: string) => {
+export const loginRestaurant = async (email : string, password : string) => {
   try {
-    const response = await api.post('/restaurant/login', { restaurantId, latitude, longitude });
+    const response = await api.post('/restaurant/login', { email,password});
     return response.data;
   } catch (error) {
     console.error('Error logging in restaurant:', error);
@@ -155,10 +244,25 @@ export const loginRestaurant = async (restaurantId: string, latitude: string, lo
   }
 };
 
+export const updateRestaurantData = async (restaurantName: string, email: string, phone: string, address: string, description: string, paymentInfo: number,operationalHours:string, token:string)=>{
+  try{
+  const response = await api.post('/restaurant/update',{restaurantName, email, phone, address, description,paymentInfo,operationalHours},{
+    headers:{
+      "Authorization":`Bearer ${token} `
+    }
+  })
+  }catch(error){
 
-export const submitDishes = async (dishes: Dish[]): Promise<any> => {
+  }
+
+}
+export const submitDishes = async (dishes ,token:string): Promise<any> => {
   try {
-    const response = await api.post('/restaurant/dish', { dishes });
+    const response = await api.post('/restaurant/create_dishes', { dishes },{
+      headers:{
+        Authorization: `Bearer ${token}`
+      }
+    });
     console.log("Response data:", response.data);
     return response.data;
   } catch (error) {
@@ -167,9 +271,9 @@ export const submitDishes = async (dishes: Dish[]): Promise<any> => {
 };
 
 // Get all restaurants
-export const getAllRestaurants = async () => {
+export const getAllRestaurants = async (page= 1, limit =10) => {
   try {
-    const response = await api.get('restaurant/restaurants');
+    const response = await api.get(`restaurant/restaurants?page=${page}&limit=${limit}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching restaurants', error);
@@ -178,25 +282,42 @@ export const getAllRestaurants = async () => {
 };
 
 // Get restaurant by ID
-export const getRestaurantById = async (id: string) => {
+export const getRestaurantById = async (token:string) => {
   try {
     const response = await api.get('restaurant/myrestaurant', {
       headers: {
-        Authorization: `Bearer ${id}`,
+        Authorization: `Bearer ${token}`,
       },
     });
     return response.data;
   } catch (error) {
-    console.error(`Error fetching restaurant with ID: ${id}`, error);
+    console.error(`Error fetching restaurant with ID: ${token}`, error);
     throw error;
   }
 };
 
-export const getDishesByRestaurantId = async (id: string) => {
+export const deleteRestaurantById = async (id) => {
+  try {
+    const response = await fetch(`/restaurants/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete restaurant');
+    }
+
+    return true; // success
+  } catch (error) {
+    console.error('Delete error:', error);
+    throw error;
+  }
+};
+
+export const getDishesByRestaurantId = async (token: string) => {
   try {
     const response = await api.get('restaurant/restaurant_dish', {
       headers: {
-        Authorization: `Bearer ${id}`,
+        Authorization: `Bearer ${token}`,
       },
     });
     return response.data;
@@ -207,9 +328,9 @@ export const getDishesByRestaurantId = async (id: string) => {
 };
 
 // Get all dishes
-export const getAllDishes = async () => {
+export const getAllDishes = async (page = 1, limit=20) => {
   try {
-    const response = await api.get('restaurant/dishes');
+    const response = await api.get(`restaurant/dishes?page=${page}&limit=${limit}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching dishes', error);
@@ -256,9 +377,9 @@ export const verifyResToken = async (token: string) => {
 
 
 // Function to add a dish to the cart
-export const addDishToCart = async (user_id: string, dishId: string, quantity: number = 1) => {
+export const addDishToCart = async (user_id: string, dishId: string, quantity: number = 1,token: string) => {
   try {
-    const response = await api.post('/cart/add', { user_id, dishId, quantity });
+    const response = await api.post('/cart/add', { user_id, dishId, quantity },{headers:{Authorization:`Bearer ${token}`}});
     return response.data;
   } catch (error) {
     console.error('Error adding to cart:', error);
@@ -266,16 +387,21 @@ export const addDishToCart = async (user_id: string, dishId: string, quantity: n
   }
 };
 
-// Function to get cart items for a user
-export const getCartItems = async (user_id: string) => {
+export const getCartItems = async (user_id: string, token: string) => {
   try {
-    const response = await api.get('/cart/get', { params: { user_id } });
+    const response = await api.get('/cart/get', {
+      params: { user_id },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error('Error fetching cart items:', error);
     throw error;
   }
 };
+
 
 // Function to delete a dish from the cart
 export const deleteFromCart = async (user_id: string, dishId: string) => {
@@ -290,8 +416,8 @@ export const deleteFromCart = async (user_id: string, dishId: string) => {
 
 // Function to save an order
 export const saveOrder = async (order: {
-  user_id: string;
-  items: { id: string; quantity: number }[];
+  userId: number;
+  items: { id: number; quantity: number }[];
   note?: string;
 }) => {
   try {
@@ -303,18 +429,33 @@ export const saveOrder = async (order: {
   }
 };
 
-// Function to fetch an order by user ID
-export const fetchOrder = async (user_id: string) => {
+export const fetchOrdersByUser = async (token: string) => {
   try {
-    const response = await api.get(`/orders/get`, {
-      params: { user_id }, 
+    const response = await api.get('/orders/user_orders', {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
-  } catch (error) {
-    console.error('Error fetching order:', error);
+  } catch (error: any) {
+    console.error('Error fetching order:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
     throw error;
   }
 };
+
+// Function to fetch an order by user ID
+export const fetchAllOrders = async () => {
+  try {
+    const response = await api.get(`/orders/get`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    throw error;
+  }
+};
+
 
 
 // Function to delete an order by ID
@@ -348,19 +489,36 @@ export const updateOrder = async (orderId: string, updatedData: Partial<{
 
 
 // Function to update the quantity of a dish in the cart
-export const updateCartQuantity = async (user_id: string, dishId: string, quantity: number) => {
+export const updateCartQuantity = async ( dishId: string, quantity: number,token:string) => {
   try {
     const response = await api.put('/cart/update-quantity', {
-      user_id,
+       
       dishId,
       quantity,
-    });
+    },
+  {headers:{Authorization:`Bearer ${token}`}});
     return response.data;
   } catch (error) {
     console.error('Error updating cart quantity:', error);
     throw error;
   }
 };
+
+export const deleteDeleteCartItem = async ( dishId:string,token: string)=>{
+  try {
+    const response = await api.delete(`/cart/remove/${dishId}`,{
+      headers:{
+        Authorization:`Bearer ${token}`
+      }
+     
+    }
+  )
+  return response.data
+  } catch (error) {
+    console.error('Deleting cart quantity:', error);
+    throw error;
+  }
+}
 
 
 // Function to update the user's coordinates
@@ -496,3 +654,61 @@ export const getDishReviews = async (dishId: string) => {
     throw error;
   }
 };
+
+export const changePassword = async (newPassword:string,confirmPassword:string,email:string)=>{
+  try{
+
+    const response = await api.post("/user/changePassword",{newPassword,confirmPassword,email})
+    console.log("change password data",response.data)
+    return response.data
+
+  }catch(error){
+    console.log("error changing password",error.response?.data)
+  }
+
+}
+export const deleteAccount =async (token:string)=>{
+  try{
+    const response = await fetch('/users/deleteAccount', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+
+      return { success: true };
+    } else {
+      const errorData = await response.json();
+      return { success: false, message: errorData.message || 'Failed to delete account' };
+    }
+  }
+  catch(e){
+    return { success: false, message: error.message };
+
+  }
+}
+// Handle saving the notification method and sending it to the backend
+ export const saveNotificationPreference = async (notificationMethod) => {
+    try {
+      const response = await axios.post('/notfication/addNotifcation', notificationMethod);
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      Alert.alert('Error', 'There was an error saving your preferences.');
+    }
+    
+  };
+
+  // initialise payment transaction to the paystack endpoint
+  export const InitTransactionReq  = async (email:string,amount:number) =>{
+    try {
+      const response =await api.post("/payments/initialise",{email,amount})
+      return  response.data
+      console.log(response.data)
+    } catch (error) {
+ console.error('Error initialising a transaction:', error?.response?.data || error.message);
+
+      
+    }
+  }

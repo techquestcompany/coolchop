@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { registerRestaurant, api } from '../services/api';
+import { registerRestaurant } from '../services/api';
 import Toast from 'react-native-toast-message';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-
-
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
   return (
@@ -32,34 +28,31 @@ export default function RestaurantRegistrationScreen() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
-  const [profileImage, setProfileImage] = useState('');
-  const [imageName, setImageName] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Handle restaurant registration
   const handleRegistration = async () => {
-    if (!restaurantName || !email || !address) {
+    if (!restaurantName || !email || !phone || !address || !description || !password) {
       Alert.alert("All fields are required");
       return;
     }
-
     try {
       setLoading(true);
-      const response = await registerRestaurant(restaurantName, email, phone, address, description, imageName);
-      if (response.message == "Restaurant registered successfully") {
+      const response = await registerRestaurant(restaurantName, email, phone, address, description, password);
+      if (response.message?.includes("Restaurant registered successfully")) {
         Toast.show({
           type: 'success',
           text1: 'Registration Successful',
           text2: 'Your restaurant has been registered!',
         });
-        router.push('/reslogin ');
-        setAddress('');
-        setEmail('');
-        setProfileImage('');
-        setImageName('');
-        setDescription('');
+        router.push('/reslogin');
         setRestaurantName('');
+        setEmail('');
         setPhone('');
+        setAddress('');
+        setDescription('');
+        setPassword('');
       } else {
         Toast.show({
           type: 'error',
@@ -78,57 +71,6 @@ export default function RestaurantRegistrationScreen() {
     }
   };
 
-     // Select Profile Image
-     const pickImage = async () => {
-      // Request permission to access media library
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'We need permission to access your media library.');
-        return;
-      }
-
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        // Get the URI of the selected image
-        const sourceUri = result.assets[0].uri;
-
-        try {
-          const fileInfo = await FileSystem.getInfoAsync(sourceUri);
-          const formData = new FormData();
-          formData.append('file', {
-            uri: sourceUri,
-            name: fileInfo.uri.split('/').pop(),
-            type: 'image/jpeg',
-          });
-
-          // Upload the image to your server
-          const response = await api.post('/upload/upload_image', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-          if (response.data.success) {
-            const serverImageUrl = response.data.url;
-            setProfileImage(serverImageUrl);
-            setImageName(response.data.imageName);
-
-          } else {
-            Alert.alert('Error', 'Failed to upload the image');
-          }
-        } catch (error) {
-          console.error('Error uploading the image:', error);
-          Alert.alert('Error', 'Failed to upload the image');
-        }
-      }
-    };
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
@@ -138,23 +80,9 @@ export default function RestaurantRegistrationScreen() {
             <FontAwesome name="arrow-left" size={30} color="#D32F2F" />
           </TouchableOpacity>
 
-          {/* Logo */}
-          <Image source={require('../assets/images/restaurant.webp')} style={styles.logo} />
-
           {/* Title */}
           <Text style={styles.title}>Register Your Restaurant</Text>
           <Text style={styles.subTitle}>Please provide the details below to register your restaurant 🍽️</Text>
-
-          {/* Profile Picture Upload */}
-          <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-            {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImage} />
-            ) : (
-              <FontAwesome name="camera" size={40} color="#B07A7A" />
-            )}
-            <Text style={styles.imagePickerText}>Upload Profile Picture</Text>
-          </TouchableOpacity>
-
 
           {/* Restaurant Name Input */}
           <InputField
@@ -198,15 +126,22 @@ export default function RestaurantRegistrationScreen() {
             onChangeText={setDescription}
           />
 
-
+          {/* Password Input */}
+          <InputField
+            iconName="lock"
+            placeholder="Password"
+            secureTextEntry={true}
+            value={password}
+            onChangeText={setPassword}
+          />
 
           {/* Register Button */}
-          <TouchableOpacity style={styles.registerButton} onPress={(handleRegistration)}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <Text style={styles.buttonText}>Register</Text>
-          )}
+          <TouchableOpacity style={styles.registerButton} onPress={handleRegistration}>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <Text style={styles.buttonText}>Register</Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -229,24 +164,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 20,
     marginTop: 20,
-  },
-  imagePicker: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
-  },
-  imagePickerText: {
-    color: '#B07A7A',
-  },
-  logo: {
-    width: 180,
-    height: 380,
-    marginBottom: 5,
   },
   title: {
     fontSize: 24,

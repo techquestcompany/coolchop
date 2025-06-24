@@ -8,7 +8,7 @@ const DATA = [
     rating: 3.5,
     visits: 85,
     deliveryTime: '30 mins',
-    imageUrl: 'https://example.com/image1.jpg', // Replace with actual image URLs
+    imageUrl: 'https://example.com/image1.jpg',
   },
   {
     id: '2',
@@ -16,7 +16,7 @@ const DATA = [
     rating: 3.5,
     visits: 85,
     deliveryTime: '30 mins',
-    imageUrl: 'https://example.com/image2.jpg', // Replace with actual image URLs
+    imageUrl: 'https://example.com/image2.jpg', 
   },
   // Add more data as needed
 ];

@@ -18,7 +18,7 @@ export default function App() {
   }, []);
 
   const getProfileImage = async () => {
-    const token = await SecureStore.getItemAsync('restaurantId');
+    const token = await SecureStore.getItemAsync('token');
     if (!token) {
       throw new Error('No authentication token found');
     }

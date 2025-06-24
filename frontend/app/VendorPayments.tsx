@@ -27,9 +27,6 @@ const Payments = () => {
       <Text style={styles.subHeader}>Payment Methods</Text>
       <Text style={styles.text}>We offer various payment methods for vendors, including bank transfer, PayPal, and mobile money. Please ensure your payment details are updated in your account.</Text>
 
-      <Text style={styles.subHeader}>Important Notes</Text>
-      <Text style={styles.text}>- Payments are processed weekly or on the agreed payment cycle.</Text>
-      <Text style={styles.text}>- Refunds or disputes should be directed to our support team for assistance.</Text>
     </ScrollView>
   );
 };

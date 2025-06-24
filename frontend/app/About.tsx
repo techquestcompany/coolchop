@@ -10,13 +10,26 @@ const AboutCoolchop = () => {
    </TouchableOpacity>
       <Text style={styles.title} >Who are we?</Text>
       <View style={styles.textContainer} >
-        <Text>
-          Coolchop is an food delivering company who  creates the medium for customers to be able to order food from Vendors at their own convenience
-          and get it delivered to them at their own  by riders.
+        <Text style={styles.contentText} >
+          Coolchop is a food delivery company in Ghana registered under registrar of companies. We bridge the gap between food vendors and consumers by putting the neccesary procedures and tools in place so
+          customers can order food from their place of comfort and get it delivered to them. We use our riders who serve as the linkup between the customer and the vendor.
+          Our riders are professionally trained and have our customers at heart.
+
         </Text>
-        <Text>
-          We ensure your security and provide you the best of service you wont get anywhere
+
+        <Text style={styles.title} >How does it work?</Text>
+        <Text style={styles.contentText} >
+         1. A customer browse through the list of foods and choose what to order. 
         </Text>
+        <Text style={styles.contentText} >
+         2. He makes the order and proceed to pay. 
+        </Text>
+
+        <Text style={styles.contentText} >
+         3. The rider brings his food.
+        </Text>
+        
+        
       </View>
      </SafeAreaView>
     );
@@ -28,7 +41,7 @@ const AboutCoolchop = () => {
     },
     title:{
       fontWeight:"bold",
-      fontSize:20
+      fontSize:25
     },
     textContainer:{
      margin:4,
@@ -37,6 +50,9 @@ const AboutCoolchop = () => {
     backButton: {
       alignSelf: 'flex-start',
       marginBottom: 20,
+    },
+    contentText:{
+      fontSize:18
     }
 
   })

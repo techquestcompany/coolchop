@@ -7,10 +7,11 @@ import 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
+import { Provider as PaperProvider } from 'react-native-paper';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { NotificationProvider } from '@/components/NotificationContext';
-
+import { CartProvider } from '@/context/CartContext';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -34,17 +35,21 @@ TaskManager.defineTask(
   }
 );
 
-Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
 
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  useEffect(() => {
+    Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
+  }, []);
 
   useEffect(() => {
     if (loaded) {
@@ -59,6 +64,8 @@ export default function RootLayout() {
   return (
     <NotificationProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <CartProvider>
+          <PaperProvider>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(res_tabs)" options={{ headerShown: false }} />
@@ -95,9 +102,22 @@ export default function RootLayout() {
           <Stack.Screen name="logout" options={{ headerShown: false }} />
           <Stack.Screen name="edit_profile" options={{ headerShown: false }} />
           <Stack.Screen name="cart" options={{ headerShown: false }} />
+          <Stack.Screen name="passResetCode" options={{ headerShown: false }} />
+          <Stack.Screen name="vendorContainer" options={{ headerShown: false }} />
+          <Stack.Screen name="riderSignup" options={{ headerShown: false }} />
+          <Stack.Screen name="editVendorScreen" options={{ headerShown: false }} />
+          <Stack.Screen name="changePassword" options={{ headerShown: false }} />
+          <Stack.Screen name="userProfile" options={{ headerShown: false }} />
+          <Stack.Screen name="cartPage" options={{ headerShown: false }} />
+          <Stack.Screen name="Account" options={{ headerShown: false }} />
+          <Stack.Screen name="userOrder" options={{ headerShown: false }} />
+          <Stack.Screen name="InitTransaction" options={{ headerShown: false }} />
+          
           <Stack.Screen name="+not-found" />
-          <Toast />
         </Stack>
+        <Toast></Toast>
+        </PaperProvider>
+        </CartProvider>
       </ThemeProvider>
     </NotificationProvider>
   );

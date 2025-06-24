@@ -10,6 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as FileSystem from 'expo-file-system';
 
 
+
 const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType, multiline }) => {
   return (
     <View style={styles.inputContainer}>
@@ -30,7 +31,7 @@ const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType, 
 export default function AddDishScreen() {
   const [dishName, setDishName] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
+  const [price, setPrice] = useState("");
   const [ingredients, setIngredients] = useState('');
   const [category, setCategory] = useState('');
   const [dishes, setDishes] = useState([]);
@@ -50,7 +51,9 @@ export default function AddDishScreen() {
       }).start();
     }, [fadeAnim]);
 
-
+    
+    
+    
     const handleAddDish = () => {
       if (!dishName || !description || !price || !ingredients || !category || !profileImage) {
         Alert.alert('Error', 'Please fill in all fields and upload an image.');
@@ -60,13 +63,13 @@ export default function AddDishScreen() {
       const newDish = {
         dishName,
         description,
-        price,
+        price :price,
         ingredients,
         category,
         profileImage: imageName,
         path: profileImage,
       };
-    
+    console.log(newDish)
       setDishes([...dishes, newDish]);
     
       // Clear input fields and image after adding
@@ -78,6 +81,12 @@ export default function AddDishScreen() {
       setProfileImage(null);
       setImageName('');
     };
+    // delete a dish item using splice method of the array object
+    const handleDeleteDish = (index) => {
+      const updatedDishes = [...dishes];
+      updatedDishes.splice(index, 1); // Remove dish at the specified index
+      setDishes(updatedDishes);
+    };
     
 
   const handleSubmit = async () => {
@@ -85,21 +94,27 @@ export default function AddDishScreen() {
     try {
       setLoading(true);
   
-      // Get restaurantId from local storage
-      const restaurantId = await SecureStore.getItemAsync('restaurantId');
-      if (!restaurantId) {
-        Alert.alert('Error', 'Restaurant ID not found. Please log in again.');
+      // Get token from secure storage
+      const token = await SecureStore.getItemAsync('token');
+      if (!token) {
+        Alert.alert('Error', 'token not found. Please log in again.');
         return;
       }
-  
-      // Prepare the array of dishes with restaurantId
+
+      // Prepare the array of dishes 
       const dishesToSubmit = dishes.map((dish) => ({
-        ...dish,
-        restaurantId,
+        dishName: dish.dishName,
+        price: dish.price,
+        description: dish.description,
+        profileImage: dish.profileImage,
+        ingredients: dish.ingredients,
+        category: dish.category,
+        
       }));
+      
   
       // Submit the dishes to the backend
-      const response = await submitDishes(dishesToSubmit);
+      const response = await submitDishes(dishesToSubmit,token);
       if (response.message === "Dishes saved successfully") {
         Toast.show({
           type: 'success',
@@ -163,7 +178,9 @@ export default function AddDishScreen() {
             },
           });
           if (response.data.success) {
-            const serverImageUrl = response.data.url;
+          //  const serverImageUrl = `${'https://www.coolchop.info.anglabytestudio.com'}/${response.data.url}`||response.data.url;
+             const serverImageUrl = response.data.url;
+
             setProfileImage(serverImageUrl);
             setImageName(response.data.imageName);
 
@@ -266,6 +283,13 @@ export default function AddDishScreen() {
                   <Text style={styles.dishName}>{dish.dishName}</Text>
                   <Text style={styles.dishDetails}>Category: {dish.category}</Text>
                   <Text style={styles.dishDetails}>Price: ₵{dish.price}</Text>
+                   {/* Delete Button */}
+                  <TouchableOpacity 
+                    style={styles.deleteButton} 
+                    onPress={() => handleDeleteDish(index)}
+                 >
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                  </TouchableOpacity>
                 </View>
               ))}
             </View>
@@ -389,4 +413,18 @@ const styles = StyleSheet.create({
     height: 150,
     marginBottom: 20, 
   },
+  deleteButton: {
+    marginTop: 10,
+    backgroundColor: '#FF5252',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignSelf: 'flex-start',
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+
 });

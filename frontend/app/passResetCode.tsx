@@ -1,85 +1,63 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, StyleSheet,Button } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { verify,sendVerification, getUserData } from '../services/api';
+import { changePassword,passResetVerifyCode } from '../services/api';
 import Toast from 'react-native-toast-message';
-import { useNavigation,useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 
 
 const VerificationScreen = () => {
   const [code, setCode] = useState(['', '', '', '']);
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const [loading, setLoading] = useState(false);
-  const navigtor = useNavigation()
-  const route = useRoute()
 
-  const {email} = route.params
   const handleChange = (text, index) => {
     const newCode = [...code];
-  
-    if (text === '') {
-      newCode[index] = '';
-      if (index > 0) inputRefs[index - 1].current.focus(); // Move to previous input on delete
-    } else {
-      newCode[index] = text;
-      if (index < 3) inputRefs[index + 1].current.focus(); // Move to next input on input
-    }
-  
+    newCode[index] = text;
     setCode(newCode);
-  };
-  
-  const handleVerify = async () => {
-    console.log("sending email and code",email , code)
-    try {
-      setLoading(true);
-      
-      // Validate if the user has entered all 4 digits
-      if (code.some(digit => digit === '')) {
-        Toast.show({
-          type: 'error',
-          text1: 'Verification Failed ⚠️',
-          text2: 'Please enter all 4 digits.',
-        });
-        setLoading(false);
-        return;
-      }
-  
-    
 
-  
-      console.log("Verifying email:", email);
-      console.log("Verification code:", code.join(''));
-  
-      // Call the verification API
-      const response = await verify(email, code.join(''));
-  
-      console.log("Verification response:", response); 
-  
-      if (response?.message) { 
-        Toast.show({
-          type: 'success',
-          text1: 'Code verified successfully 😊',
-        });
-        router.push('login'); 
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Verification Failed ❌',
-          text2: response.message || 'Please try again.',
-        });
-      }
-    } catch (error) {
-      console.error("Verification Error:", error);
+    if (text && index < 3) {
+      inputRefs[index + 1].current.focus();
+    }
+  };
+ const route = useRoute()
+ const handleVerify = async () => {
+  try {
+    setLoading(true);
+    const { email } = route.params;
+
+    console.log('Verifying for email:', email);
+    console.log('Entered Code:', code.join(''));
+
+    const response = await passResetVerifyCode(email, code.join(''));
+
+    console.log("Verification response:", response);
+
+    if (response.message === "Code verified successfully") {
+      Toast.show({
+        type: 'success',
+        text1: 'Code verified successfully 😊',
+      });
+      router.push({pathname:"changePassword",params:{email}}); 
+    } else {
       Toast.show({
         type: 'error',
-        text1: 'Verification Failed ⚠️',
-        text2: error.message || 'Something went wrong.',
+        text1: 'Verification Failed ❌',
+        text2: response.message || 'Please try again.',
       });
-    } finally {
-      setLoading(false);
     }
-  };
-  
+  } catch (error) {
+    console.error('Verification error:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'Verification Failed ⚠️',
+      text2: error.message || 'Something went wrong.',
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>

@@ -35,7 +35,7 @@ const checkUserTokenValidity = async () => {
         router.push('/(tabs)');
       }
     } catch (error) {
-      console.error("Token verification failed:", error);
+      console.error("Token verificat2ion failed:", error);
       await SecureStore.deleteItemAsync('userId'); // Remove invalid token securely
     }
   }

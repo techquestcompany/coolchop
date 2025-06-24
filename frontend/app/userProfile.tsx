@@ -8,30 +8,28 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
-import * as SecureStore from 'expo-secure-store';
-import { getUserData, baseURL } from "@/services/api";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import * as SecureStore from 'expo-secure-store';
+import { baseURL, getUserData } from "@/services/api";
 
-
-export default function ProfileScreen() {
-  const [user, setUser] = useState([]);
+export default function UserProfileScreen() {
+  const [userData, setUserData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-
   useEffect(() => {
-    fectchUser();
+    fetchUserProfile();
   }, []);
 
-  const fectchUser = async () => {
+  const fetchUserProfile = async () => {
     setIsLoading(true);
     try {
-      const userId = await SecureStore.getItemAsync('userId');
-      const data = await getUserData(userId);
-      setUser(data);
+      const token = await SecureStore.getItemAsync('token');
+      const data = await getUserData(token);
+      setUserData(data);
     } catch (err) {
-      setError("Failed to load restaurant data.");
+      setError("Failed to load user data.");
     } finally {
       setIsLoading(false);
     }
@@ -52,6 +50,7 @@ export default function ProfileScreen() {
       </View>
     );
   }
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -59,59 +58,37 @@ export default function ProfileScreen() {
         <Image
           style={styles.avatar}
           source={{
-            uri: `${baseURL}/public/uploads/${user.profileImage}`,
+            uri: `${baseURL}/public/uploads/${userData.profileImage}`,
           }}
         />
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.tagline}>Foodie Lover 🍔</Text>
+        <Text style={styles.name}>{userData.name || "User"}</Text>
+        
         <TouchableOpacity style={styles.editButton} onPress={() => router.push('/edit_profile')}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Account Info */}
+      {/* Contact Info */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account Details</Text>
-        <View style={styles.row}>
-          <FontAwesome5 name="user" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}> {user.name}</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Contact Information</Text>
         <View style={styles.row}>
           <Ionicons name="mail" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>{user.email}</Text>
+          <Text style={styles.rowText}>{userData.email}</Text>
         </View>
         <View style={styles.row}>
           <Ionicons name="call" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>{user.phone}</Text>
+          <Text style={styles.rowText}>{userData.phone}</Text>
         </View>
       </View>
 
       {/* Address Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Saved Addresses</Text>
-        <TouchableOpacity style={styles.row}>
+        <Text style={styles.sectionTitle}>Address</Text>
+        <View style={styles.row}>
           <MaterialIcons name="location-on" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>123 Food Street, City</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="add-circle" size={20} color="#D32F2F" />
-          <Text style={styles.addButtonText}>Add Address</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Preferences */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferences</Text>
-        <View style={styles.row}>
-          <Ionicons name="fast-food" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>Favorite Cuisine: Italian</Text>
-        </View>
-        <View style={styles.row}>
-          <Ionicons name="leaf" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>Dietary Preference: Vegan</Text>
+          <Text style={styles.rowText}>{userData.address || "No address provided"}</Text>
         </View>
       </View>
-
     </ScrollView>
   );
 }
@@ -172,16 +149,5 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 16,
     color: "#333",
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  addButtonText: {
-    marginLeft: 5,
-    color: "#D32F2F",
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });

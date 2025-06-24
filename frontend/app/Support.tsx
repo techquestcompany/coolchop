@@ -6,17 +6,17 @@ import { router, Router } from 'expo-router';
 const SupportScreen = () => {
   // Function to handle opening email
   const handleEmailPress = () => {
-    Linking.openURL('mailto:support@example.com');
+    Linking.openURL('mailto:coolchop.co@gmail.com');
   };
 
   // Function to handle opening phone dialer
   const handlePhonePress = () => {
-    Linking.openURL('tel:+1234567890');
+    Linking.openURL('tel:0208089497');
   };
 
   // Function to navigate to 'About Coolchop' page
   const handleAboutPress = () => {
-    router.navigate("AboutCoolchop"); 
+    router.navigate("About"); 
   };
 
   const handleNavigation = (page) => {
@@ -30,7 +30,7 @@ const SupportScreen = () => {
       {/* Email Section */}
       <TouchableOpacity style={styles.item} onPress={handleEmailPress}>
         <MaterialCommunityIcons name="email-outline" size={24} color="black" />
-        <Text style={styles.text}>support@example.com</Text>
+        <Text style={styles.text}>coolchop.co@gmail.com</Text>
       </TouchableOpacity>
 
       {/* Phone Section */}
@@ -56,12 +56,6 @@ const SupportScreen = () => {
       {/* Payments and Pricing Section */}
       <TouchableOpacity style={styles.item} onPress={() => handleNavigation('VendorPayments')}>
         <Text style={styles.text}>Payments and Pricing</Text>
-        <Ionicons name="arrow-forward" size={24} color="black" style={styles.icon} />
-      </TouchableOpacity>
-
-      {/* Pricing Section */}
-      <TouchableOpacity style={styles.item} onPress={() => handleNavigation('Pricing')}>
-        <Text style={styles.text}>Pricing</Text>
         <Ionicons name="arrow-forward" size={24} color="black" style={styles.icon} />
       </TouchableOpacity>
     </View>

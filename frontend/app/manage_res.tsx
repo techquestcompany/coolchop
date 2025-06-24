@@ -1,54 +1,111 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, Alert, Pressable } from 'react-native';
-import { DataTable, Button, Text } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { DataTable, Button, Text, Menu, IconButton } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { getAllRestaurants, deleteRestaurantById, approveRestaurantById } from '../services/api';
 
 const App = () => {
-  const [users, setUsers] = useState([
-    { id: '1', name: 'John Doe', email: 'john.doe@example.com', role: 'Owner' },
-    { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Vendor' },
-    { id: '3', name: 'Samuel Green', email: 'samuel.green@example.com', role: 'Chef' },
-    { id: '4', name: 'Emily Brown', email: 'emily.brown@example.com', role: 'Caterer' },
-  ]);
-
   const router = useRouter();
+  const [restaurants, setRestaurants] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [menuVisible, setMenuVisible] = useState({}); 
 
-  const deleteUser = (id) => {
+  const fetchRestaurants = async (currentPage = 1) => {
+    try {
+      const result = await getAllRestaurants(currentPage);
+      setRestaurants(result.data);
+      setPage(result.page);
+      setTotalPages(result.totalPages);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load restaurants');
+    }
+  };
+
+  useEffect(() => {
+    fetchRestaurants();
+  }, []);
+
+  const openMenu = (id) => {
+    setMenuVisible((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const closeMenu = (id) => {
+    setMenuVisible((prev) => ({ ...prev, [id]: false }));
+  };
+
+  const deleteRestaurant = (id) => {
     Alert.alert(
       'Confirm Delete',
-      'Are you sure you want to delete this user?',
+      'Are you sure you want to delete this restaurant?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => setUsers(users.filter((user) => user.id !== id)),
+          onPress: async () => {
+            try {
+              await deleteRestaurantById(id);
+              setRestaurants((prev) => prev.filter((r) => r.id !== id));
+              Alert.alert('Success', 'Restaurant deleted');
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete restaurant.');
+            }
+          },
         },
       ],
-      { cancelable: true }
+      { cancelable: true }  
     );
   };
 
+  const approveRestaurant = async (id) => {
+    try {
+      await approveRestaurantById(id);
+      setRestaurants((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, isVerified: true } : r))
+      ); 
+      Alert.alert('Success', 'Restaurant approved');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to approve restaurant.');
+    }
+  };
+
   const renderRow = ({ item }) => (
-    <DataTable.Row>
-        <Pressable style={{ flex: 1 }} onPress={() => router.push(`/${item.id}`)}>
-            <DataTable.Cell>{item.name}</DataTable.Cell>
-        </Pressable>
-        <Pressable style={{ flex: 1 }} onPress={() => router.push(`/${item.id}`)}>
-            <DataTable.Cell>{item.email}</DataTable.Cell>
-        </Pressable>
-        <Pressable style={{ flex: 1 }} onPress={() => router.push(`/${item.id}`)}>
-            <DataTable.Cell>{item.role}</DataTable.Cell>
-        </Pressable>
+    <DataTable.Row key={item.id}>
+      <DataTable.Cell style={{ flex: 1 }}>{item.restaurantName}</DataTable.Cell>
+      <DataTable.Cell style={{ flex: 1 }}>{item.email}</DataTable.Cell>
+      <DataTable.Cell style={{ flex: 1 }}>{item.phone}</DataTable.Cell>
       <DataTable.Cell>
-        <Button
-          mode="contained"
-          buttonColor="#e74c3c"
-          textColor="#fff"
-          onPress={() => deleteUser(item.id)}
+        <Menu
+          visible={menuVisible[item.id] || false}
+          onDismiss={() => closeMenu(item.id)}
+          anchor={
+            <IconButton
+              icon="dots-vertical"
+              size={24}
+              onPress={() => openMenu(item.id)}
+            />
+          }
         >
-          Delete
-        </Button>
+          {!item.verified && (
+            <Menu.Item
+              onPress={() => {
+                closeMenu(item.id);
+                approveRestaurant(item.id);
+              }}
+              title="Approve"
+              leadingIcon="check-circle-outline"
+            />
+          )}
+          <Menu.Item
+            onPress={() => {
+              closeMenu(item.id);
+              deleteRestaurant(item.id);
+            }}
+            title="Delete"
+            leadingIcon="delete-outline"
+          />
+        </Menu>
       </DataTable.Cell>
     </DataTable.Row>
   );
@@ -60,13 +117,23 @@ const App = () => {
         <DataTable.Header>
           <DataTable.Title>Name</DataTable.Title>
           <DataTable.Title>Email</DataTable.Title>
-          <DataTable.Title>Role</DataTable.Title>
+          <DataTable.Title>Phone</DataTable.Title>
           <DataTable.Title>Action</DataTable.Title>
         </DataTable.Header>
+
         <FlatList
-          data={users}
-          keyExtractor={(item) => item.id}
+          data={restaurants}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={renderRow}
+        />
+
+        <DataTable.Pagination
+          page={page - 1}
+          numberOfPages={totalPages}
+          onPageChange={(newPage) => fetchRestaurants(newPage + 1)}
+          label={`Page ${page} of ${totalPages}`}
+          showFastPaginationControls
+          numberOfItemsPerPage={10}
         />
       </DataTable>
     </View>

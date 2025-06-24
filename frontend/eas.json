@@ -5,8 +5,8 @@
   },
   "build": {
     "development": {
-      "developmentClient": true,
-      "distribution": "internal"
+      "developmentClient": false, 
+      "distribution": "store"
     },
     "preview": {
       "android": {

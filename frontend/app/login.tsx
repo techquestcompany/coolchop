@@ -1,26 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Platform } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
 import { login } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
-import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
 
-
-const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText }) => {
+const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, toggleSecure, isPassword }) => {
   return (
     <View style={styles.inputContainer}>
       <FontAwesome name={iconName} size={20} color="#B07A7A" style={styles.icon} />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { flex: 1 }]} // Ensures TextInput takes available space
         placeholder={placeholder}
         placeholderTextColor="#B07A7A"
         secureTextEntry={secureTextEntry}
         value={value}
         onChangeText={onChangeText}
       />
+      {isPassword && (
+        <TouchableOpacity onPress={toggleSecure} style={{ padding: 4 }}>
+          <FontAwesome
+            name={secureTextEntry ? "eye-slash" : "eye"}
+            size={20}
+            color="#B07A7A"
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -29,72 +36,73 @@ export default function SignInScreen() {
   const [checked, setChecked] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(true);
   const [loading, setLoading] = useState(false);
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
-// Handle Sign In
-const handleSignIn = async () => {
-  try {
-    setLoading(true);
+  const handleSignIn = async () => {
+    try {
+      setLoading(true);
+      console.log("Signing in with:", email, password);
 
-    // Request location permissions
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Location permission is required to proceed.');
-      setLoading(false); // Hide loading indicator
-      return;
-    }
+      const response = await login(email, password);
+      console.log("Received Response:", response);
 
-    // Get the current location
-    const location = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = location.coords;
+      if (response.message.trim().toLowerCase() === "login successful" && response.user?.token) {
+        if (Platform.OS === "web") {
+          localStorage.setItem("token", response.user.token);
+        } else {
+          await SecureStore.setItemAsync('token', response.user.token);
+          console.log("Token stored successfully:", response.user.token);
+        }
 
-    const response = await login(email, password, latitude, longitude);
+        Toast.show({
+          type: 'success',
+          text1: 'Login Successful 😊',
+          text2: 'Welcome back! 🎉',
+        });
 
-    if (response.message == "Login successful") {
-      // Set the token securely using expo-secure-store with 7 days expiration
-      await SecureStore.setItemAsync('userId', response.user.id); // Securely store the token
-
-      Toast.show({
-        type: 'success',
-        text1: 'Login Successful 😊',
-        text2: 'Welcome back! 🎉',
-      });
-      router.push('/verify');
-    } else {
+        if (response.user.email === "admin@coolchop.com") {
+          router.push('/admin');
+        } else {
+          router.push("/UserHome");
+        }
+      } else {
+        console.error("Login failed response:", response);
+        Toast.show({
+          type: 'error',
+          text1: 'Login Failed ❌',
+          text2: response.message || 'Invalid credentials. Please try again.',
+        });
+      }
+    } catch (error) {
+      console.error("Sign-in error:", error);
       Toast.show({
         type: 'error',
-        text1: 'Login Failed ❌',
-        text2: response.message || 'Please try again.',
+        text1: 'Sign In Failed ⚠️',
+        text2: error.response?.data?.message || error.message || 'Something went wrong.',
       });
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    Toast.show({
-      type: 'error',
-      text1: 'Sign In Failed ⚠️',
-      text2: error.message || 'Something went wrong.',
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <FontAwesome name="arrow-left" size={30} color="#D32F2F" />
           </TouchableOpacity>
 
-          {/* CoolChop Logo */}
           <Image source={require('../assets/images/coolchop.png')} style={styles.logo} />
 
-          {/* Title */}
           <Text style={styles.title}>Let’s Get You Signed In</Text>
           <Text style={styles.subTitle}>Welcome Back</Text>
 
-          {/* Email Input */}
           <InputField
             iconName="envelope"
             placeholder="Email"
@@ -102,16 +110,16 @@ const handleSignIn = async () => {
             onChangeText={setEmail}
           />
 
-          {/* Password Input */}
           <InputField
             iconName="lock"
             placeholder="Enter password"
-            secureTextEntry={true}
+            secureTextEntry={showPassword}
             value={password}
             onChangeText={setPassword}
+            toggleSecure={togglePasswordVisibility}
+            isPassword={true}
           />
 
-          {/* Remember Me and Forgot Password */}
           <View style={styles.options}>
             <View style={styles.rememberMe}>
               <Checkbox 
@@ -121,12 +129,11 @@ const handleSignIn = async () => {
               />
               <Text>Remember me</Text>
             </View>
-            <TouchableOpacity onPress = {() => router.push('/forgot_password')}>
+            <TouchableOpacity onPress={() => router.push('/forgot_password')}>
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Sign In Button */}
           <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
             {loading ? (
               <ActivityIndicator size="small" color="#FFF" />
@@ -135,16 +142,15 @@ const handleSignIn = async () => {
             )}
           </TouchableOpacity>
 
-          {/* Sign Up Link */}
           <Text style={styles.footerText}>
             Don’t have an account?{' '}
             <TouchableOpacity onPress={() => router.push('/signup')}>
-              <Text style={styles.signUpText} >Sign Up</Text>
+              <Text style={styles.signUpText}>Sign Up</Text>
             </TouchableOpacity>
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
-      <Toast ref={(ref) => Toast.setRef(ref)} />
+      <Toast />
     </SafeAreaView>
   );
 }
@@ -186,14 +192,13 @@ const styles = StyleSheet.create({
     borderColor: '#FAD4D4',
     borderRadius: 10,
     marginBottom: 20,
-    padding: 10,
+    paddingHorizontal: 10,
     backgroundColor: '#FAD4D4',
   },
   icon: {
     marginRight: 10,
   },
   input: {
-    flex: 1,
     fontSize: 16,
     color: '#000',
   },

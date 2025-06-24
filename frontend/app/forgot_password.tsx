@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import {
+import { router } from "expo-router";
+import { sendVerification } from "@/services/api";
+import{
   View,
   Text,
   TextInput,
@@ -11,15 +13,28 @@ import {
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (email === "") {
       Alert.alert("Error", "Please enter your email address.");
     } else {
       Alert.alert(
-        "Password Reset",
-        "If this email is registered, you'll receive a password reset link."
+        "A Password reset code has been sent to your email"
+          
       );
     }
+
+
+    const response = await sendVerification(email)
+    if(response.message){
+      console.log("code sent sent successfully")
+    }else{
+      console.log("there was an error")
+    }
+    router.push({
+      pathname: 'passResetCode',
+      params: { email },
+    });
+    
   };
 
   return (
@@ -49,7 +64,7 @@ export default function ForgotPasswordScreen() {
       {/* Back to Login */}
       <TouchableOpacity
         style={styles.backToLogin}
-        onPress={() => Alert.alert("Redirecting", "Back to Login page.")}
+        onPress={() => router.back}
       >
         <Text style={styles.backToLoginText}>Back to Login</Text>
       </TouchableOpacity>

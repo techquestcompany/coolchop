@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, Alert,Platform, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
 import { loginRestaurant, verifyToken } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
+import * as JwtDecode from "jwt-decode"
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
-import * as Location from 'expo-location';
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText }) => {
   return (
@@ -26,111 +26,99 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
 
 export default function SignInScreen() {
   const [checked, setChecked] = useState(false);
-  const [restaurantId, setRestaurantId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
 
   useEffect(() => {
     checkTokenValidity();
   }, [router]);
 
-
-// Function to check if token is valid
-const checkTokenValidity = async () => {
-  const token = await SecureStore.getItemAsync('restaurantId');
-  if (token) {
-    try {
-      const isValid = await verifyToken(token);
-      if (!isValid) {
-        await SecureStore.deleteItemAsync('restaurantId'); // Remove expired or invalid token securely
-      } else {
-        router.push('/(res_tabs)');
+  const checkTokenValidity = async () => {
+    const token = await SecureStore.getItemAsync('token');
+    if (token) {
+      try {
+        const isValid = await verifyToken(token);
+        if (!isValid) {
+          await SecureStore.deleteItemAsync('token');
+        } else {
+          let userData = JwtDecode.jwtDecode(token)
+          console.log(userData)
+          router.push('/(res_tabs)');
+        }
+      } catch (error) {
+        console.error("Token verification failed:", error);
+        await SecureStore.deleteItemAsync('token');
       }
-    } catch (error) {
-      console.error("Token verification failed:", error);
-      await SecureStore.deleteItemAsync('restaurantId'); // Remove invalid token securely
     }
-  }
-};
-
-  // Handle Sign In
+  };
   const handleSignIn = async () => {
+    
     try {
       setLoading(true);
-        // Request location permissions
-        const { status } = await Location.requestForegroundPermissionsAsync();
-
-        if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Location permission is required to proceed.');
-          setLoading(false); // Hide loading indicator
-          return;
+      const response = await loginRestaurant(email, password);
+  
+      console.log("Full API Response:", response);
+  
+      if (response.message?.trim() === "Login successful" && response.token) {
+        console.log("Received Token:", response.token);
+  
+        if (Platform.OS === "web") {
+          localStorage.setItem("token", response.token);
+        } else {
+          await SecureStore.setItemAsync("token", response.token);
         }
-      // Get the current location
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-
-      const response = await loginRestaurant(restaurantId, latitude, longitude);
-      if (response.message == "Login successful") {
-        await SecureStore.setItemAsync('restaurantId', response.restaurant.id); // Securely store the token
         Toast.show({
-          type: 'success',
-          text1: 'Login Successful 😊',
-          text2: 'Welcome back! 🎉',
+          type: "success",
+          text1: "Login Successful 😊",
+          text2: "Welcome back! 🎉",
         });
-        router.push('/(res_tabs)');
+  
+        router.push("/(res_tabs)");
       } else {
         Toast.show({
-          type: 'error',
-          text1: 'Login Failed ❌',
-          text2: response.message || 'Please try again.',
+          type: "error",
+          text1: "Login Failed ❌",
+          text2: response.message || "Please try again.",
         });
       }
     } catch (error) {
+      console.error("Login Error:", error);
       Toast.show({
-        type: 'error',
-        text1: 'Sign In Failed ⚠️',
-        text2: error.message || 'Something went wrong.',
+        type: "error",
+        text1: "Sign In Failed ⚠️",
+        text2: error.message || "Something went wrong.",
       });
     } finally {
       setLoading(false);
     }
   };
+  
+                
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <FontAwesome name="arrow-left" size={30} color="#D32F2F" />
           </TouchableOpacity>
-
-          {/* CoolChop Logo */}
           <Image source={require('../assets/images/coolchop.png')} style={styles.logo} />
-
-          {/* Title */}
           <Text style={styles.title}>Let’s Get You Signed In</Text>
           <Text style={styles.subTitle}>Welcome Back</Text>
-
-          {/* Email Input */}
           <InputField
             iconName="envelope"
-            placeholder="Restaurant Id"
-            value={restaurantId}
-            onChangeText={setRestaurantId}
+            placeholder="Enter Email"
+            value={email}
+            onChangeText={setEmail}
           />
-
-          {/* Password Input */}
-          {/* <InputField
+          <InputField
             iconName="lock"
-            placeholder="Enter password"
+            placeholder="Enter Password"
             secureTextEntry={true}
             value={password}
             onChangeText={setPassword}
-          /> */}
-
-          {/* Remember Me and Forgot Password */}
+          />
           <View style={styles.options}>
             <View style={styles.rememberMe}>
               <Checkbox 
@@ -141,11 +129,9 @@ const checkTokenValidity = async () => {
               <Text>Remember me</Text>
             </View>
             <TouchableOpacity>
-              <Text style={styles.forgotPassword}>Forgot Id?</Text>
+              <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Sign In Button */}
           <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
             {loading ? (
               <ActivityIndicator size="small" color="#FFF" />
@@ -153,11 +139,15 @@ const checkTokenValidity = async () => {
               <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
-
-          {/* Sign Up Link */}
-          <Text style={styles.footerText}>
-           Contact the coolchop team if your account hasn't been verified
-          </Text>
+        <TouchableOpacity>
+           {/* Sign Up Link */}
+                    <Text style={styles.footerText}>
+                      Don’t have an account?{' '}
+                      <TouchableOpacity onPress={() => router.push('/add_restaurants')}>
+                        <Text style={{color:"#D32F2F"}} >Sign Up</Text>
+                      </TouchableOpacity>
+                    </Text>
+        </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
       <Toast ref={(ref) => Toast.setRef(ref)} />
@@ -239,8 +229,5 @@ const styles = StyleSheet.create({
   },
   footerText: {
     marginTop: 20,
-  },
-  signUpText: {
-    color: '#D32F2F',
   },
 });

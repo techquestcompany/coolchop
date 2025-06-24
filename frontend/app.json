@@ -6,21 +6,24 @@
     "orientation": "portrait",
     "icon": "./assets/images/coolchop_android.png",
     "scheme": "myapp",
+    "owner": "asamoahgregory",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/coolchop_android.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF;"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "We need your location to show you nearby services"
+        "NSLocationWhenInUseUsageDescription": "We need your location to show you nearby services",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.eugeneanokye99.coolchop"
     },
     "android": {
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "package": "com.eugeneanokye99.coolchop"
     },
     "web": {
       "bundler": "metro",
@@ -40,7 +43,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "07b07c02-306c-4b79-9b02-d04fae22ce7d"
+        "projectId": "016a9409-1e3c-4f5f-a3c5-53a9f97b9c11"
       }
     }
   }

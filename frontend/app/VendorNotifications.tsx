@@ -10,29 +10,14 @@ const NotificationPreferences = () => {
     delivery: null,
     status: null
   });
-
-  // Show modal with options based on selected preference (Order, Delivery, Status)
+    
+  //Show modal with options based on selected preference (Order, Delivery, Status)
   const handlePreferencePress = (preference) => {
     setSelectedNotification(preference);
     setShowModal(true);
   };
 
-  // Handle saving the notification method and sending it to the backend
-  const saveNotificationPreference = async () => {
-    try {
-      const response = await axios.post('https://your-backend-api.com/notifications', notificationMethod);
-      
-      if (response.status === 200) {
-        Alert.alert('Success', 'Your preferences have been saved.');
-      } else {
-        Alert.alert('Error', 'There was an error saving your preferences.');
-      }
-    } catch (error) {
-      console.error('Error saving preferences:', error);
-      Alert.alert('Error', 'There was an error saving your preferences.');
-    }
-    setShowModal(false); // Close the modal after saving
-  };
+  
 
   return (
     <View style={styles.container}>
@@ -44,7 +29,7 @@ const NotificationPreferences = () => {
         <Text style={styles.buttonText}>Order Notifications</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
+      <TouchableOpacity   
         style={styles.button}
         onPress={() => handlePreferencePress('delivery')}>
         <Text style={styles.buttonText}>Delivery Notifications</Text>

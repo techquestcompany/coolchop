@@ -28,7 +28,7 @@ const VendorSettings = () => {
 
       {/* Social Media Section */}
       <TouchableOpacity style={styles.item} onPress={() => handleNavigation('VendorPayments')}>
-        <Text style={styles.text}>Social Media</Text>
+        <Text style={styles.text}>Payments</Text>
         <Ionicons name="arrow-forward" size={24} color="black" style={styles.icon} />
       </TouchableOpacity>
 

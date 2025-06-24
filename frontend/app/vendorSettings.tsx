@@ -9,14 +9,12 @@ const VendorSettings = () => {
   };
 
   const handleContactSupport = () => {
-    Alert.alert('Contact Support', 'You can reach us at support@coolchop.com or call +123456789.');
+    Alert.alert('Contact Support', 'You can reach us at coolchop.co@gmail.com or call 0208089497.');
   };
 
-  const handleOpenWebsite = () => {
-    Linking.openURL('https://www.coolchop.com');
-  };
 
   return (
+
     <View style={styles.container}>
       <Text style={styles.header}>Settings</Text>
 
@@ -28,12 +26,12 @@ const VendorSettings = () => {
 
       {/* Social Media Section */}
       <TouchableOpacity style={styles.item} onPress={() => handleNavigation('VendorPayments')}>
-        <Text style={styles.text}>Social Media</Text>
+        <Text style={styles.text}>Payments</Text>
         <Ionicons name="arrow-forward" size={24} color="black" style={styles.icon} />
       </TouchableOpacity>
 
       {/* Password Section */}
-      <TouchableOpacity style={styles.item} onPress={() => handleNavigation('Pricing')}>
+      <TouchableOpacity style={styles.item} onPress={() => handleNavigation('changePassword')}>
         <Text style={styles.text}>Password</Text>
         <Ionicons name="arrow-forward" size={24} color="black" style={styles.icon} />
       </TouchableOpacity>
@@ -41,19 +39,16 @@ const VendorSettings = () => {
       {/* Support Section */}
       <TouchableOpacity style={styles.item} onPress={handleContactSupport}>
         <Text style={styles.text}>Contact Support</Text>
-        <MaterialCommunityIcons name="headset" size={24} color="black" style={styles.icon} />
+        <MaterialCommunityIcons name="headset" size={24} color="black" style={styles.icon} />  
       </TouchableOpacity>
 
-      {/* Visit Website Section */}
-      <TouchableOpacity style={styles.item} onPress={handleOpenWebsite}>
-        <Text style={styles.text}>Visit Website</Text>
-        <MaterialIcons name="web" size={24} color="black" style={styles.icon} />
-      </TouchableOpacity>
-
+    
+                                                                                 
       {/* About Section */}
       <TouchableOpacity style={styles.item} onPress={() => handleNavigation('AboutCoolchop')}>
         <Text style={styles.text}>About Coolchop</Text>
         <Ionicons name="information-circle-outline" size={24} color="black" style={styles.icon} />
+        
       </TouchableOpacity>
     </View>
   );

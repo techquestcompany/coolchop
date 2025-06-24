@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import MapView, { Marker, Polyline  } from "react-native-maps";
+//import MapView, { Marker, Polyline  } from "react-native-maps";
 import axios from "axios";
 import {
   fetchOrder,
@@ -31,7 +31,8 @@ export default function OrderSummary() {
 
   const fetchOrderDetails = async () => {
     try {
-      const user_id = await SecureStore.getItemAsync("userId");
+      const token = await SecureStore.getItemAsync("token");
+     
       const response = await fetchOrder(user_id);
 
       const items = JSON.parse(response[0].items);

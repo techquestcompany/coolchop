@@ -20,7 +20,7 @@ const AdminDashboard = () => {
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
-      <Text style={styles.header}>Admin Dashboard</Text>
+      <Text style={styles.header}>Admin Dashboard</Text> 
 
       {/* Statistics Cards */}
       <View style={styles.statsContainer}>
