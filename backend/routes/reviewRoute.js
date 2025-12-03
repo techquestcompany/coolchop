@@ -1,10 +1,15 @@
 const express = require('express');
 const reviewsController = require('../controllers/reviewController');
+const tokenMiddleware = require("../utils/tokenAuth")
 const router = express.Router();
 
-router.post('/add', reviewsController.addReview);
-router.get('/:restaurantId', reviewsController.getReviewsByRestaurant);
-router.post('/add-dish', reviewsController.addDishReview);
-router.get('/:dishId', reviewsController.getReviewsByDish);
+router.post('/add',tokenMiddleware, reviewsController.addDishReview);
+
+// ⭐ Restaurant reviews
+router.get('/restaurant/:restaurantId', reviewsController.getReviewsByRestaurant);
+
+// ⭐ Dish reviews
+router.post('/dish/add', reviewsController.addDishReview);
+router.get('/dish/:dishId', reviewsController.getReviewsByDish);
 
 module.exports = router;

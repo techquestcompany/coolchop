@@ -1,46 +1,71 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const { Model } = require("sequelize");
 
-const Rating = sequelize.define('Rating', {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-  },
-  userId: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  restaurantId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  dishId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  rating: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    validate: {
-      min: 0,
-      max: 5,
+module.exports = (sequelize, DataTypes) => {
+  class Rating extends Model {
+    static associate(models) {
+      Rating.belongsTo(models.User, {
+        foreignKey: "userId",
+        as: "user",
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE",
+      });
+
+      Rating.belongsTo(models.Restaurant, {
+        foreignKey: "restaurantId",
+        as: "restaurant",
+        onDelete: "SET NULL",
+        onUpdate: "CASCADE",
+      });
+
+      Rating.belongsTo(models.Dish, {
+        foreignKey: "dishId",
+        as: "dish",
+        onDelete: "SET NULL",
+        onUpdate: "CASCADE",
+      });
+    }
+  }
+
+  Rating.init(
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+
+      userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+
+      restaurantId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+
+      dishId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+
+      rating: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        validate: { min: 0, max: 5 },
+      },
+
+      userRating: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
     },
-  },
-  userRating: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW,
-  },
-  updatedAt: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW,
-  },
-});
+    {
+      sequelize,
+      modelName: "Rating",
+      timestamps: true,
+    }
+  );
 
-module.exports = Rating;
+  return Rating;
+};

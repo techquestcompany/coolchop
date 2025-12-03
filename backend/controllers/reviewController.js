@@ -1,4 +1,4 @@
-const Review = require('../models/reviews');
+const {Review} = require('../models');
 
 // Add a new review for a restaurant
 exports.addReview = async (req, res) => {
@@ -43,30 +43,32 @@ exports.getReviewsByRestaurant = async (req, res) => {
   }
 };
 
-// Add a new review for a dish
 exports.addDishReview = async (req, res) => {
   try {
-    const { userId, dishId, content } = req.body;
+    const userId = req.user.id; // ⭐ FROM TOKEN ONLY
+    const { dishId, review } = req.body;
 
-    if (!userId || !dishId || !content) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!dishId || !review) {
+      return res.status(400).json({ error: "Dish ID and review are required" });
     }
 
     const newReview = await Review.create({
       userId,
       dishId,
-      content,
+      review,
     });
 
     res.status(201).json({
-      message: 'Dish review added successfully',
+      message: "Dish review added successfully",
       data: newReview,
     });
   } catch (error) {
-    console.error('Error adding dish review:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error adding dish review:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };
+
+
 
 // Get all reviews for a dish
 exports.getReviewsByDish = async (req, res) => {

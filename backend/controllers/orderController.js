@@ -1,15 +1,13 @@
-const Order = require('../models/Order');
-const Dish = require('../models/Dish'); 
-const { decrypt } = require('../utils/encryption');
+const {Order,Dish} = require('../models');
 
 
+// CREATE ORDER
 exports.createOrder = async (req, res) => {
-  const { user_id, items, note } = req.body;
+  const userId = req.user.id; // ⭐ From token middleware
+  const { items, note } = req.body;
 
-  const userId = await decrypt(user_id);
-
-  if (!userId || !items || items.length === 0) {
-    return res.status(400).json({ message: 'userId and items are required' });
+  if (!items || items.length === 0) {
+    return res.status(400).json({ message: 'Items are required' });
   }
 
   try {
@@ -42,14 +40,15 @@ exports.createOrder = async (req, res) => {
   }
 };
 
+// GET ALL ORDERS (User-specific or Admin)
 exports.getAllOrders = async (req, res) => {
-  const { user_id } = req.query;
   try {
+    const userId = req.user.id;
 
-    const userId = await decrypt(user_id);
-    const orders = userId
-      ? await Order.findAll({ where: { userId } })
-      : await Order.findAll();
+    const orders = await Order.findAll({
+      where: { userId }
+    });
+
     res.status(200).json(orders);
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -57,13 +56,22 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
+// GET ORDER BY ID
 exports.getOrderById = async (req, res) => {
   const { orderId } = req.params;
+
   try {
     const order = await Order.findByPk(orderId);
+
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
+
+    // Prevent user from accessing someone else's order
+    if (order.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
     res.status(200).json(order);
   } catch (error) {
     console.error('Error fetching order:', error);
@@ -71,15 +79,20 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-
+// UPDATE ORDER
 exports.updateOrder = async (req, res) => {
   const { orderId } = req.params;
   const { items, totalAmount, note, status } = req.body;
 
   try {
     const order = await Order.findByPk(orderId);
+
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized' });
     }
 
     order.items = items ? JSON.stringify(items) : order.items;
@@ -88,6 +101,7 @@ exports.updateOrder = async (req, res) => {
     order.status = status || order.status;
 
     await order.save();
+
     res.status(200).json({ message: 'Order updated successfully', order });
   } catch (error) {
     console.error('Error updating order:', error);
@@ -95,14 +109,22 @@ exports.updateOrder = async (req, res) => {
   }
 };
 
+// DELETE ORDER
 exports.deleteOrder = async (req, res) => {
   const { orderId } = req.params;
 
   try {
-    const result = await Order.destroy({ where: { id: orderId } });
-    if (result === 0) {
+    const order = await Order.findByPk(orderId);
+
+    if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
+
+    if (order.userId !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    await order.destroy();
 
     res.status(200).json({ message: 'Order deleted successfully' });
   } catch (error) {
@@ -110,4 +132,3 @@ exports.deleteOrder = async (req, res) => {
     res.status(500).json({ message: 'Error deleting order' });
   }
 };
-

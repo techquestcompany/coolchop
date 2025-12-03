@@ -8,6 +8,8 @@ const uploadsRoutes = require("./routes/uploadRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const ratingsRoutes = require("./routes/ratingsRoute");
 const reviewRoutes = require("./routes/reviewRoute");
+const paymentsRoutes = require("./routes/transInitialiserRoute")
+const transactionRoutes = require("./routes/transactionRoutes");
 const { Server } = require("socket.io");
 const cors = require('cors');
 const http = require('http'); 
@@ -46,12 +48,13 @@ app.use("/api/upload", uploadsRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/ratings", ratingsRoutes);
 app.use("/api/reviews", reviewRoutes);
-
+app.use("/api/payments",paymentsRoutes)
+app.use("/api/transactions", transactionRoutes);
 
 // Webhook Route for CI/CD
 app.post('/webhook', (req, res) => {
   const payload = req.body;
-  res.status(200).send('Webhook received');
+  res.status(200).send('Webhook received message');
 
   // Check if the event is a GitHub push event
   if (req.headers['x-github-event'] === 'push' || req.headers['x-github-event'] === 'ping') {
@@ -83,6 +86,6 @@ sequelize.sync().then(() => {
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
+server.listen(PORT,"0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 });

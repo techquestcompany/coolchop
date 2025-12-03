@@ -1,12 +1,13 @@
-const Restaurant = require('../models/Restaurant');
-const Dish = require('../models/Dish');
+const {Dish,Restaurant} =require("../models")
 const bcrypt = require('bcryptjs');
 const { encrypt, decrypt } = require('../utils/encryption');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const jwt = require("jsonwebtoken");
+const { Model } = require('sequelize');
 
 // Function to generate a unique restaurant ID
-const generateRestaurantId = (restaurantName) => {
+/*const generateRestaurantId = (restaurantName) => {
   // Split the restaurant name into words
   const nameParts = restaurantName.split(' ');
   
@@ -42,55 +43,65 @@ const sendEmail = async (email, restaurantId) => {
     } catch (error) {
       console.error('Error sending  email:', error);
     }
-};
+};*/
   
 
 
 // Login function
 exports.login = async (req, res) => {
   try {
-    const { restaurantId, longitude, latitude } = req.body;
+    const { email, password } = req.body;
 
-    // Check if user exists
-    const restaurant = await Restaurant.findOne({ where: { restaurantId } });
+    // Check if restaurant exists
+    const restaurant = await Restaurant.findOne({ where: { email } });
 
     if (!restaurant) {
-      return res.status(400).json({ error: 'Invalid id ' });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    // Check if the account is verified
+    if (!restaurant.isVerified) {
+      return res.status(403).json({ error: "Your account is not verified" });
+    }
 
+    // Compare the provided password with the stored hash
+    const isMatch = await bcrypt.compare(password, restaurant.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid email or password" }); 
+    }
 
-    await restaurant.update({
-      longitude,
-      latitude 
-    });
-
-
-  
-    //encrypt restaurant id
-    const res_id = await encrypt(restaurant.id.toString());
-
-    // If login is successful, return restaurant data
-    res.status(200).json({
-      message: 'Login successful',
+    // Generate token with expiration
+    const token = jwt.sign(
+      { email: restaurant.email, id: restaurant.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" } 
+    );
+  console.log(token)
+    // Return successful login response
+    return res.status(200).json({
+      message: "Login successful",
       restaurant: {
-        id: res_id,
+        id: restaurant.id,
+        email: restaurant.email,
+        restaurantName: restaurant.restaurantName,
       },
+      token,
     });
+
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error(error);
+    res.status(500).json({ error: "Server error. Please try again later." });
   }
 };
-
 
 
 
 // Signup function
 exports.addRestaurant = async (req, res) => {
   try {
-    const { restaurantName, email, phone, address, description, profileImage } = req.body;
-
-    if (!restaurantName || !email || !phone || !address || !profileImage ) {
+    const { restaurantName, email, phone, address, description, password } = req.body;
+    
+    if (!restaurantName || !email || !phone || !address || !password || !description) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
@@ -100,82 +111,111 @@ exports.addRestaurant = async (req, res) => {
       return res.status(400).json({ error: 'Email already in use' });
     }
 
+    // Hash the password correctly
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const restaurantId = generateRestaurantId(restaurantName);
-
-    // Send restaurant id via email
-    await sendEmail(email, restaurantId);
-
+  // Save the restaurant with the correct password field
     const restaurant = await Restaurant.create({
-      restaurantId,
       restaurantName,
       email,
       phone,
       address,
       description,
-      profileImage,
+      password: hashedPassword 
     });
-
-
-
+console.log(restaurant)
     res.status(201).json({
-      message: 'Restaurant registered successfully',
+      message: 'Restaurant registered successfully. Our team will contact you for the next step.',
+      restaurant: { id: restaurant.id, email: restaurant.email } 
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error creating user' });
+    console.error(error);
+    res.status(500).json({ error: 'Error creating restaurant. Please try again later.' });
   }
 };
-
-
 exports.createDishes = async (req, res) => {
-  const { dishes } = req.body;
+  const restaurantId = req.user.id;
+
+  if (!restaurantId) {
+    return res.status(400).json({ message: "No restaurant found" });
+  }
+
+  const dishes = req.body.dishes;
 
   if (!dishes || !Array.isArray(dishes)) {
-    return res.status(400).json({ message: 'Invalid input, dishes must be an array' });
+    return res.status(400).json({ message: "Invalid input, dishes must be an array" });
   }
 
+  const dishData = dishes.map((dish) => ({
+    dishName: dish.dishName,
+    price: parseFloat(dish.price),
+    description: dish.description,
+    ingredients: dish.ingredients,
+    category: dish.category,
+    restaurantId,
+    profileImage: dish.images && dish.images.length > 0 ? dish.images[0].name : null, // ✅ pick first image
+  }));
+
   try {
-
-    const updatedDishes = await Promise.all(
-      dishes.map(async (dish) => {
-      if (!dish.restaurantId) {
-        throw new Error('Missing restaurantId in dish');
-      }
-      const decryptedRestaurantId = await decrypt(dish.restaurantId.toString());
-      return { ...dish, restaurantId: decryptedRestaurantId };
-    })
-    );
-
-
-
-    // Save all dishes
-    const createdDishes = await Dish.bulkCreate(updatedDishes);
-
-    res.status(201).json({
-      message: 'Dishes saved successfully',
-    });
+    await Dish.bulkCreate(dishData);
+    return res.status(200).json({ message: "Dishes saved successfully" });
   } catch (error) {
-    console.error('Error saving dishes:', error);
-    res.status(500).json({ message: 'Error saving dishes', error });
+    console.error("Error saving dishes:", error);
+    return res.status(500).json({ message: "Error saving dishes", error: error.message });
   }
 };
 
-// Get all restaurants
+// GET /restaurants?page=1&limit=10
 exports.getAllRestaurants = async (req, res) => {
   try {
-    const restaurants = await Restaurant.findAll();
-    res.status(200).json(restaurants);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Restaurant.findAndCountAll({
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']], 
+    });
+
+    res.status(200).json({
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+      data: rows, 
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving restaurants', error });
   }
 };
 
+
+exports.approveRestaurant =  async (req, res) => {
+  try {
+    const id = req.params.id;
+    
+    const restaurant = await Restaurant.findByPk(id);
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    restaurant.isVerified = true; 
+    await restaurant.save();
+
+    res.json({ message: 'Restaurant approved successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to approve restaurant' });
+  }
+}
+
+
 // Get a restaurant by ID
 exports.getRestaurantById = async (req, res) => {
   try {
-    const restaurantId = req.headers.authorization.split(' ')[1]; 
+    const restaurantId =req.user.id
 
-    //const restaurantId = await decrypt(id.toString());
 
     const restaurant = await Restaurant.findOne({ where: { id: restaurantId } });
     if (restaurant) {
@@ -189,12 +229,60 @@ exports.getRestaurantById = async (req, res) => {
   }
 };
 
+// DELETE /api/restaurant/:id
+exports.deleteRestaurantById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const restaurant = await Restaurant.findByPk(id);
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    await restaurant.destroy();
+
+    res.status(200).json({ message: 'Restaurant deleted successfully' });
+  } catch (error) {
+    console.error('Delete error:', error);
+    res.status(500).json({ message: 'Error deleting restaurant', error });
+  }
+};
+
+
+// DELETE /api/dish/:id
+exports.deleteDish = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the dish by ID
+    const dish = await Dish.findByPk(id);
+
+    if (!dish) {
+      return res.status(404).json({ message: "Dish not found" });
+    }
+
+
+    /*if (dish.restaurantId !== req.user.id) {
+      return res.status(403).json({ message: "You are not authorized to delete this dish" });
+    }*/
+
+    // Delete the dish
+    await dish.destroy();
+
+    res.status(200).json({ message: "Dish deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting dish:", error);
+    res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+
 // Get dishes by restaurant ID
 exports.getDishesByRestaurantId = async (req, res) => {
   try {
-    // Extract and decrypt restaurant ID from headers
-    const restaurantId = req.headers.authorization.split(' ')[1]; 
-    //const restaurantId = await decrypt(id.toString());
+
+    const restaurantId = req.user.id
 
     // Fetch all dishes associated with the restaurant ID
     const dishes = await Dish.findAll({ where: { restaurantId } });
@@ -215,54 +303,120 @@ exports.getDishesByRestaurantId = async (req, res) => {
 // Get all dishes
 exports.getAllDishes = async (req, res) => {
   try {
-    const dishes = await Dish.findAll();
-    res.status(200).json(dishes);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Dish.findAndCountAll({
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']], 
+       include: [
+        {
+          model: Restaurant,
+          as:"restaurant",
+          attributes: ["id", "restaurantName","description", "address", "phone"]
+        }
+      ]
+    });
+
+    res.status(200).json({
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+      data: rows, 
+    });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ message: 'Error retrieving dishes', error });
   }
 };
 
-// Get a dish by ID
 exports.getDishById = async (req, res) => {
   try {
-    const dish_id = req.headers.authorization.split(' ')[1]; 
+    const { id } = req.params;
 
-   // const dishId = await decrypt(dish_id.toString());
+    const dish = await Dish.findOne({ where: { id } });
 
-    const dishes = await Dish.findOne({ where: { id: dish_id } });
-    if (dishes) {
-      res.status(200).json(dishes);
-    } else {
-      res.status(404).json({ message: 'Dish not found' });
+    if (!dish) {
+      return res.status(404).json({ message: "Dish not found" });
     }
+
+    res.status(200).json(dish);
   } catch (error) {
-    console.error('Error retrieving dish:', error);
-    res.status(500).json({ message: 'Error retrieving dish', error });
+    console.error("Error retrieving dish:", error);
+    res.status(500).json({ message: "Error retrieving dish", error });
   }
 };
 
 
-exports.verifyResId = async (req, res) => {
-  const { token } = req.body;
+exports.upDateRestaurantData = async (req, res) => {
+  const {
+    restaurantName,
+    email,
+    phone,
+    address,
+    description,
+    paymentInfo,
+    operationalHours
+  } = req.body;
 
-  if (!token) {
-    return res.status(400).json({ message: 'Token is required' });
+  // Check for empty fields
+
+  if (
+    !restaurantName || !email || !phone || !address ||
+    !description || !paymentInfo || !operationalHours
+  ) {
+    return res.status(400).json({ message: "All fields are required" });
   }
+
+  const restaurantId = req.user;
 
   try {
-    // Decrypt the token to get the user ID
-    const userId = await decrypt(token);
+    const restaurant = await Restaurant.findOne({ where: { restaurantId } });
 
-    // Check if the user exists in the database
-    const userExists = await Restaurant.findOne({ where: { id: userId } });
-
-    if (userExists) {
-      res.status(200).json({ exists: true });
-    } else {
-      res.status(404).json({ exists: false, message: 'User not found' });
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
     }
+
+    await Restaurant.update(
+      {
+        restaurantName,
+        email,
+        operationalHours,
+        paymentInfo,
+        phone,
+        address,
+        description
+      },
+      { where: { restaurantId } }
+    );
+
+    return res.status(200).json({ message: "Restaurant updated successfully"});
   } catch (error) {
-    console.error('Error verifying token:', error);
-    res.status(500).json({ message: 'Error verifying token', error });
+    console.error("Update error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+exports.deleteRestaurant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const restaurant = await Restaurant.findByPk(id);
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    await restaurant.destroy();
+
+    res.status(200).json({ message: 'Restaurant deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting restaurant:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
