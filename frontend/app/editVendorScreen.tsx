@@ -32,7 +32,7 @@ export default function EditVendorProfileScreen() {
 
   const fetchRestaurant = async () => {
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await SecureStore.getItemAsync('restaurant_token');
       const data = await getRestaurantById(token);
       setFormData({
         restaurantName: data.restaurantName || '',

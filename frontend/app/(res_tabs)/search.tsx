@@ -3,7 +3,6 @@ import { View, Text, TextInput, FlatList, StyleSheet, Image, ActivityIndicator, 
 import { getAllDishes, baseURL } from '@/services/api';
 import { router } from 'expo-router';
 
-
 const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dishes, setDishes] = useState([]);
@@ -13,39 +12,39 @@ const SearchScreen = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-
   useEffect(() => {
-    fetchDishes();
+    fetchDishes(1);
   }, []);
 
   const fetchDishes = async (pageNumber = 1) => {
     setIsLoading(true);
     try {
       const response = await getAllDishes(pageNumber);
-      const newDishes = response.data.data;
-  
+      const newDishes = response.data;
+
       if (pageNumber === 1) {
         setDishes(newDishes);
         setFilteredDishes(newDishes);
       } else {
-        const updatedDishes = [...dishes, ...newDishes];
-        setDishes(updatedDishes);
-        setFilteredDishes(updatedDishes);
+        const updated = [...dishes, ...newDishes];
+        setDishes(updated);
+        setFilteredDishes(updated);
       }
-  
+
       setPage(pageNumber);
       setHasMore(pageNumber < response.totalPages);
-      setIsLoading(false);
-    }catch (err) {
-      console.error('Fetch error:', err?.response?.data || err.message || err);
-      setError('Failed to fetch dishes.');       
-      setIsLoading(false);
+    } catch (err) {
+      console.error('Fetch error:', err?.response?.data || err.message);
+      setError('Failed to fetch dishes.');
     }
-    
+
+    setIsLoading(false);
+  };
+
   
   const handleSearch = (text) => {
     setSearchQuery(text);
-    if (text === '') {
+    if (text.trim() === '') {
       setFilteredDishes(dishes);
     } else {
       const filtered = dishes.filter((dish) =>
@@ -55,19 +54,32 @@ const SearchScreen = () => {
     }
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.itemContainer} onPress={() => router.push(`/dish_info?id=${item.id}`)}>
-      <Image source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }}  style={styles.image} />
-      <View style={styles.infoContainer}>
-        <Text style={styles.title}>{item.dishName}</Text>
-        <Text style={styles.rating}>⭐ 10.0 - {item.visits} visits</Text>
-        <Text style={styles.deliveryTime}>Price{item.price}</Text>
-        <Text style={styles.deliveryTime}>Price{item.description}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }) => {
+    const dishImg = item.image || item.dishImage;
+    const restaurantImg = item.restaurant?.profileImage;
 
-  if (isLoading) {
+    return (
+      <TouchableOpacity
+        style={styles.itemContainer}
+        onPress={() => router.push(`/dish_info?id=${item.id}`)}
+      >
+        <Image
+          source={{
+            uri: `${baseURL}/public/uploads/${dishImg || restaurantImg}`
+          }}
+          style={styles.image}
+        />
+        <View style={styles.infoContainer}>
+          <Text style={styles.title}>{item.dishName}</Text>
+          <Text style={styles.rating}>⭐ {item.ratings || 0.0}</Text>
+          <Text style={styles.deliveryTime}>Price: GH₵ {item.price}</Text>
+          <Text style={styles.deliveryTime}>{item.description}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (isLoading && page === 1) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#0000ff" />
@@ -86,6 +98,7 @@ const SearchScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Food Category</Text>
+
       <TextInput
         style={styles.searchInput}
         placeholder="Search food category"
@@ -93,31 +106,33 @@ const SearchScreen = () => {
         value={searchQuery}
         onChangeText={handleSearch}
       />
-      <FlatList
-  data={filteredDishes}
-  renderItem={renderItem}
-  keyExtractor={(item) => item.id.toString()}
-  contentContainerStyle={styles.list}
-  ListEmptyComponent={
-    <Text style={{ textAlign: 'center', marginTop: 16 }}>
-      No dishes found.
-    </Text>
-  }
-  ListFooterComponent={
-    hasMore && !searchQuery ? (
-      <TouchableOpacity
-        style={styles.loadMoreButton}
-        onPress={() => fetchDishes(page + 1)}
-      >
-        <Text style={styles.loadMoreText}>Load More</Text>
-      </TouchableOpacity>
-    ) : null
-  }
-/>
 
+      <FlatList
+        data={filteredDishes}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', marginTop: 16 }}>
+            No dishes found.
+          </Text>
+        }
+        ListFooterComponent={
+          hasMore && !searchQuery ? (
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={() => fetchDishes(page + 1)}
+            >
+              <Text style={styles.loadMoreText}>Load More</Text>
+            </TouchableOpacity>
+          ) : null
+        }
+      />
     </View>
   );
 };
+
+// ------------------ Styles ------------------
 
 const styles = StyleSheet.create({
   container: {
@@ -156,6 +171,7 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 8,
     marginRight: 16,
+    backgroundColor: '#e6e6e6',
   },
   infoContainer: {
     flex: 1,
@@ -170,6 +186,18 @@ const styles = StyleSheet.create({
   deliveryTime: {
     color: '#888',
   },
+  loadMoreButton: {
+    padding: 12,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  loadMoreText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
 });
-}
+
 export default SearchScreen;

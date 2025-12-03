@@ -26,7 +26,7 @@ export default function VendorProfileScreen() {
   const fetchRestaurant = async () => {
     setIsLoading(true);
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await SecureStore.getItemAsync('restaurant_token');
       const data = await getRestaurantById(token);
       setRestaurantData(data);
     } catch (err) {

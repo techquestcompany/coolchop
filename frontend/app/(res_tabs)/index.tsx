@@ -18,7 +18,7 @@ export default function App() {
   }, []);
 
   const getProfileImage = async () => {
-    const token = await SecureStore.getItemAsync('token');
+    const token = await SecureStore.getItemAsync('restaurant_token');
     if (!token) {
       throw new Error('No authentication token found');
     }
@@ -29,7 +29,7 @@ export default function App() {
 
   return (
     <Drawer.Navigator
-      initialRouteName="vendorOrders"
+      initialRouteName="VendorOrders"
       screenOptions={{
         headerTitle: 'COOL CHOP',
         headerStyle: {
@@ -42,12 +42,12 @@ export default function App() {
         drawerStyle: {
           backgroundColor: '#FFFFFF', // Drawer background
         },
-        drawerActiveBackgroundColor: '#D32F2F', // Active item background
-        drawerActiveTintColor: '#FFFFFF', // Active item text color
-        drawerInactiveTintColor: '#000000', // Inactive item text color
+        drawerActiveBackgroundColor: '#D32F2F',
+        drawerActiveTintColor: '#FFFFFF', 
+        drawerInactiveTintColor: '#000000', 
         drawerItemStyle: {
-          borderRadius: 10, // Rounded corners for the active bar
-          marginVertical: 5, // Add spacing between items
+          borderRadius: 10, 
+          marginVertical: 5, 
         },
         headerRight: () => (
           <View style={styles.headerRightContainer}>
@@ -62,7 +62,7 @@ export default function App() {
       }}
     >
       <Drawer.Screen
-        name="vendorOrders"
+        name="VendorOrders"
         component={vendorOrders}
         options={{
           drawerIcon: () => (

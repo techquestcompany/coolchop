@@ -6,13 +6,14 @@ import { login } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
 import * as SecureStore from 'expo-secure-store';
+//import Platform from "react-native";
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, toggleSecure, isPassword }) => {
   return (
     <View style={styles.inputContainer}>
       <FontAwesome name={iconName} size={20} color="#B07A7A" style={styles.icon} />
       <TextInput
-        style={[styles.input, { flex: 1 }]} // Ensures TextInput takes available space
+        style={[styles.input, { flex: 1 }]} 
         placeholder={placeholder}
         placeholderTextColor="#B07A7A"
         secureTextEntry={secureTextEntry}
@@ -42,53 +43,60 @@ export default function SignInScreen() {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+const handleSignIn = async () => {
+  try {
+    setLoading(true);
+    console.log("Signing in with:", email, password);
 
-  const handleSignIn = async () => {
-    try {
-      setLoading(true);
-      console.log("Signing in with:", email, password);
+    const response = await login(email, password);
+    console.log("Received Response:", response);
 
-      const response = await login(email, password);
-      console.log("Received Response:", response);
+    if (response.message.trim().toLowerCase() === "login successful" && response.user?.token) {
+      if(Platform.OS === "android"){
+      // Save role
+      await SecureStore.setItemAsync("role", "customer");
 
-      if (response.message.trim().toLowerCase() === "login successful" && response.user?.token) {
-        if (Platform.OS === "web") {
-          localStorage.setItem("token", response.user.token);
-        } else {
-          await SecureStore.setItemAsync('token', response.user.token);
-          console.log("Token stored successfully:", response.user.token);
-        }
-
-        Toast.show({
-          type: 'success',
-          text1: 'Login Successful 😊',
-          text2: 'Welcome back! 🎉',
-        });
-
-        if (response.user.email === "admin@coolchop.com") {
-          router.push('/admin');
-        } else {
-          router.push("/UserHome");
-        }
-      } else {
-        console.error("Login failed response:", response);
-        Toast.show({
-          type: 'error',
-          text1: 'Login Failed ❌',
-          text2: response.message || 'Invalid credentials. Please try again.',
-        });
+      // Save token separately for customers
+      await SecureStore.setItemAsync("customer_token", response.user.token);
+      }else if(Platform.OS === "web"){
+        await localStorage.setItem("role", "customer");
+         localStorage.setItem("customer_token",response.user.token)
       }
-    } catch (error) {
-      console.error("Sign-in error:", error);
+
+      console.log("Customer token stored:", response.user.token);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Login Successful 😊',
+        text2: 'Welcome back! 🎉',
+      });
+
+      // Admin redirect (optional)
+      if (response.user.email === "admin@coolchop.com") {
+        router.push('/admin');
+      } else {
+        router.replace("/UserHome");
+      }
+
+    } else {
+      console.error("Login failed response:", response);
       Toast.show({
         type: 'error',
-        text1: 'Sign In Failed ⚠️',
-        text2: error.response?.data?.message || error.message || 'Something went wrong.',
+        text1: 'Login Failed ❌',
+        text2: response.message || 'Invalid credentials. Please try again.',
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error("Sign-in error:", error);
+    Toast.show({
+      type: 'error',
+      text1: 'Sign In Failed ⚠️',
+      text2: error.response?.data?.message || error.message || 'Something went wrong.',
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>

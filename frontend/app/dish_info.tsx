@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -16,11 +16,19 @@ import {
   Animated
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { addDishToCart, baseURL, getDishById, getUserDishRating, saveDishRating, saveDishReview } from "@/services/api";
+import {
+  baseURL,
+  getDishById,
+  getUserDishRating,
+  saveRating,
+  saveDishReview,
+
+} from "@/services/api";
 import * as SecureStore from "expo-secure-store";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Toast from "react-native-toast-message";
 import LottieView from "lottie-react-native";
+import { useCart } from "@/context/CartContext";
 
 const DishInfoScreen = () => {
   const { id } = useLocalSearchParams();
@@ -30,13 +38,14 @@ const DishInfoScreen = () => {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [showCartButton, setShowCartButton] = useState(false);
-  const bounceAnimation = new Animated.Value(0);
+  const bounceAnimation = useRef(new Animated.Value(0)).current;
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (id) {
       fetchDish(id);
+      fetchUserRating();
     }
-    fetchUserRating();
   }, [id]);
 
   useEffect(() => {
@@ -62,22 +71,21 @@ const DishInfoScreen = () => {
     ).start();
   };
 
-
   const fetchUserRating = async () => {
     try {
-      const userId = await SecureStore.getItemAsync("userId");
+      const userId = await SecureStore.getItemAsync("customer_token");
+      const response = await getUserDishRatings(userId, id);
 
-      const response = await getUserDishRating(userId, id);
-      console.log(response.ratings)
-
-      if (response && response.ratings && response.ratings[0].userRating > 0) {
-        const userRating = response.ratings[0].userRating;
-        setRating(userRating); // Fill stars based on the user's saved rating
-      } else {
-        setRating(0); // No rating found, default to 0
+      if (!response || !Array.isArray(response.ratings) || response.ratings.length === 0) {
+        setRating(0);
+        return;
       }
+
+      const userRating = response.ratings[0]?.userRating ?? 0;
+      setRating(userRating > 0 ? userRating : 0);
     } catch (err) {
       console.error("Failed to fetch user rating:", err);
+      setRating(0);
     }
   };
 
@@ -92,66 +100,68 @@ const DishInfoScreen = () => {
     }
   };
 
-  const handleRating = async (userRating) => {
-    setRating(userRating);
+const handleRating = async (userRating: number) => {
+  setRating(userRating); // update UI immediately
 
-    // Current restaurant rating and reviews
-    const currentRating = dish.ratings;
-    const numberOfReviews = dish.reviews;
+  try {
+    // Get JWT token stored in SecureStore
+    const token = await SecureStore.getItemAsync("customer_token");
+    if (!token) throw new Error("User token not found");
 
-    // Calculate new rating
-    const newRating =
-      (currentRating * numberOfReviews + userRating) / (numberOfReviews + 1);
+    // Call backend API
+    const response = await saveRating(dish.id, userRating, token);
 
-    try {
-      const userId = await SecureStore.getItemAsync("userId");
-
-      const response = await saveDishRating(
-        userId,
-        dish.id,
-        newRating,
-        userRating
-      );
-      if (response) {
-        Toast.show({ type: "success", text1: "Thanks for your feedback!" });
-      } else {
-        throw new Error(data.message || "Failed to submit rating.");
-      }
-    } catch (err) {
-      Toast.show({ type: "error", text1: "Failed to submit rating." });
+    if (response) {
+      Toast.show({ type: "success", text1: "Thanks for your feedback!" });
     }
-  };
+  } catch (err) {
+    console.error("Rating error:", err);
+    Toast.show({ type: "error", text1: "Failed to submit rating." });
+  }
+};
 
-  const submitReview = async () => {
-    const userId = await SecureStore.getItemAsync("userId");
 
-    try {
-      const response = await saveDishReview(userId, id, review);
+ const submitReview = async () => {
+  try {
+    const token = await SecureStore.getItemAsync("customer_token"); // ✔ Get token
+    if (!token) {
+      Toast.show({ type: "error", text1: "You must be logged in to review." });
+      return;
+    }
 
-      if (response.success) {
-        Toast.show({ type: "success", text1: "Review submitted!" });
-        setReview(""); // Clear the input
-      }
-    } catch (err) {
-      console.error("Failed to save review:", err);
+    const response = await saveDishReview(dish.id, review, token); 
+
+    if (response?.message) {
+      Toast.show({ type: "success", text1: "Review submitted!" });
+      setReview(""); // Clear input
+    } else {
       Toast.show({ type: "error", text1: "Failed to submit review." });
     }
-  };
 
-  const addToCart = async (event, dishId) => {
-    try {
-      event.persist();
-      const userId = await SecureStore.getItemAsync("userId");
+  } catch (err) {
+    console.error("Failed to save review:", err);
+    Toast.show({ type: "error", text1: "Failed to submit review." });
+  }
+};
 
-      const response = await addDishToCart(userId, dishId);
-      if (response.message == "Item added to cart") {
-        Toast.show({ type: "success", text1: "Added to cart!" });
-        setShowCartButton(true);
-      }
-    } catch (err) {
-      Toast.show({ type: "error", text1: "Failed to add to cart" });
-    }
-  };
+
+  const handleAddToCart = async (event, dish) => {
+  event.persist?.();
+
+  if (!dish || !dish.id) {
+    console.warn("Dish not loaded yet, cannot add to cart");
+    return;
+  }
+
+  try {
+    await addToCart(dish); // pass the whole object
+    Toast.show({ type: "success", text1: "Added to cart!" });
+    setShowCartButton(true);
+  } catch (err) {
+    console.error("Failed to add to cart:", err);
+    Toast.show({ type: "error", text1: "Failed to add to cart" });
+  }
+};
 
 
   if (isLoading) {
@@ -178,7 +188,7 @@ const DishInfoScreen = () => {
         keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView style={styles.container}>
+          <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
             {/* Dish Image */}
             <Image
               style={styles.dishImage}
@@ -192,24 +202,25 @@ const DishInfoScreen = () => {
               <Text style={styles.subtitle}>
                 ⭐ {dish.ratings} | {dish.reviews} reviews
               </Text>
-              <Text style={styles.price}>Price: ₵{dish.price.toFixed(2)}</Text>
+              <Text style={styles.price}>Price: ₵{Number(dish.price).toFixed(2)}</Text>
               <Text style={styles.description}>{dish.description}</Text>
             </View>
 
-            {/* Order Now Button */}
-            <TouchableOpacity style={styles.orderButton}  onPress={(event) => addToCart(event, dish.id)}>
-              <Text style={styles.orderButtonText}>Add to Cart</Text>
-            </TouchableOpacity>
+            {/* Add to Cart Button */}
+        <TouchableOpacity
+          style={styles.orderButton}
+        onPress={(event) => handleAddToCart(event, dish)} 
+     >
+  <Text style={styles.orderButtonText}>Add to Cart</Text>
+</TouchableOpacity>
+    
 
             {/* Rating Section */}
             <View style={styles.ratingSection}>
               <Text style={styles.ratingTitle}>Rate This Restaurant</Text>
               <View style={styles.stars}>
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => handleRating(index + 1)}
-                  >
+                {Array.from({ length: 5 }, (_, index) => (
+                  <TouchableOpacity key={index} onPress={() => handleRating(index + 1)}>
                     <FontAwesome
                       name={rating > index ? "star" : "star-o"}
                       size={30}
@@ -230,51 +241,38 @@ const DishInfoScreen = () => {
                 onChangeText={setReview}
                 multiline
               />
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={submitReview}
-              >
+              <TouchableOpacity style={styles.submitButton} onPress={submitReview}>
                 <Text style={styles.submitButtonText}>Submit Review</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-      {showCartButton && (
-          <Animated.View
-            style={[
-              styles.cartButtonContainer,
-              { transform: [{ translateY: bounceAnimation }] },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.cartButton}
-              onPress={() => router.push("/cart")}
-            >
-              <LottieView
-                source={require("../assets/animations/cart.json")}
-                autoPlay
-                loop
-                style={styles.lottieAnimation}
-              />
-            </TouchableOpacity>
-          </Animated.View>
-        )}
 
-      <Toast ref={(ref) => Toast.setRef(ref)} />
+      {/* Animated Cart Button */}
+      {showCartButton && (
+        <Animated.View
+          style={[styles.cartButtonContainer, { transform: [{ translateY: bounceAnimation }] }]}
+        >
+          <TouchableOpacity style={styles.cartButton} onPress={() => router.push("/cartPage")}>
+            <LottieView
+              source={require("../assets/animations/cart.json")}
+              autoPlay
+              loop
+              style={styles.lottieAnimation}
+            />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      <Toast />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9f9f9",
-  },
-  dishImage: {
-    width: "100%",
-    height: 250,
-  },
+  container: { flex: 1, backgroundColor: "#f9f9f9" },
+  dishImage: { width: "100%", height: 250 },
   detailsContainer: {
     padding: 16,
     backgroundColor: "#fff",
@@ -283,81 +281,23 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     elevation: 5,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "gray",
-    marginBottom: 16,
-  },
-  price: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#ffa500",
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 14,
-    color: "#333",
-    lineHeight: 20,
-  },
-  orderButton: {
-    margin: 16,
-    backgroundColor: "#ffa500",
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  orderButtonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 8 },
+  subtitle: { fontSize: 16, color: "gray", marginBottom: 16 },
+  price: { fontSize: 18, fontWeight: "bold", color: "#ffa500", marginBottom: 16 },
+  description: { fontSize: 14, color: "#333", lineHeight: 20 },
+  orderButton: { margin: 16, backgroundColor: "#D32F2F", paddingVertical: 15, borderRadius: 10, alignItems: "center" },
+  orderButtonText: { fontSize: 16, fontWeight: "bold", color: "#fff" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   safeArea: { flex: 1, backgroundColor: "#fff" },
   ratingSection: { marginVertical: 20, paddingHorizontal: 15 },
   ratingTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
   stars: { flexDirection: "row" },
   reviewSection: { marginVertical: 20, paddingHorizontal: 15 },
   reviewTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
-  reviewInput: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: "#fff",
-    minHeight: 100,
-  },
-  submitButton: {
-    backgroundColor: "#FFA500", // Bright orange for visibility
-    paddingVertical: 12, // Vertical padding for height
-    paddingHorizontal: 20, // Horizontal padding for width
-    borderRadius: 8, // Rounded corners
-    alignItems: "center", // Center text horizontally
-    justifyContent: "center", // Center text vertically
-    marginTop: 10, // Space above the button
-  },
-  submitButtonText: {
-    color: "#fff", // White text for contrast
-    fontSize: 16, // Readable font size
-    fontWeight: "bold", // Bold text for emphasis
-  },
-  addCart: {
-    marginTop: 30,
-    marginRight: 15,
-  },
-  cartButtonContainer: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-  },
+  reviewInput: { borderWidth: 1, borderColor: "#ccc", borderRadius: 10, padding: 10, backgroundColor: "#fff", minHeight: 100 },
+  submitButton: { backgroundColor: "#D32F2F", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8, alignItems: "center", justifyContent: "center", marginTop: 10 },
+  submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  cartButtonContainer: { position: "absolute", bottom: 20, right: 20 },
   cartButton: {
     backgroundColor: "#fff",
     width: 60,
@@ -371,10 +311,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  lottieAnimation: {
-    width: 50,
-    height: 50,
-  },
+  lottieAnimation: { width: 50, height: 50 },
 });
 
 export default DishInfoScreen;

@@ -26,7 +26,7 @@ const BACKGROUND_NOTIFICATION_TASK = "BACKGROUND-NOTIFICATION-TASK";
 TaskManager.defineTask(
   BACKGROUND_NOTIFICATION_TASK,
   ({ data, error, executionInfo }) => {
-    console.log("✅ Received a notification in the background!", {
+    console.log(" Received a notification in the background!", {
       data,
       error,
       executionInfo,
@@ -66,11 +66,11 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <CartProvider>
           <PaperProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack initialRouteName='index'>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(res_tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="admin" options={{ headerShown: false }} />
-          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="signup" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="customer" options={{ headerShown: false }} />
@@ -112,6 +112,10 @@ export default function RootLayout() {
           <Stack.Screen name="Account" options={{ headerShown: false }} />
           <Stack.Screen name="userOrder" options={{ headerShown: false }} />
           <Stack.Screen name="InitTransaction" options={{ headerShown: false }} />
+          <Stack.Screen name="riderHomepage" options={{ headerShown: false }} />
+          <Stack.Screen name="OrderDetails" options={{ headerShown: false }} />
+          <Stack.Screen name="transactionsPage" options={{ headerShown: false }} />
+          <Stack.Screen name="allTransactionsPage" options={{ headerShown: false }} />
           
           <Stack.Screen name="+not-found" />
         </Stack>

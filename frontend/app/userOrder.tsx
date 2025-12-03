@@ -24,7 +24,7 @@ const UserOrders = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = await SecureStore.getItemAsync('token');
+        const token = await SecureStore.getItemAsync('customer_token');
         const userData = await getUserData(token);
         const userId = userData.id;
         const data = await fetchOrdersByUser(token);

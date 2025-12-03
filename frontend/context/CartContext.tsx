@@ -1,93 +1,122 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { getUserData, getAllDishes, baseURL,addDishToCart,updateCartQuantity,deleteCartItem} from '@/services/api';
+import {
+  getUserData,
+  addDishToCart,
+  updateCartQuantity,
+  deleteCartItem
+} from '@/services/api';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
+  /** Load cart from backend on mount */
+  useEffect(() => {
+    const loadCart = async () => {
+      try {
+        const token = await SecureStore.getItemAsync('customer_token'); // ✅ FIXED
+        if (!token) return;
+
+        const user = await getUserData(token);
+        console.log("Loaded user:", user);
+
+        // TODO: fetch user cart if backend supports it
+        // const userCart = await getUserCart(user.id, token);
+        // setCartItems(userCart || []);
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+      }
+    };
+    loadCart();
+  }, []);
+
+  /** Add dish to cart */
   const addToCart = async (item) => {
     try {
-      const token = await SecureStore.getItemAsync('token');
-      const userData = await getUserData(token);
-      const userId = userData.id;
+      const token = await SecureStore.getItemAsync('customer_token'); // ✅ FIXED
+      if (!token) return;
+
+      const user = await getUserData(token);
+
+      setCartItems((prev) => {
+        const existing = prev.find((i) => i.id === item.id);
+        if (existing) {
+          return prev.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+          );
+        }
+        return [...prev, { ...item, quantity: 1 }];
+      });
 
       // Sync with backend
-      await addDishToCart(userId, item.id, 1, token);
-
-      // Update local cart state
-      setCartItems((prevItems) => {
-        const existingItem = prevItems.find((cartItem) => cartItem.id === item.id);
-        if (existingItem) {
-          return prevItems.map((cartItem) =>
-            cartItem.id === item.id
-              ? { ...cartItem, quantity: cartItem.quantity + 1 }
-              : cartItem
-          );
-        } else {
-          return [...prevItems, { ...item, quantity: 1 }];
-        }
-      });
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
+      await addDishToCart(user.id, item.id, 1, token);
+    } catch (err) {
+      console.error('Failed to add to cart:', err);
     }
   };
 
+  /** Increment quantity */
   const incrementQuantity = async (dishId) => {
     try {
-      const token = await SecureStore.getItemAsync('token');
-      const userData = await getUserData(token);
-  
-      setCartItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === dishId ? { ...item, quantity: item.quantity + 1 } : item
-        )
+      const token = await SecureStore.getItemAsync('customer_token'); // ✅ FIXED
+      if (!token) return;
+
+      const user = await getUserData(token);
+
+      setCartItems((prev) =>
+        prev.map((item) => {
+          if (item.id === dishId) {
+            const newQty = item.quantity + 1;
+            updateCartQuantity(user.id, dishId, newQty, token).catch(console.error);
+            return { ...item, quantity: newQty };
+          }
+          return item;
+        })
       );
-  
-      const item = cartItems.find((i) => i.id === dishId);
-      await updateCartQuantity( dishId, item.quantity + 1, token);
-    } catch (error) {
-      console.error('Failed to increment quantity:', error.response?.data);
+    } catch (err) {
+      console.error('Failed to increment quantity:', err);
     }
   };
-  
+
+  /** Decrement quantity */
   const decrementQuantity = async (dishId) => {
     try {
-      const token = await SecureStore.getItemAsync('token');
-      const userData = await getUserData(token);
-      const item = cartItems.find((i) => i.id === dishId);
-  
-      if (item.quantity > 1) {
-        setCartItems((prevItems) =>
-          prevItems.map((i) =>
-            i.id === dishId ? { ...i, quantity: i.quantity - 1 } : i
-          )
-        );
-  
-        await updateCartQuantity(userData.id, dishId, item.quantity - 1, token);
-      } else {
-        setCartItems((prevItems) =>
-          prevItems.filter((i) => i.id !== dishId)
-        );
-  
-        await deleteCartItem(dishId, token);
-      }
-    } catch (error) {
-      console.error('Failed to decrement quantity:',error.response?.data);
+      const token = await SecureStore.getItemAsync('customer_token'); // ✅ FIXED
+      if (!token) return;
+
+      const user = await getUserData(token);
+
+      setCartItems((prev) =>
+        prev.flatMap((item) => {
+          if (item.id === dishId) {
+            const newQty = item.quantity - 1;
+            if (newQty > 0) {
+              updateCartQuantity(user.id, dishId, newQty, token).catch(console.error);
+              return { ...item, quantity: newQty };
+            } else {
+              deleteCartItem(dishId, token).catch(console.error);
+              return []; // remove completely
+            }
+          }
+          return [item];
+        })
+      );
+    } catch (err) {
+      console.error('Failed to decrement quantity:', err);
     }
   };
-  
-const clearCart = async ()=>{ setCartItems([]) }
+
   return (
     <CartContext.Provider
       value={{
-        cartItems,
+        cartItems: cartItems ?? [], // ✅ ALWAYS SAFE
         addToCart,
         incrementQuantity,
         decrementQuantity,
+        clearCart: () => setCartItems([]),
         setCartItems,
-        clearCart,
       }}
     >
       {children}

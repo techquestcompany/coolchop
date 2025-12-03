@@ -27,14 +27,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Search',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'search' : 'search-outline'} color={color} />
-          ),
-        }}
-      />
+  name="manage_dishes"
+  options={{
+    title: 'Dishes',
+    tabBarIcon: ({ color, focused }) => (
+      <TabBarIcon name={focused ? 'restaurant' : 'restaurant-outline'} color={color} />
+    ),
+  }}
+/>
+
       <Tabs.Screen
         name="profile"
         options={{

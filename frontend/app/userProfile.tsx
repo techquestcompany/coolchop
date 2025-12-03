@@ -25,7 +25,7 @@ export default function UserProfileScreen() {
   const fetchUserProfile = async () => {
     setIsLoading(true);
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await SecureStore.getItemAsync('customer_token');
       const data = await getUserData(token);
       setUserData(data);
     } catch (err) {

@@ -145,7 +145,7 @@ export default function RestaurantRegistrationScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-      <Toast ref={(ref) => Toast.setRef(ref)} />
+      <Toast />
     </SafeAreaView>
   );
 }

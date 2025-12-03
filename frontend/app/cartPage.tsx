@@ -10,18 +10,31 @@ const CartPage = () => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const fetchCart = async () => {
-    try {
-      const token = await SecureStore.getItemAsync('token');
-      const userData = await getUserData(token);
-      const cartData = await getCartItems(userData.id, token);
-      setCartItems(cartData); 
-    } catch (error) { 
-      console.error('Error fetching cart:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchCart = async () => {
+  try {
+    const token = await SecureStore.getItemAsync('customer_token'); 
+    const userData = await getUserData(token);
+    const cartData = await getCartItems(userData.id, token);
+
+    console.log("RAW CART RESPONSE:", cartData);
+
+    const mapped = cartData.map(item => ({
+      id: item.Dish?.id,
+      Dish: item.Dish,
+      quantity: item.quantity
+    }));
+
+    console.log("FINAL CART ITEMS USED IN STATE:", mapped);
+
+    setCartItems(mapped);
+
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchCart();
@@ -46,7 +59,8 @@ const CartPage = () => {
         <>
           <FlatList
             data={cartItems}
-            keyExtractor={(item) => item.id.toString()}
+           keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
+
             renderItem={({ item }) => (
               <View style={styles.card}>
                 <Image
@@ -55,13 +69,13 @@ const CartPage = () => {
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.item}>{item.Dish?.dishName}</Text>
-                  <Text>{item.Dish?.price} x {item.quantity} = ₵{item.Dish?.price * item.quantity}</Text>
+                  <Text>{item.Dish?.price} x {item.quantity} = ₵{parseInt(item.Dish?.price) * item.quantity}</Text>
                   <View style={styles.quantityContainer}>
-                    <TouchableOpacity onPress={() => decrementQuantity(item.id)}>
+                    <TouchableOpacity onPress={() => decrementQuantity(item.Dish.id)}>
                       <Text style={styles.quantityButton}>-</Text>
                     </TouchableOpacity>
                     <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <TouchableOpacity onPress={() => incrementQuantity(item.id)}>
+                    <TouchableOpacity onPress={() => incrementQuantity(item.Dish.id)}>
                       <Text style={styles.quantityButton}>+</Text>
                     </TouchableOpacity>
                   </View>

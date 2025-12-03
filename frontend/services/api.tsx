@@ -1,8 +1,8 @@
 import axios from "axios";
                    
                                     
-export const API_URL = 'http://192.168.65.9:3000/api';
-export const baseURL = 'http://192.168.65.9:3000';
+export const API_URL = 'http://10.111.87.9:3000/api';
+export const baseURL = 'http://10.111.87.9:3000';
 
 //export const API_URL = "https://www.coolchop.info.anglabytestudio.com/api"
 //export const BASE_URL = "https://www.coolchop.info.anglabytestudio.com/"
@@ -258,7 +258,7 @@ export const updateRestaurantData = async (restaurantName: string, email: string
 }
 export const submitDishes = async (dishes ,token:string): Promise<any> => {
   try {
-    const response = await api.post('/restaurant/create_dishes', { dishes },{
+    const response = await api.post('/restaurant/dish', { dishes },{
       headers:{
         Authorization: `Bearer ${token}`
       }
@@ -267,7 +267,7 @@ export const submitDishes = async (dishes ,token:string): Promise<any> => {
     return response.data;
   } catch (error) {
     throw error;
-  }
+  } 
 };
 
 // Get all restaurants
@@ -338,17 +338,27 @@ export const getAllDishes = async (page = 1, limit=20) => {
   }
 };
 
-// Get dish by ID
-export const getDishById = async (id: string) => {
+export const getDishById = async (id) => {
   try {
-    const response = await api.get('restaurant/mydishes', {
+    const response = await api.get(`restaurant/dish/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching dish with ID: ${id}`, error);
+    throw error;
+  }
+};
+
+// services/api.ts
+export const deleteDish = async (dishId: string, token: string) => {
+  try {
+    const response = await api.delete(`/restaurant/dish/${dishId}`, {  // include "restaurant" prefix
       headers: {
-        Authorization: `Bearer ${id}`,
+        Authorization: `Bearer ${token}`,
       },
     });
     return response.data;
   } catch (error) {
-    console.error(`Error fetching dish with ID: ${id}`, error);
+    console.error(`Error deleting dish with ID: ${dishId}`, error);
     throw error;
   }
 };
@@ -504,7 +514,7 @@ export const updateCartQuantity = async ( dishId: string, quantity: number,token
   }
 };
 
-export const deleteDeleteCartItem = async ( dishId:string,token: string)=>{
+export const deleteCartItem = async ( dishId:string,token: string)=>{
   try {
     const response = await api.delete(`/cart/remove/${dishId}`,{
       headers:{
@@ -544,21 +554,28 @@ export const updateUserCoordinates = async (
 
 
 
-// Function to save a rating
-export const saveRating = async (userId: string, restaurantId: string, rating: number, userRating: number) => {
+export const saveRating = async (dishId: number, userRating: number, token: string) => {
   try {
-    const response = await api.post('/ratings/add', {
-      userId,
-      restaurantId,
-      rating,
-      userRating,
-    });
+    const response = await api.post(
+      '/ratings/add',
+      {
+        dishId,
+        userRating
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
     return response.data;
   } catch (error) {
     console.error('Error saving rating:', error);
     throw error;
   }
 };
+
 
 // Function to fetch the user's rating for a restaurant
 export const getUserRating = async (userId: string, restaurantId: string) => {
@@ -616,33 +633,40 @@ export const saveDishRating = async (userId: string, dishId: string, rating: num
   }
 };
 
-// Function to fetch the user's rating for a restaurant
-export const getUserDishRating = async (userId: string, dishId: string) => {
+export const getUserDishRatings = async (dishId: number) => {
   try {
-    const response = await api.get(`/ratings/${dishId}`, {
-      params: { userId },
-    });
-    return response.data;
+    const response = await api.get(`/ratings/dish/${dishId}`);
+    return response.data; // returns { ratings: [...] }
   } catch (error) {
-    console.error('Error fetching user rating:', error);
+    console.error("Error fetching dish ratings:", error);
     throw error;
   }
 };
 
+
 // Function to save a review
-export const saveDishReview = async (userId: string, dishId: string, review: string) => {
+export const saveDishReview = async (dishId: string, review: string, token: string) => {
   try {
-    const response = await api.post('/reviews/add-dish', {
-      userId,
-      dishId,
-      review,
-    });
+    const response = await api.post(
+      '/reviews/add',
+      {
+        dishId,
+        review,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,  // ✔ send token for backend userId
+        },
+      }
+    );
+
     return response.data;
   } catch (error) {
     console.error('Error saving review:', error);
     throw error;
   }
 };
+
 
 // Function to fetch reviews for a restaurant
 export const getDishReviews = async (dishId: string) => {
@@ -712,3 +736,17 @@ export const deleteAccount =async (token:string)=>{
       
     }
   }
+  
+
+  export const fetchUserTransactions = async (token, page = 1, limit = 10) => {
+  try {
+    const response = await api.get(`/transactions/userTransactions`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { page, limit },
+    });
+    return response.data;
+  } catch (err) {
+    console.error("Error fetching transactions:", err);
+    throw err;
+  }
+};

@@ -1,94 +1,56 @@
 import { router } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; 
-import LottieView from 'lottie-react-native'; 
-import { verifyResToken, verifyToken } from '../services/api';
-import * as SecureStore from 'expo-secure-store';
+import { LinearGradient } from 'expo-linear-gradient';
+import LottieView from 'lottie-react-native';
 
 export default function AuthScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Fade-in animation for the title
-  useEffect(() => {
+  /** Fade animation */
+  React.useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1500,
       useNativeDriver: true,
     }).start();
-  }, [fadeAnim]);
-  useEffect(() => {
-    checkUserTokenValidity();
-    checkResTokenValidity();
-  }, [router]);
-
-
-// Function to check if token is valid
-const checkUserTokenValidity = async () => {
-  const token = await SecureStore.getItemAsync('userId');
-  if (token) {
-    try {
-      const isValid = await verifyToken(token);
-      if (!isValid) {
-        await SecureStore.deleteItemAsync('userId'); // Remove expired or invalid token securely
-      } else {
-        router.push('/(tabs)');
-      }
-    } catch (error) {
-      console.error("Token verificat2ion failed:", error);
-      await SecureStore.deleteItemAsync('userId'); // Remove invalid token securely
-    }
-  }
-};
-// Function to check if token is valid
-const checkResTokenValidity = async () => {
-  const token = await SecureStore.getItemAsync('restaurantId');
-  if (token) {
-    try {
-      const isValid = await verifyResToken(token);
-      if (!isValid) {
-        await SecureStore.deleteItemAsync('restaurantId'); // Remove expired or invalid token securely
-      } else {
-        router.push('/(res_tabs)');
-      }
-    } catch (error) {
-      console.error("Token verification failed:", error);
-      await SecureStore.deleteItemAsync('restaurantId'); // Remove invalid token securely
-    }
-  }
-};
-
-
+  }, []);
 
   return (
     <LinearGradient colors={['#fff', '#fff']} style={styles.gradient}>
       <View style={styles.container}>
-        
-        {/* Cool Animation using Lottie */}
+
         <LottieView
           source={require('../assets/animations/welcome.json')}
           autoPlay
           loop
-          style={styles.lottieAnimation}
+          style={styles.lottie}
         />
-        
-        {/* Animated Title */}
+
         <Animated.View style={{ opacity: fadeAnim }}>
           <Text style={styles.title}>Welcome</Text>
         </Animated.View>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/login')}>
+        {/* CUSTOMER */}
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push('/login')}
+        >
           <Image source={require('../assets/images/customer.webp')} style={styles.icon} />
           <View style={styles.cardText}>
-            <Text style={styles.optionTitle}>Customer</Text>
+            <Text style={styles.option}>Customer</Text>
             <Text style={styles.arrow}>→</Text>
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => router.push('/reslogin')}>
+        {/* VENDOR */}
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push('/reslogin')}
+        >
           <Image source={require('../assets/images/vendor_home.webp')} style={styles.icon} />
           <View style={styles.cardText}>
-            <Text style={styles.optionTitle}>Vendor</Text>
+            <Text style={styles.option}>Vendor</Text>
             <Text style={styles.arrow}>→</Text>
           </View>
         </TouchableOpacity>
@@ -99,29 +61,26 @@ const checkResTokenValidity = async () => {
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lottieAnimation: {
+  gradient: { flex: 1 },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  lottie: {
     width: 150,
     height: 150,
-    marginBottom: 20, 
+    marginBottom: 20,
   },
+
   title: {
     fontSize: 36,
     fontWeight: 'bold',
     color: '#000',
     marginBottom: 40,
   },
+
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFF',
     borderRadius: 12,
     padding: 20,
     marginVertical: 10,
@@ -129,27 +88,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 5,
   },
+
   cardText: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     width: '80%',
+    justifyContent: 'space-between',
   },
-  icon: {
-    width: 50,
-    height: 50,
-  },
-  optionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  arrow: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FCA204',
-  },
+
+  icon: { width: 50, height: 50 },
+  option: { fontSize: 20, fontWeight: 'bold' },
+  arrow: { fontSize: 24, fontWeight: 'bold', color: '#FCA204' },
 });
