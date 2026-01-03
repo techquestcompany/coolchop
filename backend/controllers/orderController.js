@@ -40,21 +40,53 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// GET ALL ORDERS (User-specific or Admin)
+
 exports.getAllOrders = async (req, res) => {
   try {
     const userId = req.user.id;
 
     const orders = await Order.findAll({
-      where: { userId }
+      where: { userId },
+      order: [['createdAt', 'DESC']]
     });
 
-    res.status(200).json(orders);
+    // Enrich orders with dish info
+    const ordersWithDishes = await Promise.all(
+      orders.map(async (order) => {
+        const items = JSON.parse(order.items); // parse JSON
+
+        // Fetch dish details
+        const detailedItems = await Promise.all(
+          items.map(async (item) => {
+            const dish = await Dish.findByPk(item.id);
+            if (dish) {
+              return {
+                id: dish.id,
+                dishName: dish.dishName,
+                price: dish.price,
+                quantity: item.quantity,
+              };
+            }
+            return null;
+          })
+        );
+
+        return {
+          ...order.toJSON(),
+          items: detailedItems.filter(Boolean), // remove nulls if dish not found
+        };
+      })
+    );
+
+    res.status(200).json(ordersWithDishes);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ message: 'Error fetching orders' });
   }
 };
+
+
+
 
 // GET ORDER BY ID
 exports.getOrderById = async (req, res) => {
@@ -62,17 +94,29 @@ exports.getOrderById = async (req, res) => {
 
   try {
     const order = await Order.findByPk(orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.userId !== req.user.id) return res.status(403).json({ message: 'Unauthorized access' });
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
+    const items = JSON.parse(order.items);
+    const detailedItems = await Promise.all(
+      items.map(async (item) => {
+        const dish = await Dish.findByPk(item.id);
+        if (dish) {
+          return {
+            id: dish.id,
+            dishName: dish.dishName,
+            price: dish.price,
+            quantity: item.quantity,
+          };
+        }
+        return null;
+      })
+    );
 
-    // Prevent user from accessing someone else's order
-    if (order.userId !== req.user.id) {
-      return res.status(403).json({ message: 'Unauthorized access' });
-    }
-
-    res.status(200).json(order);
+    res.status(200).json({
+      ...order.toJSON(),
+      items: detailedItems.filter(Boolean),
+    });
   } catch (error) {
     console.error('Error fetching order:', error);
     res.status(500).json({ message: 'Error fetching order' });
