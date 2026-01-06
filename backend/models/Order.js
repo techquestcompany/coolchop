@@ -19,6 +19,7 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
+reference: { type: DataTypes.STRING, unique: true }, 
   
       orderNumber: {
         type: DataTypes.STRING,

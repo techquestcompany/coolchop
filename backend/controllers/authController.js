@@ -106,10 +106,10 @@ exports.login = async (req, res) => {
 
 exports.signup = async (req, res) => {
   try {
-    const { name, email, phone, password, isAdmin } = req.body;
+    const { name, email, phone, password, isAdmin,role } = req.body;
 
     // Validate required fields
-    if (!name || !email || !phone || !password) {
+    if (!name || !email || !phone || !password ||  !role) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -142,6 +142,7 @@ exports.signup = async (req, res) => {
       isAdmin: isAdmin ? 1 : 0,
       createdAt: new Date(),
       updatedAt: new Date(),
+      role
     });
 
     // Send verification email
@@ -319,36 +320,29 @@ exports.verifyUserId = async (req, res) => {
   }
 };
 
-// Update user location
+
 exports.updateUserLocation = async (req, res) => {
   try {
-    const { userId } = req.body
-    // Extract token from the Authorization header
-    const token = userId;
-    if (!token) {
-      return res.status(401).json({ error: "Authentication token missing" });
+    const userId = req.user.id;
+
+    const { latitude, longitude } = req.body;
+
+    if (
+      latitude === undefined ||
+      longitude === undefined
+    ) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Decrypt token to get user ID
-    const decoded = await decrypt(token);
-    const user = await User.findOne({ where: { id: decoded } });
-
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Extract coordinates and confirmLocation from request body
-    const { latitude, longitude, confirmLocation } = req.body;
-    if (latitude === undefined || longitude === undefined || confirmLocation === undefined) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Update user location and confirmLocation
     user.latitude = latitude;
     user.longitude = longitude;
-    user.confirm_location = confirmLocation;
+   
 
-    // Save changes to the database
     await user.save();
 
     res.status(200).json({
@@ -359,3 +353,8 @@ exports.updateUserLocation = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+
+
+
+   
