@@ -8,19 +8,22 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { MaterialIcons } from '@expo/vector-icons';
 import debounce from 'lodash/debounce';
 import * as SecureStore from 'expo-secure-store';
 import { useCart } from '@/context/CartContext';
-import { api, baseURL, getUserData, getAllDishes, logout as apiLogout } from '@/services/api';
+import { api, baseURL, getUserData,updateUserLocation, getAllDishes, logout as apiLogout } from '@/services/api';
 import Orders from './userOrder';
 import Profile from './userProfile';
 import Support from './Support';
 import Transactions from './transactionsPage';
 import { router } from 'expo-router';
+import {getCurrentLocation} from"./hooks/useUserLocation";
+
 
 const Drawer = createDrawerNavigator();
 
@@ -36,29 +39,40 @@ const HomeScreen = () => {
   // CART FUNCTIONS
   const { cartItems = [], addToCart } = useCart();
 
-  /** Load User */
-  useEffect(() => {
-    const loadUser = async () => {
-      setLoadingUser(true);
-      try {
-        const token =
-          Platform.OS === "android"
-            ? await SecureStore.getItemAsync("customer_token")
-            : localStorage.getItem("customer_token");
+useEffect(() => {
+  const loadUser = async () => {
+    setLoadingUser(true);
+    try {
+      const token =
+        Platform.OS === "android"
+          ? await SecureStore.getItemAsync("customer_token")
+          : localStorage.getItem("customer_token");
 
-        if (!token) return router.replace('/login');
+      if (!token) return router.replace('/login');
 
-        const data = await getUserData(token);
-        setUsername(data?.name || data?.email || 'User');
-      } catch (err) {
-        console.error('Error fetching user:', err);
-        setUserError('User not found. Please login.');
-      } finally {
-        setLoadingUser(false);
-      }
-    };
-    loadUser();
-  }, []);
+      const data = await getUserData(token);
+      setUsername(data?.name || data?.email || 'User');
+
+      // 📍 Ask & update location
+      Alert.alert(
+        "Enable Location",
+        "We use your location to deliver food accurately.",
+        [
+          { text: "Later", style: "cancel" },
+          { text: "Allow", onPress: sendUserLocation }
+        ]
+      );
+    } catch (err) {
+      console.error('Error fetching user:', err);
+      setUserError('User not found. Please login.');
+    } finally {
+      setLoadingUser(false);
+    }
+  };
+
+  loadUser();
+}, []);
+
 
   /** Fetch dishes */
   useEffect(() => {
@@ -81,6 +95,29 @@ const HomeScreen = () => {
     }, 500),
     []
   );
+
+
+const sendUserLocation = async () => {
+  try {
+    const token =
+      Platform.OS === "android"
+        ? await SecureStore.getItemAsync("customer_token")
+        : localStorage.getItem("customer_token");
+
+    if (!token) {
+      return router.replace('/login');
+    }
+
+    const { latitude, longitude } = await getCurrentLocation();
+
+    await updateUserLocation(token, latitude, longitude, true);
+
+    console.log("📍 User location updated");
+  } catch (error) {
+    console.error("Location update failed:", error.message);
+  }
+};
+
 
   const handleLoadMore = () => {
     if (loadingMore) return;

@@ -1,19 +1,23 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, SafeAreaView, TextInput, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Text, SafeAreaView, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
-import { InitTransactionReq } from '../services/api'; 
+import * as SecureStore from "expo-secure-store";
+import { getUserData, InitTransactionReq } from '../services/api'; 
+import { useCart } from "@/context/CartContext";
 
 const InitTransaction = () => {
   const [email, setEmail] = useState("");
   const [showPaystack, setShowPaystack] = useState(false);
   const [authorizationUrl, setAuthorizationUrl] = useState("");
+  const [loading, setLoading] = useState(false);   // ✅ define loading state
   const webviewRef = useRef(null);
   const callbackUrl = 'https://yourcallback.com'; // Replace with real callback URL
 
   const { amount } = useLocalSearchParams();
+  const { cartItems, clearCart } = useCart();     // ✅ get cart items
 
-  const handleEmailChange = (value) => setEmail(value);
+  const handleEmailChange = (value: string) => setEmail(value);
 
   const initializePayment = async () => {
     if (!email) {
@@ -21,18 +25,41 @@ const InitTransaction = () => {
       return;
     }
     try {
-      const response = await InitTransactionReq(email, amount);
-      const { authorization_url } = response;
+      setLoading(true);
+
+      const token = await SecureStore.getItemAsync("customer_token");
+      const userData = await getUserData(token);
+
+      const orderPayload = {
+        userId: userData.id,
+        items: cartItems.map(item => ({
+          id: item.Dish.id,
+          quantity: item.quantity,
+        })),
+        note: "Checkout from mobile app",
+      };
+
+      // ✅ Call backend helper
+      const { authorization_url, reference } = await InitTransactionReq(
+        email,
+        parseInt(amount),   // ensure amount is in kobo
+        orderPayload
+      );
+
       console.log("Authorization URL:", authorization_url);
+      console.log("Paystack Reference:", reference);
+
       setAuthorizationUrl(authorization_url);
       setShowPaystack(true);
     } catch (error) {
-      console.error(error);
+      console.error("InitTransaction error:", error);
       Alert.alert("Error", "Failed to initialize payment.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const onNavigationStateChange = (navState) => {
+  const onNavigationStateChange = (navState: any) => {
     const { url } = navState;
     console.log("Current URL:", url);
 
@@ -40,6 +67,7 @@ const InitTransaction = () => {
 
     if (url.includes(callbackUrl)) {
       Alert.alert('Payment Completed', 'Redirecting...');
+      clearCart(); // ✅ clear cart after success
       setShowPaystack(false);
     }
 
@@ -53,7 +81,9 @@ const InitTransaction = () => {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Confirm Order Details</Text>
 
-      {!showPaystack && (
+      {loading && <ActivityIndicator size="large" />}
+
+      {!showPaystack && !loading && (
         <>
           <View style={styles.inputContainer}>
             <TextInput
@@ -102,3 +132,4 @@ const styles = StyleSheet.create({
 });
 
 export default InitTransaction;
+ 

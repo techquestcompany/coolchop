@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { DataTable, Menu, IconButton, Text } from 'react-native-paper';
-import { useRouter } from 'expo-router';
 import { getAllUsers, deleteUserById } from '../services/api';
 
 const App = () => {
-  const router = useRouter();
   const [users, setUsers] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -14,10 +12,17 @@ const App = () => {
   const fetchUsers = async (currentPage = 1) => {
     try {
       const result = await getAllUsers(currentPage);
-      setUsers(result.data);
-      setPage(result.page);
-      setTotalPages(result.totalPages);
+
+      // ✅ SAFELY EXTRACT USERS
+      const userList = result?.users ?? [];
+      const current = result?.page ?? 1;
+      const pages = result?.totalPages ?? 1;
+
+      setUsers(Array.isArray(userList) ? userList : []);
+      setPage(current);
+      setTotalPages(pages);
     } catch (error) {
+      console.error(error);
       Alert.alert('Error', 'Failed to load users');
     }
   };
@@ -27,7 +32,7 @@ const App = () => {
   }, []);
 
   const toggleMenu = (id) => {
-    setMenuVisible((prev) => ({
+    setMenuVisible(prev => ({
       ...prev,
       [id]: !prev[id],
     }));
@@ -36,56 +41,16 @@ const App = () => {
   const deleteUser = async (id) => {
     try {
       await deleteUserById(id);
-      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== id));
+      setUsers(prev => prev.filter(user => user.id !== id));
     } catch (err) {
       Alert.alert('Error', 'Failed to delete user.');
     }
   };
 
-  const renderRow = ({ item }) => (
-    <DataTable.Row key={item.id}>
-      <DataTable.Cell style={{ flex: 1 }}>{item.name}</DataTable.Cell>
-      <DataTable.Cell style={{ flex: 1 }}>{item.email}</DataTable.Cell>
-      <DataTable.Cell style={{ flex: 1 }}>{item.phone}</DataTable.Cell>
-      <DataTable.Cell>
-        <Menu
-          visible={menuVisible[item.id]}
-          onDismiss={() => toggleMenu(item.id)}
-          anchor={
-            <IconButton
-              icon="dots-vertical"
-              onPress={() => toggleMenu(item.id)}
-            />
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-            toggleMenu(item.id);
-            Alert.alert(
-              'Confirm Delete',
-              'Are you sure you want to delete this user?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Delete',
-                  style: 'destructive',
-                  onPress: () => deleteUser(item.id),
-                },
-              ],
-              { cancelable: true }
-            );
-          }}
-          title="Delete"
-          leadingIcon="delete"
-        />
-        </Menu>
-      </DataTable.Cell>
-    </DataTable.Row>
-  );
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>User Management</Text>
+
       <DataTable style={styles.table}>
         <DataTable.Header>
           <DataTable.Title style={{ flex: 1 }}>Name</DataTable.Title>
@@ -94,7 +59,51 @@ const App = () => {
           <DataTable.Title>Actions</DataTable.Title>
         </DataTable.Header>
 
-        {users.map((item) => renderRow({ item }))}
+        {users.length === 0 ? (
+          <DataTable.Row>
+            <DataTable.Cell>No users found</DataTable.Cell>
+          </DataTable.Row>
+        ) : (
+          users.map(user => (
+            <DataTable.Row key={user.id}>
+              <DataTable.Cell style={{ flex: 1 }}>{user.name}</DataTable.Cell>
+              <DataTable.Cell style={{ flex: 1 }}>{user.email}</DataTable.Cell>
+              <DataTable.Cell style={{ flex: 1 }}>{user.phone}</DataTable.Cell>
+              <DataTable.Cell>
+                <Menu
+                  visible={menuVisible[user.id]}
+                  onDismiss={() => toggleMenu(user.id)}
+                  anchor={
+                    <IconButton
+                      icon="dots-vertical"
+                      onPress={() => toggleMenu(user.id)}
+                    />
+                  }
+                >
+                  <Menu.Item
+                    title="Delete"
+                    leadingIcon="delete"
+                    onPress={() => {
+                      toggleMenu(user.id);
+                      Alert.alert(
+                        'Confirm Delete',
+                        'Are you sure you want to delete this user?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => deleteUser(user.id),
+                          },
+                        ]
+                      );
+                    }}
+                  />
+                </Menu>
+              </DataTable.Cell>
+            </DataTable.Row>
+          ))
+        )}
 
         <DataTable.Pagination
           page={page - 1}
@@ -124,7 +133,6 @@ const styles = StyleSheet.create({
   },
   table: {
     borderRadius: 8,
-    overflow: 'hidden',
     backgroundColor: '#fff',
     elevation: 2,
   },

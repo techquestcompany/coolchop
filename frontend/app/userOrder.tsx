@@ -12,6 +12,22 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { fetchOrdersByUser, updateOrder, getUserData } from '../services/api';
 
+const parseItems = (items) => {
+  if (!items) return [];
+
+  // If already an array, return it
+  if (Array.isArray(items)) return items;
+
+  // If it's a JSON string, parse it
+  try {
+    return JSON.parse(items);
+  } catch (err) {
+    console.error('Failed to parse items:', items);
+    return [];
+  }
+};
+
+
 const UserOrders = () => {
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -62,21 +78,51 @@ const UserOrders = () => {
     setPage(nextPage);
   };
 
-  const renderItem = ({ item }) => (
+ const renderItem = ({ item }) => {
+  const parsedItems = parseItems(item.items);
+
+  return (
     <View style={styles.orderCard}>
-      <Text style={styles.label}>Order #: <Text style={styles.value}>{item.orderNumber}</Text></Text>
-      <Text style={styles.label}>Food Item: <Text style={styles.value}>{item.foodItem}</Text></Text>
-      <Text style={styles.label}>Amount: <Text style={styles.value}>${item.amount}</Text></Text>
-      <Text style={styles.label}>Address: <Text style={styles.value}>{item.address}</Text></Text>
-      <Text style={styles.label}>Status: <Text style={styles.status(item.status)}>{item.status}</Text></Text>
+      <Text style={styles.label}>
+        Order #: <Text style={styles.value}>{item.orderNumber}</Text>
+      </Text>
+
+      <Text style={styles.label}>Items:</Text>
+
+      {parsedItems.length === 0 ? (
+        <Text style={styles.value}>No items</Text>
+      ) : (
+        parsedItems.map((dish, index) => (
+          <Text key={index} style={styles.value}>
+            • {dish.dishName || `Dish ID ${dish.id}`} × {dish.quantity}
+          </Text>
+        ))
+      )}
+
+      <Text style={styles.label}>
+        Amount: <Text style={styles.value}>GHS {item.totalAmount}</Text>
+      </Text>
+
+      <Text style={styles.label}>
+        Status:{' '}
+        <Text style={styles.status(item.status)}>
+          {item.status}
+        </Text>
+      </Text>
 
       {item.status === 'pending' && (
-        <TouchableOpacity onPress={() => cancelOrder(item.orderNumber)} style={styles.cancelButton}>
+        <TouchableOpacity
+          onPress={() => cancelOrder(item.orderNumber)}
+          style={styles.cancelButton}
+        >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       )}
     </View>
   );
+};
+
+
 
   return (
     <SafeAreaView style={styles.container}>

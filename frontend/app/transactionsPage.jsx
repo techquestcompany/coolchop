@@ -42,10 +42,10 @@ export default function TransactionsHistoryScreen() {
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.amount}>₵{item.amount}</Text>
+      <Text style={styles.amount}>Amount:₵{item.amount/100}</Text>
       <Text>Status: {item.status}</Text>
-      <Text>Order Ref: {item.Order?.reference || "N/A"}</Text>
-      <Text>{new Date(item.createdAt).toLocaleString()}</Text>
+      <Text>Order Ref: {item.reference || "N/A"}</Text>
+      <Text>Date:{new Date(item.createdAt).toLocaleString()}</Text>
     </View>
   );
 

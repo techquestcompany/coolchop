@@ -43,55 +43,60 @@ export default function SignInScreen() {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+
+//second sign in function
 const handleSignIn = async () => {
   try {
     setLoading(true);
-    console.log("Signing in with:", email, password);
 
     const response = await login(email, password);
-    console.log("Received Response:", response);
+    console.log("Login response:", response);
 
-    if (response.message.trim().toLowerCase() === "login successful" && response.user?.token) {
-      if(Platform.OS === "android"){
-      // Save role
-      await SecureStore.setItemAsync("role", "customer");
+    if (
+      response.message?.toLowerCase() === "login successful" &&
+      response.user?.token &&
+      response.user?.role
+    ) {
+      const { role, token } = response.user;
 
-      // Save token separately for customers
-      await SecureStore.setItemAsync("customer_token", response.user.token);
-      }else if(Platform.OS === "web"){
-        await localStorage.setItem("role", "customer");
-         localStorage.setItem("customer_token",response.user.token)
+      // 🔐 Store role + token
+      if (Platform.OS === "android") {
+        await SecureStore.setItemAsync("role", role);
+        await SecureStore.setItemAsync("customer_token", token);
+      } else if (Platform.OS === "web") {
+        localStorage.setItem("role", role);
+        localStorage.setItem("customer_token", token);
       }
 
-      console.log("Customer token stored:", response.user.token);
-
       Toast.show({
-        type: 'success',
-        text1: 'Login Successful 😊',
-        text2: 'Welcome back! 🎉',
+        type: "success",
+        text1: "Login Successful 😊",
+        text2: `Welcome back, ${role}!`,
       });
 
-      // Admin redirect (optional)
+      //  ROLE-BASED NAVIGATION
       if (response.user.email === "admin@coolchop.com") {
-        router.push('/admin');
+        router.replace("/admin");
+      } else if (role.toLowerCase() === "rider") {
+        router.replace("/riderHomepage");
       } else {
-        router.replace("/UserHome");
+        router.replace("/UserHome"); // customer
       }
 
     } else {
-      console.error("Login failed response:", response);
       Toast.show({
-        type: 'error',
-        text1: 'Login Failed ❌',
-        text2: response.message || 'Invalid credentials. Please try again.',
+        type: "error",
+        text1: "Login Failed ❌",
+        text2: response.message || "Invalid credentials",
       });
     }
   } catch (error) {
     console.error("Sign-in error:", error);
     Toast.show({
-      type: 'error',
-      text1: 'Sign In Failed ⚠️',
-      text2: error.response?.data?.message || error.message || 'Something went wrong.',
+      type: "error",
+      text1: "Sign In Failed ⚠️",
+      text2: error.response?.data?.message || "Something went wrong",
     });
   } finally {
     setLoading(false);

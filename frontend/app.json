@@ -22,9 +22,13 @@
       "bundleIdentifier": "com.eugeneanokye99.coolchop"
     },
     "android": {
-      "googleServicesFile": "./google-services.json",
-      "package": "com.eugeneanokye99.coolchop"
-    },
+  "googleServicesFile": "./google-services.json",
+  "package": "com.eugeneanokye99.coolchop",
+  "devMenu": {
+    "enabled": true
+  }
+}
+,
     "web": {
       "bundler": "metro",
       "output": "static",

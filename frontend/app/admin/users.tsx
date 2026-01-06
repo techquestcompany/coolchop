@@ -36,13 +36,7 @@ export default function AuthScreen() {
           <Text style={styles.title}>Welcome</Text>
         </Animated.View>
 
-        {/* <TouchableOpacity style={styles.card} onPress={() => router.push('/add_users')}>
-         <Entypo name="add-to-list" size={24} color="black" style={styles.icon} />
-          <View style={styles.cardText}>
-            <Text style={styles.optionTitle}>Add Users</Text>
-            <Text style={styles.arrow}>→</Text>
-          </View>
-        </TouchableOpacity> */}
+       
 
         <TouchableOpacity style={styles.card} onPress={() => router.push('/manage_users')}>
         <Entypo name="add-user" size={24} color="black" style={styles.icon} />

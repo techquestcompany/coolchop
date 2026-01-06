@@ -38,7 +38,7 @@ const VerificationScreen = () => {
         type: 'success',
         text1: 'Code verified successfully 😊',
       });
-      router.push({pathname:"changePassword",params:{email}}); 
+      router.push({pathname:"changePassword",params:{email,resetToken:code.join('')}}); 
     } else {
       Toast.show({
         type: 'error',

@@ -16,7 +16,7 @@ export default function ChangePasswordScreen() {
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const {email} = route.params
+  const {email,resetToken} = route.params
 
   const handleChangePassword = async () => {
     if (newPassword === "" || confirmPassword === "") {
@@ -30,7 +30,7 @@ export default function ChangePasswordScreen() {
     }
   
     try {
-      const res = await changePassword(newPassword, confirmPassword,email);
+      const res = await changePassword(newPassword, confirmPassword,email,resetToken);
       
       if (res?.message === "Password updated successfully") {
         Alert.alert("Success", "Your password has been changed.");

@@ -1,8 +1,8 @@
 import axios from "axios";
                    
                                     
-export const API_URL = 'http://10.111.87.9:3000/api';
-export const baseURL = 'http://10.111.87.9:3000';
+export const API_URL = 'https://www.coolchop.info/api';
+export const baseURL = 'https://www.coolchop.info';
 
 //export const API_URL = "https://www.coolchop.info.anglabytestudio.com/api"
 //export const BASE_URL = "https://www.coolchop.info.anglabytestudio.com/"
@@ -69,37 +69,6 @@ export const login = async (email: string, password: string) => {
 };
 
 
-// Function to handle getting user data
-export const confirmUserLocation = async (token: string) => {
-  try {
-    const response = await api.get('/location/check', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error getting location data:', error);
-    throw error;
-  }
-};
-
-// Function to handle getting user data
-export const confirmNewLocation = async (token: string, latitude: string, longitude: string) => {
-  try {
-    const response = await api.get('/location/confirm', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      longitude,
-      latitude
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error getting location data:', error);
-    throw error;
-  }
-};
 
 // Function to handle getting user data
 export const getUserData = async (token: string) => {
@@ -188,6 +157,21 @@ export const passResetVerifyCode = async (email: string, code: string) => {
   }
 };
 
+export const changePassword = async (
+  newPassword,
+  confirmPassword,
+  email,
+  resetToken
+) => {
+  const response = await api.post('/changePassword', {
+    newPassword,
+    confirmPassword,
+    email,
+    resetToken,
+  });
+
+  return response.data;
+};
 
 export const sendVerification= async (email: string)=>{
   try {
@@ -458,7 +442,7 @@ export const fetchOrdersByUser = async (token: string) => {
 // Function to fetch an order by user ID
 export const fetchAllOrders = async () => {
   try {
-    const response = await api.get(`/orders/get`);
+    const response = await api.get('/orders/all_orders');
     return response.data;
   } catch (error) {
     console.error('Error fetching all orders:', error);
@@ -479,23 +463,13 @@ export const deleteOrder = async (orderId: string, userId?: string) => {
     throw error;
   }
 };
-
-// Function to update an existing order
-export const updateOrder = async (orderId: string, updatedData: Partial<{
-  items: { id: string; quantity: number }[];
-  totalAmount: number;
-  note?: string;
-  status?: string;
-}>) => {
-  try {
-    const response = await api.put(`/orders/${orderId}`, updatedData);
-    return response.data;
-  } catch (error) {
-    console.error('Error updating order:', error);
-    throw error;
-  }
+export const updateOrder = async (
+  orderId: string,
+  updatedData: { status?: string }
+) => {
+  const response = await api.put(`/orders/${orderId}`, updatedData);
+  return response.data;
 };
-
 
 
 // Function to update the quantity of a dish in the cart
@@ -531,25 +505,28 @@ export const deleteCartItem = async ( dishId:string,token: string)=>{
 }
 
 
-// Function to update the user's coordinates
-export const updateUserCoordinates = async (
-  userId: string,
+//  Update user location
+export const updateUserLocation = async (
+  token: string,
   latitude: number,
   longitude: number,
-  confirmLocation: boolean = true
+  confirmLocation = true
 ) => {
-  try {
-    const response = await api.put('/location/confirm', {
-      userId,
+  const response = await api.post(
+    "/user/location",
+    {
       latitude,
       longitude,
-      confirmLocation,
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error updating user coordinates:', error);
-    throw error;
-  }
+      
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
 };
 
 
@@ -679,18 +656,7 @@ export const getDishReviews = async (dishId: string) => {
   }
 };
 
-export const changePassword = async (newPassword:string,confirmPassword:string,email:string)=>{
-  try{
-
-    const response = await api.post("/user/changePassword",{newPassword,confirmPassword,email})
-    console.log("change password data",response.data)
-    return response.data
-
-  }catch(error){
-    console.log("error changing password",error.response?.data)
-  }
-
-}
+ 
 export const deleteAccount =async (token:string)=>{
   try{
     const response = await fetch('/users/deleteAccount', {
@@ -724,18 +690,20 @@ export const deleteAccount =async (token:string)=>{
     
   };
 
-  // initialise payment transaction to the paystack endpoint
-  export const InitTransactionReq  = async (email:string,amount:number) =>{
-    try {
-      const response =await api.post("/payments/initialise",{email,amount})
-      return  response.data
-      console.log(response.data)
-    } catch (error) {
- console.error('Error initialising a transaction:', error?.response?.data || error.message);
-
-      
-    }
+ export const InitTransactionReq = async (
+  email: string,
+  amount: number,
+  order: { userId: number; items: { id: number; quantity: number }[]; note?: string }
+) => {
+  try {
+    const response = await api.post("/payments/initialise", { email, amount, order });
+    return response.data; // { authorization_url, reference, access_code }
+  } catch (error: any) {
+    console.error("Error initialising a transaction:", error?.response?.data || error.message);
+    throw error;
   }
+};
+
   
 
   export const fetchUserTransactions = async (token, page = 1, limit = 10) => {
@@ -750,3 +718,25 @@ export const deleteAccount =async (token:string)=>{
     throw err;
   }
 };
+/* 🔥 Rider APIs */
+export const getRiderOrders = async () =>{
+
+  try{
+const response = await api.get('/orders/rider_orders');
+return response.data;
+  }catch(error){
+console.error('Error fetching rider orders:', error);
+throw error;
+  }
+}
+
+export const acceptRiderOrder = (orderId: number, token: string) =>
+  api.post(
+    `/rider/orders/${orderId}/accept`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
