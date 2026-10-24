@@ -19,7 +19,7 @@ const SearchScreen = () => {
   const fetchDishes = async (pageNumber = 1) => {
     setIsLoading(true);
     try {
-      const response = await getAllDishes(pageNumber);
+      const response = await getAllDishes("", pageNumber);
       const newDishes = response.data;
 
       if (pageNumber === 1) {

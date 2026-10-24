@@ -2,28 +2,6 @@
 const { Transaction, User, Order } = require("../models");
 
 
-exports.createTransaction = async (req, res) => {
-  try {
-    const { orderId, amount, customerId, status } = req.body;
-
-    if (!customerId) {
-      return res.status(400).json({ error: "Customer Ids are required" });
-    }
-
-    const transaction = await Transaction.create({
-      orderId,
-      amount,
-      status: status || "pending",
-      customerId
-    });
-
-    res.status(201).json(transaction);
-  } catch (error) {
-    console.error("Error creating transaction:", error);
-    res.status(500).json({ error: "Failed to create transaction" });
-  }
-};
-
 exports.getUserTransactions = async (req, res) => {
   try {
     const userId = req.user.id;  // ✔ Get from token
@@ -80,11 +58,18 @@ exports.deleteTransaction = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deleted = await Transaction.destroy({ where: { id } });
-
-    if (!deleted) {
+    const transaction = await Transaction.findByPk(id);
+    if (!transaction) {
       return res.status(404).json({ message: "Transaction not found" });
     }
+    if (
+      transaction.userId !== req.user.id &&
+      String(req.user.role).toLowerCase() !== "admin"
+    ) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    await transaction.destroy();
 
     res.json({ message: "Transaction deleted successfully" });
 
@@ -101,7 +86,12 @@ exports.getAllTransactions = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
+    const where =
+      String(req.user.role).toLowerCase() === "admin"
+        ? {}
+        : { userId: req.user.id };
     const { count, rows } = await Transaction.findAndCountAll({
+      where,
       include: [
         { model: User, attributes: ["id", "name", "email"] },
         { model: Order, attributes: ["reference", "status"] },
@@ -121,23 +111,6 @@ exports.getAllTransactions = async (req, res) => {
   } catch (error) {
     console.error("Error fetching all transactions:", error);
     res.status(500).json({ message: "Failed to fetch transactions" });
-  }
-};
-
-
-exports.deleteTransaction = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deleted = await Transaction.destroy({ where: { id } });
-
-    if (!deleted) {
-      return res.status(404).json({ message: "Transaction not found" });
-    }
-
-    res.json({ message: "Transaction deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting transaction:", error);
-    res.status(500).json({ message: "Failed to delete transaction" });
   }
 };
  

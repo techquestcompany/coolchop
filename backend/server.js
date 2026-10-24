@@ -2,13 +2,20 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const path = require("path");
-const { exec } = require("child_process");
-const { Server } = require("socket.io");
 const crypto = require("crypto");
-const sequelize = require('./config/db');
+const { Server } = require("socket.io");
 require("dotenv").config();
-const { sendOrderConfirmation } = require('./utils/mail');
-const { sendPush } = require('./utils/push');
+const { sequelize } = require("./models");
+const { handlePaystackWebhook } = require("./controllers/paystackWebhookController");
+const {
+  startPendingPaymentReconciler,
+  stopPendingPaymentReconciler,
+} = require("./utils/pendingPaymentReconciler");
+const {
+  startNotificationOutboxWorker,
+  stopNotificationOutboxWorker,
+} = require("./utils/notificationOutboxWorker");
+const { assertSchemaUpToDate } = require("./utils/schemaReadiness");
 // Route imports
 const authRoutes = require("./routes/authRoutes");
 const locationRoutes = require("./routes/locationRoutes");
@@ -20,103 +27,109 @@ const ratingsRoutes = require("./routes/ratingsRoute");
 const reviewRoutes = require("./routes/reviewRoute");
 const paymentsRoutes = require("./routes/transInitialiserRoute");
 const transactionRoutes = require("./routes/transactionRoutes");
-const { Order, User, Transaction } = require('./models'); 
 const app = express();
+app.disable("x-powered-by");
+app.use((req, res, next) => {
+  const requestId = crypto.randomUUID();
+  const startedAt = Date.now();
+  req.requestId = requestId;
+  res.setHeader("x-request-id", requestId);
+  res.on("finish", () => {
+    console.info(
+      JSON.stringify({
+        level: "info",
+        event: "http_request",
+        requestId,
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode,
+        durationMs: Date.now() - startedAt,
+      })
+    );
+  });
+  next();
+});
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+  .map((origin) => new URL(origin).origin);
+
+const normalizeOrigin = (origin) => {
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return null;
+  }
+};
+
+const isDevelopmentOrigin = (origin) => {
+  if (process.env.NODE_ENV === "production") return false;
+  try {
+    const url = new URL(origin);
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+};
 
 // Root route
 app.get("/", (req, res) => {
   res.send("Coolchop Backend is running ✅");
 });
 
-app.use(cors());
+app.get("/health/live", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
-app.post("/api/paystack/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+app.get("/health/ready", async (req, res) => {
   try {
-    const secret = process.env.PAYSTACK_SECRET_KEY;
-
-    if (!req.body) {
-      console.error("Raw body missing");
-      return res.sendStatus(400);
-    }
-
-    // Verify signature
-    const hash = crypto
-      .createHmac("sha512", secret)
-      .update(req.body)
-      .digest("hex");
-
-    if (hash !== req.headers["x-paystack-signature"]) {
-      console.error("Invalid signature");
-      return res.sendStatus(401);
-    }
-
-    // Parse JSON
-    const payload = JSON.parse(req.body.toString());
-    const { event, data } = payload;
-
-    console.log("Paystack webhook event:", event);
-
-    if (event === "charge.success") {
-      const ref = data.reference;
-      console.log(`Payment successful for reference: ${ref}`);
-
-      // Find the order by reference
-      const order = await Order.findOne({ where: { reference: ref } });
-      if (!order) return res.sendStatus(404);
-
-      // Avoid invalid ENUM
-      if (!["pending", "preparing", "on_delivery", "delivered"].includes(order.status)) {
-        order.status = "preparing"; // safe default for successful payment
-      }
-      await order.save();
-
-      // Create or update transaction
-      let transaction = await Transaction.findOne({ where: { orderId: order.id } });
-      if (transaction) {
-        transaction.status = "success";
-        transaction.amount = data.amount;
-        transaction.reference = data.reference;
-        transaction.currency = data.currency;
-        transaction.channel = data.channel;
-        transaction.gatewayResponse = data.gateway_response;
-        transaction.rawResponse = payload;
-        await transaction.save();
-      } else {
-        transaction = await Transaction.create({
-          orderId: order.id,
-          userId: order.userId,
-          amount: data.amount,
-          status: "success",
-          reference: data.reference,
-          currency: data.currency,
-          channel: data.channel,
-          gatewayResponse: data.gateway_response,
-          rawResponse: payload,
-        });
-      }
-
-      // Notify user
-      const user = await User.findByPk(order.userId);
-      if (user?.email) await sendOrderConfirmation(user.email, ref, order.totalAmount);
-      if (user?.expoToken) await sendPush(user.expoToken, `Order ${ref} confirmed. Total ₵${order.totalAmount}`);
-
-      // Notify rider
-      const rider = await User.findOne({ where: { role: "rider" } });
-      if (rider?.expoToken) await sendPush(rider.expoToken, `📦 New order to deliver: Ref ${ref}`);
-
-      console.log(`Order ${ref} and Transaction updated successfully.`);
-    }
-
-    return res.sendStatus(200);
-  } catch (err) {
-    console.error("Webhook error:", err);
-    return res.sendStatus(500);
+    await sequelize.authenticate();
+    await assertSchemaUpToDate(sequelize);
+    return res.status(200).json({ status: "ready" });
+  } catch (error) {
+    console.error("Readiness check failed:", error.message);
+    return res.status(503).json({ status: "not_ready" });
   }
 });
 
+app.use(
+  cors({
+    origin(origin, callback) {
+      const normalizedOrigin = origin ? normalizeOrigin(origin) : null;
+      if (
+        !origin ||
+        (normalizedOrigin && allowedOrigins.includes(normalizedOrigin)) ||
+        isDevelopmentOrigin(origin)
+      ) {
+        return callback(null, true);
+      }
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "cors_origin_rejected",
+          origin,
+        })
+      );
+      const error = new Error("Origin is not allowed by CORS");
+      error.status = 403;
+      return callback(error);
+    },
+  })
+);
+
+app.post(
+  "/api/paystack/webhook",
+  express.raw({ type: "application/json", limit: "1mb" }),
+  handlePaystackWebhook
+);
+
 
 // ✅ Now enable JSON parsing for all other routes
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 // Static files
 app.use("/public", express.static(path.join(__dirname, "public")));
@@ -133,49 +146,92 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/transactions", transactionRoutes);
 
-// GitHub CI/CD webhook
-app.post("/webhook", (req, res) => {
-  const payload = req.body;
-  res.status(200).send("Webhook received message");
-
-  if (req.headers["x-github-event"] === "push" || req.headers["x-github-event"] === "ping") {
-    console.log("Webhook triggered by push event");
-
-    exec("cd /home/ubuntu/coolchop_backend && git pull && npm install && pm2 restart server", (err, stdout, stderr) => {
-      if (err) {
-        console.error("Deployment failed:", stderr);
-        return res.status(500).send("Deployment failed");
-      }
-      console.log("Deployment successful:", stdout);
-      res.status(200).send("Deployment successful");
-    });
-  } else {
-    res.status(400).send("Event not handled");
-  }
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  console.error(
+    JSON.stringify({
+      level: "error",
+      event: "http_error",
+      requestId: req.requestId,
+      message: error.message,
+    })
+  );
+  return res.status(error.status || 500).json({
+    error: error.status === 403 ? error.message : "An unexpected server error occurred.",
+    requestId: req.requestId,
+  });
 });
 
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);
 const socketServer = new Server(server);
 
-socketServer.on("connection", () => {
+socketServer.on("connection", (socket) => {
   console.log("WebSocket connection successful");
-});
-socketServer.on("disconnect", () => {
-  console.log("WebSocket connection disconnected");
-});
-
-// Sync database
-sequelize
-  .sync()
-  .then(() => {
-    console.log("Database synced");
-  })
-  .catch((err) => {
-    console.error("Unable to sync database:", err);
+  socket.on("disconnect", () => {
+    console.log("WebSocket connection disconnected");
   });
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server is running on port ${PORT}`);
 });
+
+const PORT = Number(process.env.PORT || 3000);
+
+const startServer = async () => {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    throw new Error("JWT_SECRET must be configured with at least 32 characters");
+  }
+  if (process.env.NODE_ENV === "production" && !process.env.PAYSTACK_SECRET_KEY) {
+    throw new Error("PAYSTACK_SECRET_KEY must be configured in production");
+  }
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!process.env.EMAIL_USER || !process.env.EMAIL_PASS)
+  ) {
+    throw new Error("EMAIL_USER and EMAIL_PASS must be configured in production");
+  }
+  if (
+    process.env.NODE_ENV === "production" &&
+    require("./utils/adminIdentity").getAdminUserIds().size === 0
+  ) {
+    throw new Error("ADMIN_USER_IDS must be configured in production");
+  }
+  if (process.env.NODE_ENV === "production" && allowedOrigins.length === 0) {
+    throw new Error("CORS_ALLOWED_ORIGINS must be configured in production");
+  }
+
+  await sequelize.authenticate();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(PORT, "0.0.0.0", () => {
+      server.removeListener("error", reject);
+      resolve();
+    });
+  });
+  startPendingPaymentReconciler();
+  startNotificationOutboxWorker();
+  console.log(`Server is running on port ${PORT}`);
+};
+
+startServer().catch((error) => {
+  console.error("Unable to start server:", error.message);
+  process.exit(1);
+});
+
+let shuttingDown = false;
+const shutdown = (signal) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal} received; closing server`);
+  stopPendingPaymentReconciler();
+  stopNotificationOutboxWorker();
+  socketServer.close(async () => {
+    try {
+      await sequelize.close();
+    } catch (closeError) {
+      console.error("Error closing database connection:", closeError.message);
+      process.exitCode = 1;
+    }
+  });
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

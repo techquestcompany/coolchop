@@ -1,41 +1,14 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
-import * as Notifications from "expo-notifications";
-import * as TaskManager from "expo-task-manager";
 import { Provider as PaperProvider } from 'react-native-paper';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { NotificationProvider } from '@/components/NotificationContext';
 import { CartProvider } from '@/context/CartContext';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
-
-const BACKGROUND_NOTIFICATION_TASK = "BACKGROUND-NOTIFICATION-TASK";
-
-TaskManager.defineTask(
-  BACKGROUND_NOTIFICATION_TASK,
-  ({ data, error, executionInfo }) => {
-    console.log(" Received a notification in the background!", {
-      data,
-      error,
-      executionInfo,
-    });
-    // Do something with the notification data
-  }
-);
-
-
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -48,10 +21,6 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
-  }, []);
-
-  useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
     }
@@ -62,11 +31,10 @@ export default function RootLayout() {
   }
 
   return (
-    <NotificationProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <CartProvider>
-          <PaperProvider>
-        <Stack initialRouteName='index'>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <CartProvider>
+        <PaperProvider>
+        <Stack initialRouteName='index'> 
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(res_tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="admin" options={{ headerShown: false }} />
@@ -121,8 +89,7 @@ export default function RootLayout() {
         </Stack>
         <Toast></Toast>
         </PaperProvider>
-        </CartProvider>
-      </ThemeProvider>
-    </NotificationProvider>
+      </CartProvider>
+    </ThemeProvider>
   );
 }

@@ -20,6 +20,11 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
       },
 reference: { type: DataTypes.STRING, unique: true }, 
+
+reconciliationAttemptedAt: {
+  type: DataTypes.DATE,
+  allowNull: true,
+},
   
       orderNumber: {
         type: DataTypes.STRING,
@@ -38,7 +43,7 @@ reference: { type: DataTypes.STRING, unique: true },
       },
 
       status: {
-        type: DataTypes.ENUM("pending", "preparing", "on_delivery", "delivered"),
+        type: DataTypes.ENUM("pending", "preparing", "on_delivery", "delivered", "success", "failed", "cancelled"),
         allowNull: false,
         defaultValue: "pending",
       },

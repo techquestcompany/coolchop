@@ -1,77 +1,149 @@
-import https from "https";
-import  db  from "../models/index.js"; // ✅ import db instance
-const {Order} = db;
+const https = require("https");
+const crypto = require("crypto");
+const { User, Dish, Order } = require("../models");
 
-export const initializeTransaction = async (req, res) => {
-  const { email, amount, order } = req.body;
-  if (!email || !amount || !order) {
-    return res.status(400).json({ error: "Email, amount, and order are required." });
+const requestPaystack = (payload) =>
+  new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const request = https.request(
+      {
+        hostname: "api.paystack.co",
+        port: 443,
+        path: "/transaction/initialize",
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+      },
+      (response) => {
+        let responseBody = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => {
+          responseBody += chunk;
+          if (responseBody.length > 1024 * 1024) {
+            request.destroy(new Error("Paystack response exceeded the size limit"));
+          }
+        });
+        response.on("end", () => {
+          try {
+            const result = JSON.parse(responseBody);
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+              return reject(new Error(`Paystack returned HTTP ${response.statusCode}`));
+            }
+            resolve(result);
+          } catch (error) {
+            reject(new Error("Paystack returned an invalid response"));
+          }
+        });
+      }
+    );
+
+    request.setTimeout(15000, () => request.destroy(new Error("Paystack request timed out")));
+    request.on("error", reject);
+    request.write(body);
+    request.end();
+  });
+
+exports.initializeTransaction = async (req, res) => {
+  const { items, note } = req.body;
+
+  if (
+    !Array.isArray(items) ||
+    items.length === 0 ||
+    items.length > 50 ||
+    items.some(
+      (item) =>
+        !Number.isInteger(Number(item?.id)) ||
+        Number(item.id) < 1 ||
+        !Number.isInteger(Number(item?.quantity)) ||
+        Number(item.quantity) < 1 ||
+        Number(item.quantity) > 99
+    )
+  ) {
+    return res.status(400).json({ error: "Valid order items are required." });
   }
-const orderNumber = `ORD-${Date.now()}`;
+
+  if (!process.env.PAYSTACK_SECRET_KEY) {
+    return res.status(503).json({ error: "Payment service is not configured." });
+  }
 
   try {
-    // 1. Save order in DB
-    const savedOrder = await Order.create({
-     orderNumber,
-      userId: order.userId,
-      items: order.items,
-      note: order.note,
+    const user = await User.findByPk(req.user.id);
+    if (!user || !user.isVerified) {
+      return res.status(401).json({ error: "A verified account is required." });
+    }
+
+    const normalizedItems = items.map((item) => ({
+      id: Number(item.id),
+      quantity: Number(item.quantity),
+    }));
+    const dishIds = [...new Set(normalizedItems.map((item) => item.id))];
+    const dishes = await Dish.findAll({ where: { id: dishIds } });
+    const dishesById = new Map(dishes.map((dish) => [dish.id, dish]));
+
+    if (dishes.length !== dishIds.length) {
+      return res.status(400).json({ error: "One or more dishes are unavailable." });
+    }
+    const restaurantIds = new Set(dishes.map((dish) => Number(dish.restaurantId)));
+    if (restaurantIds.size !== 1) {
+      return res.status(400).json({
+        error: "Each checkout must contain dishes from a single restaurant.",
+      });
+    }
+
+    const totalMinorUnits = normalizedItems.reduce((sum, item) => {
+      const price = Number(dishesById.get(item.id).price);
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error(`Invalid price configured for dish ${item.id}`);
+      }
+      return sum + Math.round(price * 100) * item.quantity;
+    }, 0);
+
+    if (!Number.isSafeInteger(totalMinorUnits) || totalMinorUnits < 1) {
+      return res.status(400).json({ error: "Order total is invalid." });
+    }
+
+    const reference = `CC-${crypto.randomUUID()}`;
+    const order = await Order.create({
+      orderNumber: `ORD-${crypto.randomUUID()}`,
+      reference,
+      userId: user.id,
+      items: JSON.stringify(normalizedItems),
+      totalAmount: totalMinorUnits / 100,
+      note: typeof note === "string" ? note.slice(0, 500) : null,
       status: "pending",
-      totalAmount: amount /100, // convert back to GHS
     });
 
-    // 2. Prepare payload for Paystack
-    const payload = JSON.stringify({ email, amount: amount.toString() });
-
-    const options = {
-      hostname: "api.paystack.co",
-      port: 443,
-      path: "/transaction/initialize",
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
-    };
-
-    const reqPaystack = https.request(options, (paystackRes) => {
-      let data = "";
-      paystackRes.on("data", (chunk) => {
-        data += chunk;
-      });
-      paystackRes.on("end", async () => {
-        try {
-          const response = JSON.parse(data);
-          console.log("Paystack init response:", response);
-
-          if (response.status && response.data) {
-            const { authorization_url, reference, access_code } = response.data;
-
-            // 3. Save Paystack reference into order
-            savedOrder.reference = reference;
-            await savedOrder.save();
-
-            // 4. Return to frontend
-            return res.json({ authorization_url, reference, access_code });
-          }
-
-          return res.status(502).json({ error: "Paystack init failed", details: response });
-        } catch (err) {
-          return res.status(500).json({ error: "Response parsing error", details: err.message });
-        }
-      });
+    const payment = await requestPaystack({
+      email: user.email,
+      amount: totalMinorUnits,
+      currency: "GHS",
+      reference,
     });
 
-    reqPaystack.on("error", (error) => {
-      return res.status(500).json({ error: "Request error", details: error.message });
-    });
+    const paymentData = payment?.data;
+    if (
+      !payment?.status ||
+      paymentData?.reference !== reference ||
+      typeof paymentData?.authorization_url !== "string" ||
+      !paymentData.authorization_url.startsWith("https://checkout.paystack.com/")
+    ) {
+      console.error("Paystack did not return a valid initialization response.");
+      return res.status(502).json({ error: "Could not initialize payment." });
+    }
 
-    reqPaystack.write(payload);
-    reqPaystack.end();
-  } catch (err) {
-    console.error("Init transaction error:", err);
-    return res.status(500).json({ error: "Failed to initialize transaction" });
+    return res.status(200).json({
+      authorization_url: paymentData.authorization_url,
+      reference,
+      access_code: paymentData.access_code,
+      amount: totalMinorUnits,
+      currency: "GHS",
+      orderId: order.id,
+    });
+  } catch (error) {
+    console.error("Payment initialization failed:", error.message);
+    return res.status(502).json({ error: "Could not initialize payment." });
   }
 };
-

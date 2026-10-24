@@ -4,6 +4,7 @@ const { encrypt, decrypt } = require("../utils/encryption");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken")
 const crypto = require("crypto");
+const { getAdminUserIds } = require("../utils/adminIdentity");
 require("dotenv").config();
 
 
@@ -73,11 +74,13 @@ exports.login = async (req, res) => {
     }
 
     // Generate JWT
+    const isAdmin = getAdminUserIds().has(user.id);
     const token = jwt.sign(
       {
         id: user.id,
         email: user.email,
-        role: user.role, // ensure this matches your User model
+        role: isAdmin ? "admin" : user.role === "rider" ? "rider" : "customer",
+        isAdmin,
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
@@ -106,10 +109,10 @@ exports.login = async (req, res) => {
 
 exports.signup = async (req, res) => {
   try {
-    const { name, email, phone, password, isAdmin,role } = req.body;
+    const { name, email, phone, password, role } = req.body;
 
     // Validate required fields
-    if (!name || !email || !phone || !password ||  !role) {
+    if (!name || !email || !phone || !password || !["customer", "rider"].includes(role)) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -139,7 +142,7 @@ exports.signup = async (req, res) => {
       password: hashedPassword,
       code: verificationCode,
       confirm_location: 0,
-      isAdmin: isAdmin ? 1 : 0,
+      isAdmin: false,
       createdAt: new Date(),
       updatedAt: new Date(),
       role
@@ -201,7 +204,7 @@ exports.getUserData = async (req, res) => {
       latitude: user.latitude,
       phone: user.phone,
       profileImage: user.profileImage,
-      role: user.userRole,     // include role if needed
+      role: user.role,
     });
   } catch (error) {
     console.error("Error getting user data:", error);
@@ -288,9 +291,28 @@ exports.passwordReset = async (req, res) => {
 };
 
 exports.getAllUsers = async (req, res) => {
-  const getUsers = await User.findAll();
-  if (getUsers) {
-    res.status(200).json(getUsers);
+  try {
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(Number.parseInt(req.query.limit, 10) || 10, 100);
+    if (page < 1 || limit < 1) {
+      return res.status(400).json({ error: "Invalid page or limit." });
+    }
+    const { count, rows } = await User.findAndCountAll({
+      attributes: { exclude: ["password", "code", "resetToken", "tokenExpiry"] },
+      limit,
+      offset: (page - 1) * limit,
+      order: [["createdAt", "DESC"]],
+    });
+    return res.status(200).json({
+      users: rows,
+      page,
+      limit,
+      totalUsers: count,
+      totalPages: Math.ceil(count / limit),
+    });
+  } catch (error) {
+    console.error("Error listing users:", error.message);
+    return res.status(500).json({ error: "Could not retrieve users." });
   }
 };
 

@@ -1,121 +1,122 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import {
-  getUserData,
-  addDishToCart,
-  updateCartQuantity,
-  deleteCartItem
+  addToMyCart,
+  getMyCart,
+  removeFromMyCart,
+  setMyCartQuantity,
 } from '@/services/api';
 
-const CartContext = createContext();
+const CartContext = createContext(null);
+
+const getCustomerToken = async () => {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem('customer_token');
+  }
+  return SecureStore.getItemAsync('customer_token');
+};
+
+const toCartItem = (cartRow) => ({
+  id: cartRow.Dish?.id ?? cartRow.dishId,
+  Dish: cartRow.Dish,
+  quantity: cartRow.quantity,
+});
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  /** Load cart from backend on mount */
-  useEffect(() => {
-    const loadCart = async () => {
-      try {
-        const token = await SecureStore.getItemAsync('customer_token'); // ✅ FIXED
-        if (!token) return;
+  const refreshCart = useCallback(async () => {
+    const token = await getCustomerToken();
+    if (!token) {
+      setCartItems([]);
+      return [];
+    }
 
-        const user = await getUserData(token);
-        console.log("Loaded user:", user);
-
-        // TODO: fetch user cart if backend supports it
-        // const userCart = await getUserCart(user.id, token);
-        // setCartItems(userCart || []);
-      } catch (error) {
-        console.error('Failed to load cart:', error);
+    setLoading(true);
+    try {
+      const rows = await getMyCart(token);
+      if (!Array.isArray(rows)) {
+        throw new Error('Unexpected cart response from server');
       }
-    };
-    loadCart();
+      const items = rows
+        .filter((row) => row.Dish)
+        .map(toCartItem);
+      setCartItems(items);
+      return items;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  /** Add dish to cart */
-  const addToCart = async (item) => {
-    try {
-      const token = await SecureStore.getItemAsync('customer_token'); // ✅ FIXED
-      if (!token) return;
+  useEffect(() => {
+    refreshCart().catch((error) => {
+      console.error('Failed to load cart:', error);
+    });
+  }, [refreshCart]);
 
-      const user = await getUserData(token);
-
-      setCartItems((prev) => {
-        const existing = prev.find((i) => i.id === item.id);
-        if (existing) {
-          return prev.map((i) =>
-            i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-          );
-        }
-        return [...prev, { ...item, quantity: 1 }];
-      });
-
-      // Sync with backend
-      await addDishToCart(user.id, item.id, 1, token);
-    } catch (err) {
-      console.error('Failed to add to cart:', err);
+  const addToCart = async (dish) => {
+    const token = await getCustomerToken();
+    if (!token) {
+      throw new Error('Sign in before adding items to the cart.');
     }
+    const dishId = dish.Dish?.id ?? dish.id;
+    if (!dishId) {
+      throw new Error('Cannot add a dish without an ID.');
+    }
+    await addToMyCart(dishId, 1, token);
+    await refreshCart();
   };
 
-  /** Increment quantity */
   const incrementQuantity = async (dishId) => {
-    try {
-      const token = await SecureStore.getItemAsync('customer_token'); // ✅ FIXED
-      if (!token) return;
-
-      const user = await getUserData(token);
-
-      setCartItems((prev) =>
-        prev.map((item) => {
-          if (item.id === dishId) {
-            const newQty = item.quantity + 1;
-            updateCartQuantity(user.id, dishId, newQty, token).catch(console.error);
-            return { ...item, quantity: newQty };
-          }
-          return item;
-        })
-      );
-    } catch (err) {
-      console.error('Failed to increment quantity:', err);
+    const token = await getCustomerToken();
+    if (!token) {
+      throw new Error('Sign in before changing the cart.');
     }
+    const current = cartItems.find((item) => item.id === dishId);
+    if (!current) return;
+    await setMyCartQuantity(dishId, current.quantity + 1, token);
+    await refreshCart();
   };
 
-  /** Decrement quantity */
   const decrementQuantity = async (dishId) => {
-    try {
-      const token = await SecureStore.getItemAsync('customer_token'); // ✅ FIXED
-      if (!token) return;
-
-      const user = await getUserData(token);
-
-      setCartItems((prev) =>
-        prev.flatMap((item) => {
-          if (item.id === dishId) {
-            const newQty = item.quantity - 1;
-            if (newQty > 0) {
-              updateCartQuantity(user.id, dishId, newQty, token).catch(console.error);
-              return { ...item, quantity: newQty };
-            } else {
-              deleteCartItem(dishId, token).catch(console.error);
-              return []; // remove completely
-            }
-          }
-          return [item];
-        })
-      );
-    } catch (err) {
-      console.error('Failed to decrement quantity:', err);
+    const token = await getCustomerToken();
+    if (!token) {
+      throw new Error('Sign in before changing the cart.');
     }
+    const current = cartItems.find((item) => item.id === dishId);
+    if (!current) return;
+    if (current.quantity <= 1) {
+      await removeFromMyCart(dishId, token);
+    } else {
+      await setMyCartQuantity(dishId, current.quantity - 1, token);
+    }
+    await refreshCart();
   };
+
+  const removeItem = async (dishId) => {
+    const token = await getCustomerToken();
+    if (!token) {
+      throw new Error('Sign in before changing the cart.');
+    }
+    await removeFromMyCart(dishId, token);
+    await refreshCart();
+  };
+
+  const clearCart = () => setCartItems([]);
 
   return (
     <CartContext.Provider
       value={{
-        cartItems: cartItems ?? [], // ✅ ALWAYS SAFE
+        cartItems,
+        loading,
         addToCart,
         incrementQuantity,
         decrementQuantity,
-        clearCart: () => setCartItems([]),
+        removeItem,
+        refreshCart,
+        clearCart,
         setCartItems,
       }}
     >
@@ -124,4 +125,10 @@ export const CartProvider = ({ children }) => {
   );
 };
 
-export const useCart = () => useContext(CartContext);
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+};

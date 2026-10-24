@@ -3,22 +3,21 @@ import React from 'react';
 
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+export default function VendorTabLayout() {
   return (
     <Tabs
+      initialRouteName="(vendorDrawer)"
       screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF', 
+          backgroundColor: '#FFFFFF',
         },
         headerShown: false,
-      }}>
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="(vendorDrawer)"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
@@ -27,15 +26,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-  name="manage_dishes"
-  options={{
-    title: 'Dishes',
-    tabBarIcon: ({ color, focused }) => (
-      <TabBarIcon name={focused ? 'restaurant' : 'restaurant-outline'} color={color} />
-    ),
-  }}
-/>
-
+        name="manage_dishes"
+        options={{
+          title: 'Dishes',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name={focused ? 'restaurant' : 'restaurant-outline'} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="profile"
         options={{

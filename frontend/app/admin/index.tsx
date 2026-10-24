@@ -11,6 +11,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { Card } from 'react-native-paper';
 
 import { fetchAllOrders, getAllUsers } from '@/services/api';
+import { getStoredToken } from '@/services/authStorage';
 
 /* =========================
    Helpers
@@ -39,17 +40,17 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
 
+      const token = await getStoredToken('customer_token');
+      if (!token) throw new Error('Admin session is missing');
       const [ordersRes, usersRes] = await Promise.all([
-        fetchAllOrders(),
-        getAllUsers(1, 500),
+        fetchAllOrders(token),
+        getAllUsers(token, 1, 100),
       ]);
 
-      const orders = ordersRes?.orders || ordersRes || [];
-      const users = usersRes?.users || [];
+      const orders = Array.isArray(ordersRes) ? ordersRes : [];
 
-      setTotalUsers(usersRes.totalUsers);
-
-      setTotalOrders(ordersRes.totalOrders);
+      setTotalUsers(usersRes.totalUsers || 0);
+      setTotalOrders(orders.length);
 
       // Orders per day (Sun - Sat)
       const weeklyOrders = [0, 0, 0, 0, 0, 0, 0];

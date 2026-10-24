@@ -25,6 +25,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
 
+      orderId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+
       reference: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -54,6 +59,11 @@ module.exports = (sequelize, DataTypes) => {
 
       gatewayResponse: {
         type: DataTypes.STRING,
+        allowNull: true,
+      },
+
+      rawResponse: {
+        type: DataTypes.JSON,
         allowNull: true,
       },
     },

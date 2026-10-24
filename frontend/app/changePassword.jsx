@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {router} from "expo-router";
-import { useRoute } from '@react-navigation/native';
+import { useRoute } from 'expo-router/react-navigation';
 import {
   View,
   Text,

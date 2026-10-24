@@ -8,24 +8,15 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
-  Platform,
   Alert
 } from 'react-native';
-import { createDrawerNavigator } from '@react-navigation/drawer';
 import { MaterialIcons } from '@expo/vector-icons';
 import debounce from 'lodash/debounce';
-import * as SecureStore from 'expo-secure-store';
 import { useCart } from '@/context/CartContext';
-import { api, baseURL, getUserData,updateUserLocation, getAllDishes, logout as apiLogout } from '@/services/api';
-import Orders from './userOrder';
-import Profile from './userProfile';
-import Support from './Support';
-import Transactions from './transactionsPage';
+import { baseURL, getUserData, updateUserLocation, getAllDishes } from '@/services/api';
 import { router } from 'expo-router';
-import {getCurrentLocation} from"./hooks/useUserLocation";
-
-
-const Drawer = createDrawerNavigator();
+import { getCurrentLocation } from './hooks/useUserLocation';
+import { getStoredToken } from '@/services/authStorage';
 
 const HomeScreen = () => {
   const [username, setUsername] = useState('');
@@ -37,21 +28,21 @@ const HomeScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
 
   // CART FUNCTIONS
-  const { cartItems = [], addToCart } = useCart();
+  const { cartItems = [], addToCart, refreshCart } = useCart();
 
 useEffect(() => {
   const loadUser = async () => {
     setLoadingUser(true);
     try {
-      const token =
-        Platform.OS === "android"
-          ? await SecureStore.getItemAsync("customer_token")
-          : localStorage.getItem("customer_token");
+      const token = await getStoredToken("customer_token");
 
       if (!token) return router.replace('/login');
 
       const data = await getUserData(token);
       setUsername(data?.name || data?.email || 'User');
+      await refreshCart().catch((error) => {
+        console.error('Failed to restore cart:', error);
+      });
 
       // 📍 Ask & update location
       Alert.alert(
@@ -99,10 +90,7 @@ useEffect(() => {
 
 const sendUserLocation = async () => {
   try {
-    const token =
-      Platform.OS === "android"
-        ? await SecureStore.getItemAsync("customer_token")
-        : localStorage.getItem("customer_token");
+    const token = await getStoredToken("customer_token");
 
     if (!token) {
       return router.replace('/login');
@@ -159,7 +147,10 @@ const sendUserLocation = async () => {
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: "#000" }]}
-        onPress={() => addToCart(item)}
+        onPress={() => addToCart(item).catch((error) => {
+          console.error('Failed to add dish to cart:', error);
+          Alert.alert('Unable to update cart', 'Please sign in and try again.');
+        })}
       >
         <Text style={styles.buttonText}>Add to Cart</Text>
       </TouchableOpacity>
@@ -233,37 +224,6 @@ const sendUserLocation = async () => {
   );
 };
 
-// ------------------ Drawer Navigator ------------------
-const DrawerNavigator = () => (
-  <Drawer.Navigator initialRouteName="Home">
-    <Drawer.Screen name="Home" component={HomeScreen} />
-    <Drawer.Screen name="Profile" component={Profile} />
-    <Drawer.Screen name="Orders" component={Orders} />
-    <Drawer.Screen name="Transactions" component={Transactions} />
-    <Drawer.Screen name="Support" component={Support} />
-
-    <Drawer.Screen
-      name="Logout"
-      component={() => {
-        React.useEffect(() => {
-          const doLogout = async () => {
-            try {
-              await SecureStore.deleteItemAsync('customer_token');
-              await apiLogout();
-            } catch (err) {
-              console.error('Logout failed:', err);
-            } finally {
-              router.replace('/login');
-            }
-          };
-          doLogout();
-        }, []);
-        return null;
-      }}
-    />
-  </Drawer.Navigator>
-);
-
 // ------------------ Styles ------------------
 const styles = StyleSheet.create({
   container: { padding: 20, flex: 1, backgroundColor: '#fff' },
@@ -316,4 +276,4 @@ const styles = StyleSheet.create({
   headerText: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
 });
 
-export default DrawerNavigator;
+export default HomeScreen;

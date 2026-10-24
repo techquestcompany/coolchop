@@ -61,7 +61,7 @@ const handleSignIn = async () => {
       const { role, token } = response.user;
 
       // 🔐 Store role + token
-      if (Platform.OS === "android") {
+      if (Platform.OS !== "web") {
         await SecureStore.setItemAsync("role", role);
         await SecureStore.setItemAsync("customer_token", token);
       } else if (Platform.OS === "web") {
@@ -76,12 +76,12 @@ const handleSignIn = async () => {
       });
 
       //  ROLE-BASED NAVIGATION
-      if (response.user.email === "admin@coolchop.com") {
+      if (role.toLowerCase() === "admin") {
         router.replace("/admin");
       } else if (role.toLowerCase() === "rider") {
         router.replace("/riderHomepage");
       } else {
-        router.replace("/UserHome"); // customer
+        router.replace("/(tabs)"); // customer
       }
 
     } else {

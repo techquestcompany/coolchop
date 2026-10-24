@@ -1,33 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
-import { getCartItems, getUserData, baseURL } from '@/services/api';
-import * as SecureStore from 'expo-secure-store';
+import { baseURL } from '@/services/api';
 import { useRouter } from 'expo-router';
 import { useCart } from '@/context/CartContext';
 
 const CartPage = () => {
-  const { cartItems, setCartItems, incrementQuantity, decrementQuantity } = useCart();  
+  const { cartItems, incrementQuantity, decrementQuantity, refreshCart } = useCart();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
 const fetchCart = async () => {
   try {
-    const token = await SecureStore.getItemAsync('customer_token'); 
-    const userData = await getUserData(token);
-    const cartData = await getCartItems(userData.id, token);
-
-    console.log("RAW CART RESPONSE:", cartData);
-
-    const mapped = cartData.map(item => ({
-      id: item.Dish?.id,
-      Dish: item.Dish,
-      quantity: item.quantity
-    }));
-
-    console.log("FINAL CART ITEMS USED IN STATE:", mapped);
-
-    setCartItems(mapped);
-
+    await refreshCart();
   } catch (error) {
     console.error('Error fetching cart:', error);
   } finally {
@@ -38,15 +22,12 @@ const fetchCart = async () => {
 
   useEffect(() => {
     fetchCart();
-  }, []);
+  }, [refreshCart]);
 
   const getTotal = () =>
     new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(
       cartItems.reduce((sum, item) => sum + item.Dish?.price * item.quantity, 0)
     );
-
-  const getTotalAmount = () =>
-    cartItems.reduce((sum, item) => sum + item.Dish?.price * item.quantity, 0);
 
   if (loading) return <ActivityIndicator size="large" />;
 
@@ -86,7 +67,7 @@ const fetchCart = async () => {
           <Text style={styles.total}>Total: {getTotal()}</Text>
           <TouchableOpacity
             style={styles.checkout}
-            onPress={() => router.push({ pathname: '/InitTransaction', params: { amount: getTotalAmount()* 100 } })}
+            onPress={() => router.push('/InitTransaction')}
           >
             <Text style={styles.checkoutText}>Proceed to checkout</Text>
           </TouchableOpacity>

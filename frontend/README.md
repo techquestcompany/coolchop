@@ -2,26 +2,31 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-## Get started
+## Run on a phone with Expo Go
 
-1. Install dependencies
+1. Install dependencies from the `frontend` directory:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. Make sure the backend is running on the same computer on port `3000`. Keep the computer and phone on the same Wi-Fi network.
 
+3. Start the frontend:
    ```bash
-    npx expo start
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+4. Install Expo Go on your phone and scan the QR code printed by Expo. The start script explicitly selects Expo Go and LAN mode.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+During development, API requests use the same LAN host Expo advertises for the Metro bundler, on backend port `3000`. If the backend is running on another computer or port, set `EXPO_PUBLIC_API_URL` to its reachable address, for example:
+
+```powershell
+$env:EXPO_PUBLIC_API_URL = "http://192.168.1.20:3000/api"
+npm start
+```
+
+Replace the example IP with the backend computer's LAN IP. The phone must be able to reach that computer and its port through the local network/firewall.
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 

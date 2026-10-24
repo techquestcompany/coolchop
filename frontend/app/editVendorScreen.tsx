@@ -9,9 +9,8 @@ import {
   ScrollView,
   Alert
 } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { updateRestaurantData, getRestaurantById } from '@/services/api';
-import axios from 'axios';
+import { updateRestaurantData, getMyRestaurant } from '@/services/api';
+import { getStoredToken } from '@/services/authStorage';
 
 export default function EditVendorProfileScreen() {
   const [formData, setFormData] = useState({
@@ -19,8 +18,6 @@ export default function EditVendorProfileScreen() {
     email: '',
     phone: '',
     address: '',
-    paymentInfo: '',
-    operationalHours: '',
     description: ''
   });
 
@@ -32,16 +29,15 @@ export default function EditVendorProfileScreen() {
 
   const fetchRestaurant = async () => {
     try {
-      const token = await SecureStore.getItemAsync('restaurant_token');
-      const data = await getRestaurantById(token);
+      const token = await getStoredToken('restaurant_token');
+      if (!token) throw new Error('Restaurant session is missing');
+      const data = await getMyRestaurant(token);
       setFormData({
         restaurantName: data.restaurantName || '',
         email: data.email || '',
         phone: data.phone || '',
         address: data.address || '',
-        operationalHours: data.operationalHours || '',
-        paymentInfo: data.paymentInfo || '',
-        description :data.description || ""
+        description: data.description || ""
       });
     } catch (error) {
       Alert.alert('Error', 'Failed to load restaurant data.');
@@ -56,9 +52,9 @@ export default function EditVendorProfileScreen() {
 
   const handleSave = async () => {
     try {
-      const token = await SecureStore.getItemAsync('token');
-      const updateData = await updateRestaurantData(formData.address,formData.email,formData.phone,formData.restaurantName,formData.description,token)
-       console.log( updateData)
+      const token = await getStoredToken('restaurant_token');
+      if (!token) throw new Error('Restaurant session is missing');
+      await updateRestaurantData(formData, token);
       Alert.alert('Success', 'Profile updated successfully.');
     } catch (error) {
       console.error(error);
@@ -108,20 +104,6 @@ export default function EditVendorProfileScreen() {
         onChangeText={(text) => handleChange('address', text)}
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Operational Hours"
-        value={formData.operationalHours}
-        onChangeText={(text) => handleChange('operationalHours', text)}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Payment Info"
-        value={formData.paymentInfo}
-        onChangeText={(text) => handleChange('paymentInfo', text)}
-      />
-       
        <TextInput
         style={styles.input}
         placeholder="description"

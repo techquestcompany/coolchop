@@ -1,26 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Alert, Button, Platform, SafeAreaView, StatusBar } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useNotification } from "@/components/NotificationContext";
 import * as Updates from "expo-updates";
 
 export default function HomeScreen() {
-  const { notification, expoPushToken, error } = useNotification();
   const { currentlyRunning, isUpdateAvailable, isUpdatePending } =
     Updates.useUpdates();
-
-  const [dummyState, setDummyState] = useState(0);
-
-  if (error) {
-    return <ThemedText>Error: {error.message}</ThemedText>;
-  }
 
   useEffect(() => {
     if (isUpdatePending) {
       // Update has successfully downloaded; apply it now
       // Updates.reloadAsync();
-      // setDummyState(dummyState + 1);
       // Alert.alert("Update downloaded and applied");
 
       dummyFunction();
@@ -36,7 +27,6 @@ export default function HomeScreen() {
 
     // UNCOMMENT TO REPRODUCE EAS UPDATE ERROR
     // } finally {
-    //   setDummyState(dummyState + 1);
     //   console.log("dummyFunction");
     // }
   };
@@ -70,15 +60,6 @@ export default function HomeScreen() {
             title="Download and run update"
           />
         ) : null}
-        <ThemedText type="subtitle" style={{ color: "red" }}>
-          Your push token:
-        </ThemedText>
-        <ThemedText>{expoPushToken}</ThemedText>
-        <ThemedText type="subtitle">Latest notification:</ThemedText>
-        <ThemedText>{notification?.request.content.title}</ThemedText>
-        <ThemedText>
-          {JSON.stringify(notification?.request.content.data, null, 2)}
-        </ThemedText>
       </SafeAreaView>
     </ThemedView>
   );

@@ -4,17 +4,29 @@ const {Cart,Dish} = require('../models');
 exports.addToCart = async (req, res) => {
   const userId = req.user.id; // ⭐ From token middleware
   const { dishId, quantity } = req.body;
+  const requestedQuantity = quantity === undefined ? 1 : Number(quantity);
 
-  if (!dishId) {
-    return res.status(400).json({ message: 'dishId is required' });
+  if (!Number.isInteger(Number(dishId)) || Number(dishId) < 1) {
+    return res.status(400).json({ message: 'A valid dishId is required' });
+  }
+  if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > 99) {
+    return res.status(400).json({ message: 'quantity must be between 1 and 99' });
   }
 
   try {
+    const dish = await Dish.findByPk(dishId);
+    if (!dish) {
+      return res.status(404).json({ message: 'Dish not found' });
+    }
+
     // Check if item already exists
     const existingItem = await Cart.findOne({ where: { userId, dishId } });
 
     if (existingItem) {
-      existingItem.quantity += quantity || 1;
+      if (existingItem.quantity + requestedQuantity > 99) {
+        return res.status(400).json({ message: 'Cart quantity cannot exceed 99' });
+      }
+      existingItem.quantity += requestedQuantity;
       await existingItem.save();
 
       return res.status(200).json({ message: 'Item quantity updated in cart' });
@@ -24,7 +36,7 @@ exports.addToCart = async (req, res) => {
     await Cart.create({
       userId,
       dishId,
-      quantity: quantity || 1
+      quantity: requestedQuantity
     });
 
     res.status(201).json({ message: 'Item added to cart' });
@@ -62,8 +74,8 @@ exports.removeFromCart = async (req, res) => {
   const userId = req.user.id;
   const { dishId } = req.body;
 
-  if (!dishId) {
-    return res.status(400).json({ message: 'dishId is required' });
+  if (!Number.isInteger(Number(dishId)) || Number(dishId) < 1) {
+    return res.status(400).json({ message: 'A valid dishId is required' });
   }
 
   try {
@@ -81,8 +93,12 @@ exports.updateCartQuantity = async (req, res) => {
   const userId = req.user.id;
   const { dishId, quantity } = req.body;
 
-  if (!dishId || quantity === undefined) {
-    return res.status(400).json({ message: 'dishId and quantity are required' });
+  const requestedQuantity = Number(quantity);
+  if (!Number.isInteger(Number(dishId)) || Number(dishId) < 1) {
+    return res.status(400).json({ message: 'A valid dishId is required' });
+  }
+  if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > 99) {
+    return res.status(400).json({ message: 'quantity must be between 1 and 99' });
   }
 
   try {
@@ -92,7 +108,7 @@ exports.updateCartQuantity = async (req, res) => {
       return res.status(404).json({ message: 'Dish not found in cart' });
     }
 
-    cartItem.quantity = quantity;
+    cartItem.quantity = requestedQuantity;
     await cartItem.save();
 
     res.status(200).json({ message: 'Cart item quantity updated', cartItem });

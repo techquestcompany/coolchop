@@ -9,8 +9,8 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { fetchOrdersByUser, updateOrder, getUserData } from '../services/api';
+import { fetchOrdersByUser, updateOrder } from '../services/api';
+import { getStoredToken } from '../services/authStorage';
 
 const parseItems = (items) => {
   if (!items) return [];
@@ -40,9 +40,8 @@ const UserOrders = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = await SecureStore.getItemAsync('customer_token');
-        const userData = await getUserData(token);
-        const userId = userData.id;
+        const token = await getStoredToken('customer_token');
+        if (!token) throw new Error('Customer session is missing');
         const data = await fetchOrdersByUser(token);
         setOrders(data);
         setFilteredOrders(data.slice(0, itemsPerPage));
@@ -56,11 +55,13 @@ const UserOrders = () => {
     init();
   }, []);
 
-  const cancelOrder = async (orderNumber) => {
+  const cancelOrder = async (order) => {
     try {
-      await updateOrder(orderNumber, 'cancelled');
-      const updatedOrders = orders.map(order =>
-        order.orderNumber === orderNumber ? { ...order, status: 'cancelled' } : order
+      const token = await getStoredToken('customer_token');
+      if (!token) throw new Error('Customer session is missing');
+      await updateOrder(order.id, { status: 'cancelled' }, token);
+      const updatedOrders = orders.map(existingOrder =>
+        existingOrder.id === order.id ? { ...existingOrder, status: 'cancelled' } : existingOrder
       );
       setOrders(updatedOrders);
       setFilteredOrders(updatedOrders.slice(0, page * itemsPerPage));
@@ -110,9 +111,9 @@ const UserOrders = () => {
         </Text>
       </Text>
 
-      {item.status === 'pending' && (
+      {item.status === 'pending' && !item.reference && (
         <TouchableOpacity
-          onPress={() => cancelOrder(item.orderNumber)}
+          onPress={() => cancelOrder(item)}
           style={styles.cancelButton}
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>

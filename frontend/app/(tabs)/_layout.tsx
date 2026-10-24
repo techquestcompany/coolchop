@@ -10,15 +10,17 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="(homeDrawer)"
       screenOptions={{
         tabBarActiveTintColor: Colors.light.tint,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF', 
+          backgroundColor: '#FFFFFF',
         },
         headerShown: false,
-      }}>
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="(homeDrawer)"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (

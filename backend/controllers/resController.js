@@ -2,6 +2,7 @@ const {Dish,Restaurant} =require("../models")
 const bcrypt = require('bcryptjs');
 const { encrypt, decrypt } = require('../utils/encryption');
 const nodemailer = require('nodemailer');
+const { Op } = require("sequelize");
 require('dotenv').config();
 const jwt = require("jsonwebtoken");
 const { Model } = require('sequelize');
@@ -72,11 +73,10 @@ exports.login = async (req, res) => {
 
     // Generate token with expiration
     const token = jwt.sign(
-      { email: restaurant.email, id: restaurant.id },
+      { email: restaurant.email, id: restaurant.id, role: "restaurant" },
       process.env.JWT_SECRET,
       { expiresIn: "24h" } 
     );
-  console.log(token)
     // Return successful login response
     return res.status(200).json({
       message: "Login successful",
@@ -123,7 +123,6 @@ exports.addRestaurant = async (req, res) => {
       description,
       password: hashedPassword 
     });
-console.log(restaurant)
     res.status(201).json({
       message: 'Restaurant registered successfully. Our team will contact you for the next step.',
       restaurant: { id: restaurant.id, email: restaurant.email } 
@@ -142,7 +141,17 @@ exports.createDishes = async (req, res) => {
 
   const dishes = req.body.dishes;
 
-  if (!dishes || !Array.isArray(dishes)) {
+  if (
+    !Array.isArray(dishes) ||
+    dishes.length === 0 ||
+    dishes.some(
+      (dish) =>
+        typeof dish?.dishName !== "string" ||
+        !dish.dishName.trim() ||
+        !Number.isFinite(Number(dish.price)) ||
+        Number(dish.price) < 0
+    )
+  ) {
     return res.status(400).json({ message: "Invalid input, dishes must be an array" });
   }
 
@@ -168,11 +177,15 @@ exports.createDishes = async (req, res) => {
 // GET /restaurants?page=1&limit=10
 exports.getAllRestaurants = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(Number.parseInt(req.query.limit, 10) || 10, 50);
+    if (page < 1 || limit < 1) {
+      return res.status(400).json({ message: "Invalid page or limit" });
+    }
     const offset = (page - 1) * limit;
 
     const { count, rows } = await Restaurant.findAndCountAll({
+      attributes: { exclude: ["password"] },
       limit,
       offset,
       order: [['createdAt', 'DESC']], 
@@ -217,7 +230,10 @@ exports.getRestaurantById = async (req, res) => {
     const restaurantId =req.user.id
 
 
-    const restaurant = await Restaurant.findOne({ where: { id: restaurantId } });
+    const restaurant = await Restaurant.findOne({
+      where: { id: restaurantId },
+      attributes: { exclude: ["password"] },
+    });
     if (restaurant) {
       res.status(200).json(restaurant);
     } else {
@@ -226,6 +242,26 @@ exports.getRestaurantById = async (req, res) => {
   } catch (error) {
     console.error('Error retrieving restaurant:', error);
     res.status(500).json({ message: 'Error retrieving restaurant', error });
+  }
+};
+
+exports.getPublicRestaurantById = async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(400).json({ message: "A valid restaurant ID is required" });
+  }
+
+  try {
+    const restaurant = await Restaurant.findByPk(id, {
+      attributes: ["id", "restaurantName", "description", "address", "phone", "profileImage", "ratings", "reviews"],
+    });
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+    return res.status(200).json(restaurant);
+  } catch (error) {
+    console.error("Error retrieving restaurant:", error.message);
+    return res.status(500).json({ message: "Error retrieving restaurant" });
   }
 };
 
@@ -263,9 +299,9 @@ exports.deleteDish = async (req, res) => {
     }
 
 
-    /*if (dish.restaurantId !== req.user.id) {
+    if (Number(dish.restaurantId) !== req.user.id) {
       return res.status(403).json({ message: "You are not authorized to delete this dish" });
-    }*/
+    }
 
     // Delete the dish
     await dish.destroy();
@@ -274,6 +310,24 @@ exports.deleteDish = async (req, res) => {
   } catch (error) {
     console.error("Error deleting dish:", error);
     res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+exports.getDishesForRestaurant = async (req, res) => {
+  const restaurantId = Number(req.params.restaurantId);
+  if (!Number.isInteger(restaurantId) || restaurantId < 1) {
+    return res.status(400).json({ message: "A valid restaurant ID is required" });
+  }
+
+  try {
+    const dishes = await Dish.findAll({
+      where: { restaurantId },
+      order: [["createdAt", "DESC"]],
+    });
+    return res.status(200).json(dishes);
+  } catch (error) {
+    console.error("Error retrieving restaurant dishes:", error.message);
+    return res.status(500).json({ message: "Error retrieving restaurant dishes" });
   }
 };
 
@@ -303,11 +357,16 @@ exports.getDishesByRestaurantId = async (req, res) => {
 // Get all dishes
 exports.getAllDishes = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(Number.parseInt(req.query.limit, 10) || 10, 50);
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    if (page < 1 || limit < 1 || search.length > 100) {
+      return res.status(400).json({ message: "Invalid page, limit, or search value" });
+    }
     const offset = (page - 1) * limit;
 
     const { count, rows } = await Dish.findAndCountAll({
+      where: search ? { dishName: { [Op.like]: `%${search}%` } } : undefined,
       limit,
       offset,
       order: [['createdAt', 'DESC']], 
@@ -351,54 +410,50 @@ exports.getDishById = async (req, res) => {
 };
 
 
-exports.upDateRestaurantData = async (req, res) => {
-  const {
-    restaurantName,
-    email,
-    phone,
-    address,
-    description,
-    paymentInfo,
-    operationalHours
-  } = req.body;
-
-  // Check for empty fields
+exports.updateRestaurantProfile = async (req, res) => {
+  const allowedFields = ["restaurantName", "email", "phone", "address", "description"];
+  const updates = Object.fromEntries(
+    allowedFields
+      .filter((field) => Object.prototype.hasOwnProperty.call(req.body, field))
+      .map((field) => [field, req.body[field]])
+  );
+  const hasInvalidValue = Object.values(updates).some(
+    (value) => typeof value !== "string" || !value.trim()
+  );
 
   if (
-    !restaurantName || !email || !phone || !address ||
-    !description || !paymentInfo || !operationalHours
+    Object.keys(updates).length === 0 ||
+    Object.keys(req.body).some((field) => !allowedFields.includes(field)) ||
+    hasInvalidValue
   ) {
-    return res.status(400).json({ message: "All fields are required" });
+    return res.status(400).json({ message: "Provide valid restaurant profile fields only" });
   }
 
-  const restaurantId = req.user;
-
   try {
-    const restaurant = await Restaurant.findOne({ where: { restaurantId } });
-
+    const restaurant = await Restaurant.findByPk(req.user.id);
     if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
-    await Restaurant.update(
-      {
-        restaurantName,
-        email,
-        operationalHours,
-        paymentInfo,
-        phone,
-        address,
-        description
-      },
-      { where: { restaurantId } }
+    await restaurant.update(
+      Object.fromEntries(
+        Object.entries(updates).map(([field, value]) => [field, value.trim()])
+      )
     );
-
-    return res.status(200).json({ message: "Restaurant updated successfully"});
+    return res.status(200).json({
+      message: "Restaurant profile updated successfully",
+      restaurant: await Restaurant.findByPk(req.user.id, {
+        attributes: { exclude: ["password"] },
+      }),
+    });
   } catch (error) {
-    console.error("Update error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({ message: "Email, phone, or address is already in use" });
+    }
+    console.error("Restaurant profile update failed:", error.message);
+    return res.status(500).json({ message: "Could not update restaurant profile" });
   }
-}
+};
 
 exports.deleteRestaurant = async (req, res) => {
   try {
@@ -418,5 +473,3 @@ exports.deleteRestaurant = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-

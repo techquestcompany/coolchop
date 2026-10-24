@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import * as SecureStore from 'expo-secure-store';
-import { baseURL, getRestaurantById } from "@/services/api";
+import { baseURL, getMyRestaurant } from "@/services/api";
+import { getStoredToken } from "@/services/authStorage";
 
 
 export default function VendorProfileScreen() {
@@ -26,8 +26,9 @@ export default function VendorProfileScreen() {
   const fetchRestaurant = async () => {
     setIsLoading(true);
     try {
-      const token = await SecureStore.getItemAsync('restaurant_token');
-      const data = await getRestaurantById(token);
+      const token = await getStoredToken('restaurant_token');
+      if (!token) throw new Error('Restaurant session is missing');
+      const data = await getMyRestaurant(token);
       setRestaurantData(data);
     } catch (err) {
       setError("Failed to load restaurant data.");

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text,TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation } from "expo-router/react-navigation";
 import {Picker} from '@react-native-picker/picker';
 import { signUp } from '../services/api';
 

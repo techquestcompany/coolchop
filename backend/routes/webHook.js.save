@@ -4,7 +4,6 @@ const router = express.Router();
 const bodyParser = require("body-parser");
 const { Order, User, Transaction } = require('../models');
 const { sendOrderConfirmation } = require('../utils/mail');
-const { sendPush } = require('../utils/push');
 
 router.post(
   '/webhook',bodyParser.raw(type:"*"}),
@@ -58,10 +57,6 @@ router.post(
 
         const user = await User.findByPk(order.userId);
         if (user?.email) await sendOrderConfirmation(user.email, ref, order.totalAmount);
-        if (user?.expoToken) await sendPush(user.expoToken, `Order ${ref} confirmed. Total ₵${order.totalAmount / 100}`);
-
-        const rider = await User.findOne({ where: { role: 'rider' } });
-        if (rider?.expoToken) await sendPush(rider.expoToken, `📦 New order to deliver: Ref ${ref}`);
 
         console.log(`Order ${ref} and Transaction updated.`);
       }

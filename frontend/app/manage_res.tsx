@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { DataTable, Button, Text, Menu, IconButton } from 'react-native-paper';
-import { useRouter } from 'expo-router';
-import { getAllRestaurants, deleteRestaurantById, approveRestaurantById } from '../services/api';
+import { DataTable, Text, Menu, IconButton } from 'react-native-paper';
+import { getAllRestaurants, approveRestaurantById } from '../services/api';
+import { getStoredToken } from '../services/authStorage';
+
+interface ManagedRestaurant {
+  id: number;
+  restaurantName: string;
+  email: string;
+  phone: string;
+  isVerified: boolean;
+}
 
 const App = () => {
-  const router = useRouter();
-  const [restaurants, setRestaurants] = useState([]);
+  const [restaurants, setRestaurants] = useState<ManagedRestaurant[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [menuVisible, setMenuVisible] = useState({}); 
+  const [menuVisible, setMenuVisible] = useState<Record<number, boolean>>({});
 
   const fetchRestaurants = async (currentPage = 1) => {
     try {
@@ -26,41 +33,19 @@ const App = () => {
     fetchRestaurants();
   }, []);
 
-  const openMenu = (id) => {
+  const openMenu = (id: number) => {
     setMenuVisible((prev) => ({ ...prev, [id]: true }));
   };
 
-  const closeMenu = (id) => {
+  const closeMenu = (id: number) => {
     setMenuVisible((prev) => ({ ...prev, [id]: false }));
   };
 
-  const deleteRestaurant = (id) => {
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this restaurant?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteRestaurantById(id);
-              setRestaurants((prev) => prev.filter((r) => r.id !== id));
-              Alert.alert('Success', 'Restaurant deleted');
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete restaurant.');
-            }
-          },
-        },
-      ],
-      { cancelable: true }  
-    );
-  };
-
-  const approveRestaurant = async (id) => {
+  const approveRestaurant = async (id: number) => {
     try {
-      await approveRestaurantById(id);
+      const token = await getStoredToken('customer_token');
+      if (!token) throw new Error('Admin session is missing');
+      await approveRestaurantById(id, token);
       setRestaurants((prev) =>
         prev.map((r) => (r.id === id ? { ...r, isVerified: true } : r))
       ); 
@@ -70,24 +55,26 @@ const App = () => {
     }
   };
 
-  const renderRow = ({ item }) => (
+  const renderRow = ({ item }: { item: ManagedRestaurant }) => (
     <DataTable.Row key={item.id}>
       <DataTable.Cell style={{ flex: 1 }}>{item.restaurantName}</DataTable.Cell>
       <DataTable.Cell style={{ flex: 1 }}>{item.email}</DataTable.Cell>
       <DataTable.Cell style={{ flex: 1 }}>{item.phone}</DataTable.Cell>
       <DataTable.Cell>
-        <Menu
-          visible={menuVisible[item.id] || false}
-          onDismiss={() => closeMenu(item.id)}
-          anchor={
-            <IconButton
-              icon="dots-vertical"
-              size={24}
-              onPress={() => openMenu(item.id)}
-            />
-          }
-        >
-          {!item.verified && (
+        {item.isVerified ? (
+          <Text>Approved</Text>
+        ) : (
+          <Menu
+            visible={menuVisible[item.id] || false}
+            onDismiss={() => closeMenu(item.id)}
+            anchor={
+              <IconButton
+                icon="dots-vertical"
+                size={24}
+                onPress={() => openMenu(item.id)}
+              />
+            }
+          >
             <Menu.Item
               onPress={() => {
                 closeMenu(item.id);
@@ -96,16 +83,8 @@ const App = () => {
               title="Approve"
               leadingIcon="check-circle-outline"
             />
-          )}
-          <Menu.Item
-            onPress={() => {
-              closeMenu(item.id);
-              deleteRestaurant(item.id);
-            }}
-            title="Delete"
-            leadingIcon="delete-outline"
-          />
-        </Menu>
+          </Menu>
+        )}
       </DataTable.Cell>
     </DataTable.Row>
   );

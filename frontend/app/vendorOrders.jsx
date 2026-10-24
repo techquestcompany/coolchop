@@ -8,12 +8,11 @@ import {
   TouchableOpacity,
   FlatList,
   Alert,
-  Modal,
   ActivityIndicator,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import * as SecureStore from 'expo-secure-store';
-import { fetchOrdersByUser, deleteOrder, updateOrder } from '../services/api';
+import { fetchRestaurantOrders, updateOrder } from '../services/api';
+import { getStoredToken } from '../services/authStorage';
 
 /* ---------- Helper to safely parse order items ---------- */
 const parseItems = (items) => {
@@ -31,8 +30,6 @@ const parseItems = (items) => {
 const VendorOrders = () => {
   const [searchValue, setSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState(null);
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +41,7 @@ const VendorOrders = () => {
 
   const loadTokenAndOrders = async () => {
     try {
-      const storedToken = await SecureStore.getItemAsync('restaurant_token');
+      const storedToken = await getStoredToken('restaurant_token');
       if (!storedToken) {
         Alert.alert('Error', 'No token found. Please log in.');
         return;
@@ -59,7 +56,7 @@ const VendorOrders = () => {
   const loadOrders = async (jwtToken) => {
     try {
       setLoading(true);
-      const data = await fetchOrdersByUser(jwtToken);
+      const data = await fetchRestaurantOrders(jwtToken);
       setOrders(data);
       setFilteredOrders(data);
     } catch (error) {
@@ -86,28 +83,9 @@ const VendorOrders = () => {
     setFilteredOrders(filtered);
   };
 
-  const handleDelete = async () => {
-    if (!orderToDelete) return;
-
-    try {
-      await deleteOrder(orderToDelete.orderNumber, token);
-      Alert.alert('Success', 'Order deleted');
-
-      const updated = orders.filter(
-        (o) => o.orderNumber !== orderToDelete.orderNumber
-      );
-      setOrders(updated);
-      setFilteredOrders(updated);
-      setOpenDeleteDialog(false);
-    } catch (error) {
-      console.error('Delete error:', error);
-      Alert.alert('Error', 'Delete failed');
-    }
-  };
-
  const handleStatusChange = async (orderId, newStatus) => {
   try {
-    await updateOrder(orderId, { status: newStatus });
+    await updateOrder(orderId, { status: newStatus }, token);
 
     const updated = orders.map(order =>
       order.id === orderId ? { ...order, status: newStatus } : order
@@ -156,9 +134,9 @@ const VendorOrders = () => {
             onValueChange={setStatusFilter}
           >
             <Picker.Item label="All" value="all" />
-            <Picker.Item label="Pending" value="pending" />
             <Picker.Item label="Preparing" value="preparing" />
-            <Picker.Item label="Completed" value="completed" />
+            <Picker.Item label="On delivery" value="on_delivery" />
+            <Picker.Item label="Delivered" value="delivered" />
           </Picker>
         </View>
       </View>
@@ -195,23 +173,13 @@ const VendorOrders = () => {
                     selectedValue={item.status}
                     style={styles.statusPicker}
                     onValueChange={(value) =>
-                      handleStatusChange(item.orderNumber, value)
+                      handleStatusChange(item.id, value)
                     }
                   >
-                    <Picker.Item label="Pending" value="pending" />
                     <Picker.Item label="Preparing" value="preparing" />
-                    <Picker.Item label="Completed" value="completed" />
+                    <Picker.Item label="On delivery" value="on_delivery" />
+                    <Picker.Item label="Delivered" value="delivered" />
                   </Picker>
-
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => {
-                      setOrderToDelete(item);
-                      setOpenDeleteDialog(true);
-                    }}
-                  >
-                    <Text style={styles.deleteButtonText}>Delete</Text>
-                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -219,30 +187,6 @@ const VendorOrders = () => {
         />
       )}
 
-      {/* Delete Modal */}
-      <Modal visible={openDeleteDialog} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalText}>
-              Delete this order permanently?
-            </Text>
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setOpenDeleteDialog(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalConfirmButton]}
-                onPress={handleDelete}
-              >
-                <Text style={styles.modalButtonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -279,24 +223,8 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   statusPicker: { flex: 1 },
 
-  deleteButton: {
-    backgroundColor: '#dc3545',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    marginLeft: 10,
-  },
-  deleteButtonText: { color: '#fff' },
 
   noOrdersText: { textAlign: 'center', fontSize: 16, marginTop: 30 },
-
-  modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 10, margin: 20 },
-  modalText: { fontSize: 18, textAlign: 'center', marginBottom: 20 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
-  modalButton: { padding: 10, backgroundColor: '#6c757d', borderRadius: 6, flex: 1, marginHorizontal: 5 },
-  modalConfirmButton: { backgroundColor: '#dc3545' },
-  modalButtonText: { color: '#fff', textAlign: 'center' },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

@@ -1,41 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import UserSettings from '../UserSettings';
-import UserHome from '../UserHome';
-import Cart from '../cart';
-import Orders from '../order';
-import UserSupport from '../UserSupport';
-import Logout from '../logout';
-import { baseURL, getUserData } from '@/services/api';
-import * as SecureStore from 'expo-secure-store';
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Drawer, DrawerToggleButton } from 'expo-router/drawer';
 import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Image, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { baseURL, getUserData } from '@/services/api';
 
-const Drawer = createDrawerNavigator();
-
-export default function App() {
+export default function CustomerDrawerLayout() {
   const [profile, setProfile] = useState('');
 
   useEffect(() => {
-    getProfileImage();
+    const loadProfile = async () => {
+      try {
+        const token =
+          (await SecureStore.getItemAsync('customer_token')) ??
+          (await SecureStore.getItemAsync('token'));
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const user = await getUserData(token);
+        setProfile(user.profileImage);
+      } catch (error) {
+        console.error('Failed to load customer profile image:', error);
+      }
+    };
+
+    loadProfile();
   }, []);
 
-  const getProfileImage = async () => {
-    const token = await SecureStore.getItemAsync('token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const user = await getUserData(token);
-    setProfile(user.profileImage);
-  };
-
   return (
-    <Drawer.Navigator
-      initialRouteName="UserHome"
-      screenOptions={({ navigation }) => ({
+    <Drawer
+      initialRouteName="index"
+      screenOptions={{
         headerStyle: {
           backgroundColor: '#fff',
           height: 80,
@@ -45,13 +42,12 @@ export default function App() {
             COOL <Text style={styles.headerChop}>CHOP</Text>
           </Text>
         ),
-        headerLeft: () => (
-          <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={styles.menuButton}>
-            <Ionicons name="menu" size={28} color="black" />
-          </TouchableOpacity>
-        ),
+        headerLeft: () => <DrawerToggleButton tintColor="black" />,
         headerRight: () => (
-          <TouchableOpacity style={styles.profileContainer} onPress={() => router.push('/profile')}>
+          <TouchableOpacity
+            style={styles.profileContainer}
+            onPress={() => router.push('/profile')}
+          >
             <Image
               source={{ uri: `${baseURL}/public/uploads/${profile}` }}
               style={styles.profileImage}
@@ -68,57 +64,52 @@ export default function App() {
           borderRadius: 10,
           marginVertical: 5,
         },
-      })}
+      }}
     >
       <Drawer.Screen
-        name="UserHome"
-        component={UserHome}
+        name="index"
         options={{
+          title: 'Home',
+          drawerLabel: 'Home',
           drawerIcon: () => <FontAwesome name="home" size={20} color="black" />,
-          drawerLabel: "Home"
         }}
       />
       <Drawer.Screen
-        name="cart"
-        component={Cart}
+        name="customer-cart"
         options={{
+          title: 'Cart',
           drawerIcon: () => <FontAwesome name="shopping-cart" size={20} color="black" />,
-          drawerLabel: "Cart"
         }}
       />
       <Drawer.Screen
-        name="order"
-        component={Orders}
+        name="customer-orders"
         options={{
+          title: 'Orders',
           drawerIcon: () => <FontAwesome name="motorcycle" size={20} color="black" />,
-          drawerLabel: "Orders"
         }}
       />
       <Drawer.Screen
-        name="UserSettings"
-        component={UserSettings}
+        name="customer-settings"
         options={{
+          title: 'Settings',
           drawerIcon: () => <FontAwesome name="cogs" size={20} color="black" />,
-          drawerLabel: "Settings"
         }}
       />
       <Drawer.Screen
-        name="UserSupport"
-        component={UserSupport}
+        name="customer-support"
         options={{
+          title: 'Support',
           drawerIcon: () => <Ionicons name="help" size={20} color="black" />,
-          drawerLabel: "Support"
         }}
       />
       <Drawer.Screen
-        name="Logout"
-        component={Logout}
+        name="customer-logout"
         options={{
+          title: 'Logout',
           drawerIcon: () => <MaterialIcons name="logout" size={24} color="black" />,
-          drawerLabel: "Logout"
         }}
       />
-    </Drawer.Navigator>
+    </Drawer>
   );
 }
 
@@ -127,13 +118,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
-    fontFamily: 'Roboto', // Use a custom font if needed
+    fontFamily: 'Roboto',
   },
   headerChop: {
-    color: '#D32F2F', 
-  },
-  menuButton: {
-    marginLeft: 10,
+    color: '#D32F2F',
   },
   profileContainer: {
     width: 50,

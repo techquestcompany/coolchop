@@ -1,17 +1,16 @@
 import axios from "axios";
-                   
-                                    
-export const API_URL = 'https://www.coolchop.info/api';
-export const baseURL = 'https://www.coolchop.info';
+import Constants from "expo-constants";
 
-//export const API_URL = "https://www.coolchop.info.anglabytestudio.com/api"
-//export const BASE_URL = "https://www.coolchop.info.anglabytestudio.com/"
+
+
+export const API_URL = "https://www.coolchop.xyz/api"
+export const BASE_URL = "https://www.coolchop.xyz/api"
 // const API_URL = 'http://192.168.0.103:3000/api';
 //13.60.180.213
 // 172.20.10.5
 
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -45,11 +44,7 @@ export const signUp = async (name: string, email: string, phone: string,  passwo
 
 export const login = async (email: string, password: string) => {
   try {
-    console.log("Attempting to log in with:", email, password);
-
     const response = await api.post('/user/login', { email, password });
-    
-    console.log("Login Response:", response.data); 
 
     return response.data;
   } catch (error) {
@@ -84,22 +79,23 @@ export const getUserData = async (token: string) => {
     throw error;
   }
 };
-export const getAllUsers = async (page =1 , limit=10) => {
+export const getAllUsers = async (token: string, page = 1, limit = 10) => {
   try {
-    const response = await api.get(`/user/allUsers?page=${page}&limit=${limit}`, 
-      
-    );
+    const response = await api.get(`/user/allUsers?page=${page}&limit=${limit}`, {
+      headers: { Authorization: `Bearer ${token}`, },
+    });
     return response.data;
   } catch (error) {
-    console.error('Error getting user data:', error?.response.data);
+    console.error('Error getting user data:', error?.response?.data);
     throw error;
   }
 };
 
-export const approveRestaurantById = async (id) =>{
+export const approveRestaurantById = async (id, token: string) =>{
   try {
     const response = await api.patch(`/restaurant/approve/${id}`, 
-      
+      {},
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     return response.data;
   } catch (error) {
@@ -108,18 +104,6 @@ export const approveRestaurantById = async (id) =>{
   }
 }
 
-
-export const deleteUserById = async (id) => {
-  try {
-    const response = await api.delete(`/user/${id}`, 
-      
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error getting user data:', error?.response.data);
-    throw error;
-  }
-};
 
 export const updateUserData = async (data, token) => {
   try {
@@ -183,7 +167,7 @@ export const sendVerification= async (email: string)=>{
   }
 
 }
-export const uploadImage = async (profileImage: string) => {
+export const uploadImage = async (profileImage: string, token: string) => {
   const formData = new FormData();
   formData.append('profileImage', {
     uri: profileImage,
@@ -195,6 +179,7 @@ export const uploadImage = async (profileImage: string) => {
     const response = await api.post('/upload/upload_image', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${token}`,
       },
     });
     console.log(response.data);
@@ -228,18 +213,21 @@ export const loginRestaurant = async (email : string, password : string) => {
   }
 };
 
-export const updateRestaurantData = async (restaurantName: string, email: string, phone: string, address: string, description: string, paymentInfo: number,operationalHours:string, token:string)=>{
-  try{
-  const response = await api.post('/restaurant/update',{restaurantName, email, phone, address, description,paymentInfo,operationalHours},{
-    headers:{
-      "Authorization":`Bearer ${token} `
-    }
-  })
-  }catch(error){
-
-  }
-
-}
+export const updateRestaurantData = async (
+  profile: {
+    restaurantName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    description?: string;
+  },
+  token: string
+) => {
+  const response = await api.patch('/restaurant/myrestaurant', profile, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
 export const submitDishes = async (dishes ,token:string): Promise<any> => {
   try {
     const response = await api.post('/restaurant/dish', { dishes },{
@@ -266,38 +254,34 @@ export const getAllRestaurants = async (page= 1, limit =10) => {
 };
 
 // Get restaurant by ID
-export const getRestaurantById = async (token:string) => {
+export const getRestaurantById = async (restaurantId: string | number) => {
   try {
-    const response = await api.get('restaurant/myrestaurant', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await api.get(`/restaurant/restaurants/${restaurantId}`);
     return response.data;
   } catch (error) {
-    console.error(`Error fetching restaurant with ID: ${token}`, error);
+    console.error(`Error fetching restaurant with ID: ${restaurantId}`, error);
     throw error;
   }
 };
 
-export const deleteRestaurantById = async (id) => {
+export const getMyRestaurant = async (token: string) => {
+  const response = await api.get('/restaurant/myrestaurant', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const getDishesByRestaurantId = async (restaurantId: string | number) => {
   try {
-    const response = await fetch(`/restaurants/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to delete restaurant');
-    }
-
-    return true; // success
+    const response = await api.get(`/restaurant/restaurants/${restaurantId}/dishes`);
+    return response.data;
   } catch (error) {
-    console.error('Delete error:', error);
+    console.error(`Error fetching dishes for restaurant ${restaurantId}:`, error);
     throw error;
   }
 };
 
-export const getDishesByRestaurantId = async (token: string) => {
+export const getMyRestaurantDishes = async (token: string) => {
   try {
     const response = await api.get('restaurant/restaurant_dish', {
       headers: {
@@ -306,15 +290,20 @@ export const getDishesByRestaurantId = async (token: string) => {
     });
     return response.data;
   } catch (error) {
-    console.error(`Error fetching restaurant with ID: ${id}`, error);
+    console.error('Error fetching restaurant dishes:', error);
     throw error;
   }
 };
 
 // Get all dishes
-export const getAllDishes = async (page = 1, limit=20) => {
+export const getAllDishes = async (search = "", page = 1, limit = 20) => {
   try {
-    const response = await api.get(`restaurant/dishes?page=${page}&limit=${limit}`);
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+      search,
+    });
+    const response = await api.get(`restaurant/dishes?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching dishes', error);
@@ -409,20 +398,6 @@ export const deleteFromCart = async (user_id: string, dishId: string) => {
 };
 
 // Function to save an order
-export const saveOrder = async (order: {
-  userId: number;
-  items: { id: number; quantity: number }[];
-  note?: string;
-}) => {
-  try {
-    const response = await api.post('/orders/save', order);
-    return response.data;
-  } catch (error) {
-    console.error('Error saving order:', error);
-    throw error;
-  }
-};
-
 export const fetchOrdersByUser = async (token: string) => {
   try {
     const response = await api.get('/orders/user_orders', {
@@ -440,9 +415,11 @@ export const fetchOrdersByUser = async (token: string) => {
 };
 
 // Function to fetch an order by user ID
-export const fetchAllOrders = async () => {
+export const fetchAllOrders = async (token: string) => {
   try {
-    const response = await api.get('/orders/all_orders');
+    const response = await api.get('/orders/all_orders', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data;
   } catch (error) {
     console.error('Error fetching all orders:', error);
@@ -450,13 +427,21 @@ export const fetchAllOrders = async () => {
   }
 };
 
+export const fetchRestaurantOrders = async (token: string) => {
+  const response = await api.get('/orders/restaurant_orders', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
 
 
 // Function to delete an order by ID
-export const deleteOrder = async (orderId: string, userId?: string) => {
+export const deleteOrder = async (orderId: string, token: string) => {
   try {
-    const payload = userId ? { userId } : {};
-    const response = await api.delete(`/orders/${orderId}`, { data: payload });
+    const response = await api.delete(`/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data;
   } catch (error) {
     console.error('Error deleting order:', error);
@@ -465,9 +450,12 @@ export const deleteOrder = async (orderId: string, userId?: string) => {
 };
 export const updateOrder = async (
   orderId: string,
-  updatedData: { status?: string }
+  updatedData: { status?: string },
+  token: string
 ) => {
-  const response = await api.put(`/orders/${orderId}`, updatedData);
+  const response = await api.put(`/orders/${orderId}`, updatedData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
@@ -691,13 +679,14 @@ export const deleteAccount =async (token:string)=>{
   };
 
  export const InitTransactionReq = async (
-  email: string,
-  amount: number,
-  order: { userId: number; items: { id: number; quantity: number }[]; note?: string }
+  order: { items: { id: number; quantity: number }[]; note?: string },
+  token: string
 ) => {
   try {
-    const response = await api.post("/payments/initialise", { email, amount, order });
-    return response.data; // { authorization_url, reference, access_code }
+    const response = await api.post("/payments/initialise", order, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
   } catch (error: any) {
     console.error("Error initialising a transaction:", error?.response?.data || error.message);
     throw error;
@@ -740,3 +729,49 @@ export const acceptRiderOrder = (orderId: number, token: string) =>
       },
     }
   );
+
+export const getMyCart = async (token: string) => {
+  const response = await api.get('/cart/get', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const addToMyCart = async (dishId: number | string, quantity: number, token: string) => {
+  const response = await api.post(
+    '/cart/add',
+    { dishId, quantity },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const setMyCartQuantity = async (
+  dishId: number | string,
+  quantity: number,
+  token: string
+) => {
+  const response = await api.put(
+    '/cart/update-quantity',
+    { dishId, quantity },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const removeFromMyCart = async (dishId: number | string, token: string) => {
+  const response = await api.delete('/cart/remove', {
+    data: { dishId },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const reconcilePayment = async (reference: string, token: string) => {
+  const response = await api.post(
+    `/payments/reconcile/${encodeURIComponent(reference)}`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};

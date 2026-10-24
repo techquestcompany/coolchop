@@ -3,7 +3,7 @@ import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, StyleSheet 
 import { router } from 'expo-router';
 import { changePassword,passResetVerifyCode } from '../services/api';
 import Toast from 'react-native-toast-message';
-import { useRoute } from '@react-navigation/native';
+import { useRoute } from 'expo-router/react-navigation';
 
 
 const VerificationScreen = () => {

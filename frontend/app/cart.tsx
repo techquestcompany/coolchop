@@ -9,10 +9,16 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
+  Platform,
 } from "react-native";
-import { getCartItems, deleteFromCart, updateCartQuantity, saveOrder, getDishById, baseURL } from "@/services/api";
+import { getMyCart, removeFromMyCart, setMyCartQuantity, baseURL } from "@/services/api";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
+
+const getCustomerToken = async () =>
+  Platform.OS === "web"
+    ? localStorage.getItem("customer_token")
+    : SecureStore.getItemAsync("customer_token");
 
 const CartScreen = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -26,23 +32,13 @@ const CartScreen = () => {
 
   const fetchCartItems = async () => {
     try {
-      const userId = await SecureStore.getItemAsync("userId");
-
-      const items = await getCartItems(userId);
-      
-
-      const dishPromises = items.map(async (item) => {
-        const dish = await getDishById(item.dishId);
-        return {
-          ...dish,
-          id: item.dishId,
-          quantity: item.quantity, 
-        };
-      });
-
-
-      const dishes = await Promise.all(dishPromises);
-      setCartItems(dishes);
+      const token = await getCustomerToken();
+      if (!token) throw new Error("Please sign in to view your cart.");
+      const items = await getMyCart(token);
+      setCartItems(items.filter((item) => item.Dish).map((item) => ({
+        ...item.Dish,
+        quantity: item.quantity,
+      })));
       setIsLoading(false);
     } catch (err) {
       console.error("Failed to fetch cart items:", err);
@@ -53,8 +49,9 @@ const CartScreen = () => {
 
   const handleRemove = async (dishId) => {
     try {
-      const userId = await SecureStore.getItemAsync("userId");
-      await deleteFromCart(userId, dishId);
+      const token = await getCustomerToken();
+      if (!token) throw new Error("Please sign in to update your cart.");
+      await removeFromMyCart(dishId, token);
       setCartItems(cartItems.filter((item) => item.id !== dishId));
     } catch (err) {
       console.error("Failed to remove item:", err);
@@ -64,8 +61,9 @@ const CartScreen = () => {
   const handleQuantityChange = async (dishId, newQuantity) => {
     if (newQuantity < 1) return;
     try {
-      const userId = await SecureStore.getItemAsync("userId");
-      await updateCartQuantity(userId, dishId, newQuantity);
+      const token = await getCustomerToken();
+      if (!token) throw new Error("Please sign in to update your cart.");
+      await setMyCartQuantity(dishId, newQuantity, token);
       setCartItems((prevItems) =>
         prevItems.map((item) =>
           item.id === dishId ? { ...item, quantity: newQuantity } : item
@@ -77,23 +75,7 @@ const CartScreen = () => {
   };
 
   const handleSaveOrder = async () => {
-    try {
-      const user_id = await SecureStore.getItemAsync("userId");
-      const order = {
-        user_id,
-        items: cartItems.map((item) => ({
-          id: item.id,
-          quantity: item.quantity,
-        })),
-        note,
-      };
-      await saveOrder(order);
-      alert("Order placed successfully!");
-      router.push("/order");
-    } catch (err) {
-      console.error("Failed to save order:", err);
-      alert("Failed to place order. Please try again.");
-    }
+    router.push({ pathname: "/InitTransaction", params: { note } });
   };
   
 

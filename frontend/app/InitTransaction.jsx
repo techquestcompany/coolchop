@@ -1,54 +1,82 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, SafeAreaView, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, SafeAreaView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Platform } from "react-native";
 import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as SecureStore from "expo-secure-store";
-import { getUserData, InitTransactionReq } from '../services/api'; 
+import { InitTransactionReq, reconcilePayment } from '../services/api';
 import { useCart } from "@/context/CartContext";
 
+const getPendingReference = async () =>
+  Platform.OS === "web"
+    ? localStorage.getItem("pending_payment_reference")
+    : SecureStore.getItemAsync("pending_payment_reference");
+
+const savePendingReference = async (reference) => {
+  if (Platform.OS === "web") {
+    localStorage.setItem("pending_payment_reference", reference);
+  } else {
+    await SecureStore.setItemAsync("pending_payment_reference", reference);
+  }
+};
+
+const clearPendingReference = async () => {
+  if (Platform.OS === "web") {
+    localStorage.removeItem("pending_payment_reference");
+  } else {
+    await SecureStore.deleteItemAsync("pending_payment_reference");
+  }
+};
+
+const getCustomerToken = async () =>
+  Platform.OS === "web"
+    ? localStorage.getItem("customer_token")
+    : SecureStore.getItemAsync("customer_token");
+
 const InitTransaction = () => {
-  const [email, setEmail] = useState("");
   const [showPaystack, setShowPaystack] = useState(false);
   const [authorizationUrl, setAuthorizationUrl] = useState("");
   const [loading, setLoading] = useState(false);   // ✅ define loading state
+  const [reference, setReference] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [checkingStatus, setCheckingStatus] = useState(false);
   const webviewRef = useRef(null);
-  const callbackUrl = 'https://yourcallback.com'; // Replace with real callback URL
+  const { cartItems, refreshCart } = useCart();
+  const { note } = useLocalSearchParams();
 
-  const { amount } = useLocalSearchParams();
-  const { cartItems, clearCart } = useCart();     // ✅ get cart items
-
-  const handleEmailChange = (value: string) => setEmail(value);
+  React.useEffect(() => {
+    getPendingReference()
+      .then((savedReference) => {
+        if (savedReference) {
+          setReference(savedReference);
+          setPaymentStatus("A previous payment needs confirmation.");
+        }
+      })
+      .catch((error) => console.error("Failed to restore payment reference:", error));
+  }, []);
 
   const initializePayment = async () => {
-    if (!email) {
-      Alert.alert("Validation Error", "Please enter your email.");
-      return;
-    }
     try {
       setLoading(true);
 
-      const token = await SecureStore.getItemAsync("customer_token");
-      const userData = await getUserData(token);
+      const token = await getCustomerToken();
+      if (!token) {
+        Alert.alert("Session Expired", "Please sign in again.");
+        return;
+      }
 
       const orderPayload = {
-        userId: userData.id,
         items: cartItems.map(item => ({
-          id: item.Dish.id,
+          id: item.Dish?.id ?? item.id,
           quantity: item.quantity,
         })),
-        note: "Checkout from mobile app",
+        note: Array.isArray(note) ? note[0] : note || "Checkout from mobile app",
       };
 
-      // ✅ Call backend helper
-      const { authorization_url, reference } = await InitTransactionReq(
-        email,
-        parseInt(amount),   // ensure amount is in kobo
-        orderPayload
-      );
+      const { authorization_url, reference } = await InitTransactionReq(orderPayload, token);
 
-      console.log("Authorization URL:", authorization_url);
-      console.log("Paystack Reference:", reference);
-
+      await savePendingReference(reference);
+      setReference(reference);
+      setPaymentStatus("Payment started. Complete it in the secure payment window.");
       setAuthorizationUrl(authorization_url);
       setShowPaystack(true);
     } catch (error) {
@@ -59,21 +87,46 @@ const InitTransaction = () => {
     }
   };
 
+  const checkPaymentStatus = async () => {
+    if (!reference) return;
+    setCheckingStatus(true);
+    try {
+      const token = await getCustomerToken();
+      if (!token) {
+        Alert.alert("Session Expired", "Please sign in again.");
+        return;
+      }
+      const result = await reconcilePayment(reference, token);
+      if (result.status === "success") {
+        setPaymentStatus("Payment confirmed. Your order is being prepared.");
+        await clearPendingReference();
+        await refreshCart().catch((error) => {
+          console.error("Payment confirmed, but cart refresh failed:", error);
+        });
+      } else if (result.status === "failed") {
+        setPaymentStatus("Payment failed. You can start a new payment attempt.");
+        await clearPendingReference();
+        setReference("");
+      } else {
+        setPaymentStatus("Payment is still pending. Check again shortly.");
+      }
+    } catch (error) {
+      console.error("Payment status check failed:", error);
+      setPaymentStatus("Could not confirm payment status. Please try again.");
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
+
   const onNavigationStateChange = (navState: any) => {
     const { url } = navState;
     console.log("Current URL:", url);
 
     if (!url) return;
 
-    if (url.includes(callbackUrl)) {
-      Alert.alert('Payment Completed', 'Redirecting...');
-      clearCart(); // ✅ clear cart after success
-      setShowPaystack(false);
-    }
-
     if (url.includes('https://standard.paystack.co/close')) {
-      Alert.alert('Payment Cancelled');
       setShowPaystack(false);
+      setPaymentStatus("Payment window closed. Confirm the payment status before retrying.");
     }
   };
 
@@ -85,29 +138,27 @@ const InitTransaction = () => {
 
       {!showPaystack && !loading && (
         <>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="example@gmail.com"
-              value={email}
-              onChangeText={handleEmailChange}
-            />
-          </View>
+          <Text style={styles.amountNotice}>
+            The order total is calculated by the server using current menu prices.
+          </Text>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Amount"
-              value={`${amount}`}
-              editable={false}
-            />
-          </View>
-
-          <View style={styles.button}>
-            <TouchableOpacity onPress={initializePayment}>
-              <Text style={{ color: "white" }}>Confirm & Pay</Text>
-            </TouchableOpacity>
-          </View>
+          {paymentStatus ? <Text style={styles.status}>{paymentStatus}</Text> : null}
+          {reference ? (
+            <View style={styles.button}>
+              <TouchableOpacity onPress={checkPaymentStatus} disabled={checkingStatus}>
+                <Text style={{ color: "white" }}>
+                  {checkingStatus ? "Checking..." : "Check payment status"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          {!reference || paymentStatus.startsWith("Payment failed") ? (
+            <View style={styles.button}>
+              <TouchableOpacity onPress={initializePayment}>
+                <Text style={{ color: "white" }}>Confirm & Pay</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </>
       )}
 
@@ -125,6 +176,12 @@ const InitTransaction = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  amountNotice: {
+    marginVertical: 12,
+    textAlign: 'center',
+    color: '#555',
+  },
+  status: { marginVertical: 12, textAlign: "center" },
   title: { fontSize: 20, marginBottom: 20 },
   inputContainer: { width: '100%', marginBottom: 15 },
   input: { height: 50, borderWidth: 1, borderColor: '#FAD4D4', borderRadius: 10, paddingHorizontal: 10, backgroundColor: '#FAD4D4' },

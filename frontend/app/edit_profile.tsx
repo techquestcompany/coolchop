@@ -11,8 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 import { getUserData, updateUserData } from '@/services/api';
+import { getStoredToken } from '@/services/authStorage';
 
 export default function EditUserProfileScreen() {
   const [formData, setFormData] = useState({
@@ -30,7 +30,8 @@ export default function EditUserProfileScreen() {
 
   const fetchUser = async () => {
     try {
-      const token = await SecureStore.getItemAsync('token');
+      const token = await getStoredToken('customer_token');
+      if (!token) throw new Error('Customer session is missing');
       const data = await getUserData(token);
 
       setFormData({
@@ -57,7 +58,8 @@ export default function EditUserProfileScreen() {
 
     try {
       setIsSubmitting(true);
-      const token = await SecureStore.getItemAsync('token');
+      const token = await getStoredToken('customer_token');
+      if (!token) throw new Error('Customer session is missing');
       await updateUserData({ ...formData }, token);
       Alert.alert('Success', 'Profile updated successfully.');
     } catch (error) {

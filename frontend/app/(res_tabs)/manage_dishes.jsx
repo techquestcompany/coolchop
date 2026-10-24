@@ -10,10 +10,10 @@ import {
   Alert,
   Image,
 } from "react-native";
-import { getDishesByRestaurantId, deleteDish,baseURL} from "@/services/api";
+import { getMyRestaurantDishes, deleteDish,baseURL} from "@/services/api";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
-import * as SecureStore from "expo-secure-store"
+import { getStoredToken } from "@/services/authStorage";
 
 const ManageDishes = () => {
   const [dishes, setDishes] = useState([]);
@@ -34,8 +34,7 @@ const ManageDishes = () => {
   try {
     setLoading(true);
 
-    // Retrieve token from SecureStore
-    const token = await SecureStore.getItemAsync("restaurant_token");
+    const token = await getStoredToken("restaurant_token");
 
     if (!token) {
       Toast.show({ type: "error", text1: "Token not found. Please login again." });
@@ -43,7 +42,7 @@ const ManageDishes = () => {
       return;
     }
 
-    const response = await getDishesByRestaurantId(token); // pass token to API
+    const response = await getMyRestaurantDishes(token);
     setDishes(response);
     setFilteredDishes(response);
     setLoading(false);
@@ -80,7 +79,7 @@ const ManageDishes = () => {
           style: "destructive",
           onPress: async () => {
   try {
-    const token = await SecureStore.getItemAsync("restaurant_token"); 
+    const token = await getStoredToken("restaurant_token");
     if (!token) {
       Toast.show({ type: "error", text1: "You must be logged in to delete a dish." });
       return;

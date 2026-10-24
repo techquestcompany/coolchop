@@ -20,7 +20,6 @@ import {
   getRestaurantById,
   getDishesByRestaurantId,
   baseURL,
-  addDishToCart,
   saveReview,
   saveRating,
   getUserRating,
@@ -31,9 +30,11 @@ import Toast from "react-native-toast-message";
 import * as SecureStore from "expo-secure-store";
 import LottieView from "lottie-react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useCart } from "@/context/CartContext";
 
 const RestaurantInfoScreen = () => {
   const { id } = useLocalSearchParams();
+  const { addToCart } = useCart();
   const [restaurant, setRestaurant] = useState(null);
   const [dishes, setDishes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,15 +88,13 @@ const RestaurantInfoScreen = () => {
     }
   };
 
-  const addToCart = async (dishId) => {
+  const handleAddToCart = async (dishId) => {
     try {
-      const userId = await SecureStore.getItemAsync("userId");
-
-      const response = await addDishToCart(userId, dishId);
-      if (response.message == "Item added to cart") {
-        Toast.show({ type: "success", text1: "Added to cart!" });
-        setShowCartButton(true);
-      }
+      const dish = dishes.find((item) => String(item.id) === String(dishId));
+      if (!dish) throw new Error("Dish not found");
+      await addToCart(dish);
+      Toast.show({ type: "success", text1: "Added to cart!" });
+      setShowCartButton(true);
     } catch (err) {
       Toast.show({ type: "error", text1: "Failed to add to cart" });
     }
@@ -259,7 +258,7 @@ const RestaurantInfoScreen = () => {
 
                           <TouchableOpacity
                             style={styles.addCart}
-                            onPress={() => addToCart(dish.id)}
+                            onPress={() => handleAddToCart(dish.id)}
                           >
                             <FontAwesome5
                               name="cart-plus"

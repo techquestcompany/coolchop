@@ -9,29 +9,36 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
-import * as SecureStore from 'expo-secure-store';
 import { getUserData, baseURL } from "@/services/api";
 import { router } from "expo-router";
+import { getStoredToken } from "@/services/authStorage";
 
+type UserProfile = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  profileImage?: string;
+};
 
 export default function ProfileScreen() {
-  const [user, setUser] = useState([]);
+  const [user, setUser] = useState<UserProfile>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
 
   useEffect(() => {
-    fectchUser();
+    fetchUser();
   }, []);
 
-  const fectchUser = async () => {
+  const fetchUser = async () => {
     setIsLoading(true);
     try {
-      const userId = await SecureStore.getItemAsync('userId');
-      const data = await getUserData(userId);
+      const token = await getStoredToken("customer_token");
+      if (!token) throw new Error("Customer session is missing");
+      const data = await getUserData(token);
       setUser(data);
     } catch (err) {
-      setError("Failed to load restaurant data.");
+      setError("Failed to load user data.");
     } finally {
       setIsLoading(false);
     }

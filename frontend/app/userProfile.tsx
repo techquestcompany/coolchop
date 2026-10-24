@@ -10,13 +10,21 @@ import {
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import * as SecureStore from 'expo-secure-store';
 import { baseURL, getUserData } from "@/services/api";
+import { getStoredToken } from "@/services/authStorage";
+
+type UserProfile = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  profileImage?: string;
+  address?: string;
+};
 
 export default function UserProfileScreen() {
-  const [userData, setUserData] = useState([]);
+  const [userData, setUserData] = useState<UserProfile>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUserProfile();
@@ -25,7 +33,8 @@ export default function UserProfileScreen() {
   const fetchUserProfile = async () => {
     setIsLoading(true);
     try {
-      const token = await SecureStore.getItemAsync('customer_token');
+      const token = await getStoredToken("customer_token");
+      if (!token) throw new Error("Customer session is missing");
       const data = await getUserData(token);
       setUserData(data);
     } catch (err) {
