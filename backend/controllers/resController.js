@@ -467,9 +467,102 @@ exports.deleteRestaurant = async (req, res) => {
 
     await restaurant.destroy();
 
+
     res.status(200).json({ message: 'Restaurant deleted successfully' });
   } catch (error) {
     console.error('Error deleting restaurant:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+<<<<<<< HEAD
+=======
+
+
+
+exports.searchRestaurants = async (req, res) => {
+  try {
+    const searchQuery = req.query.q || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Restaurant.findAndCountAll({
+      where: {
+        [Op.or]: [
+          { restaurantName: { [Op.iLike]: `%${searchQuery}%` } },
+          { address: { [Op.iLike]: `%${searchQuery}%` } },
+          { description: { [Op.iLike]: `%${searchQuery}%` } },
+        ],
+        isVerified: true,
+      },
+      limit,
+      offset,
+      order: [["createdAt", "DESC"]],
+      attributes: [
+        "id",
+        "restaurantName",
+        "address",
+        "phone",
+        "description",
+      ],
+    });
+
+    res.status(200).json({
+      success: true,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Restaurant search error:", error);
+    res.status(500).json({ message: "Search failed" });
+  }
+};
+
+
+
+// GET /api/dishes/search?q=rice&page=1&limit=10
+exports.searchDishes = async (req, res) => {
+  try {
+    const searchQuery = req.query.q || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Dish.findAndCountAll({
+      where: {
+        [Op.or]: [
+          { dishName: { [Op.iLike]: `%${searchQuery}%` } },
+          { category: { [Op.iLike]: `%${searchQuery}%` } },
+          { ingredients: { [Op.iLike]: `%${searchQuery}%` } },
+        ],
+      },
+      include: [
+        {
+          model: Restaurant,
+          as: "restaurant",
+          attributes: ["id", "restaurantName", "address"],
+          where: { isVerified: true },
+        },
+      ],
+      limit,
+      offset,
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.status(200).json({
+      success: true,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Dish search error:", error);
+    res.status(500).json({ message: "Search failed" });
+  }
+};
+>>>>>>> 661a36b ( modified the controller files)

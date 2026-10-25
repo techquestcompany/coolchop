@@ -48,4 +48,5 @@ if (databaseUrl) {
   );
 }
 
+
 module.exports = sequelize;

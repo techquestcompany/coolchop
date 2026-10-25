@@ -1,15 +1,60 @@
-const { Order, Dish, Transaction, sequelize } = require("../models");
+
+const { Order, Dish, Transaction,User, sequelize } = require("../models");
 
 const ORDER_STATUSES = new Set(["preparing", "on_delivery", "delivered", "cancelled"]);
 const RESTAURANT_TRANSITIONS = {
   preparing: "on_delivery",
   on_delivery: "delivered",
+}
+const getAddressFromCoords = require("../utils/getAddressFromCoords");
+
+// CREATE ORDER
+exports.createOrder = async (req, res) => {
+  const userId = req.user.id; // ⭐ From token middleware
+  const { items, note } = req.body;
+
+  if (!items || items.length === 0) {
+    return res.status(400).json({ message: 'Items are required' });
+  }
+
+  try {
+    // Calculate total amount based on item prices
+    let totalAmount = 0;
+    for (const item of items) {
+      const dish = await Dish.findByPk(item.id);
+      if (!dish) {
+        return res.status(400).json({ message: `Dish with ID ${item.id} not found` });
+      }
+      totalAmount += dish.price * item.quantity;
+    }
+
+    // Generate a unique order number
+    const orderNumber = `ORD-${Date.now()}-${userId}`;
+
+    // Save the order
+    const order = await Order.create({
+      orderNumber,
+      userId,
+      items: JSON.stringify(items),
+      totalAmount,
+      note,
+    });
+
+    res.status(201).json({ message: 'Order created successfully', order });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).json({ message: 'Error creating order' });
+  }
 };
 
 const orderItems = (order) =>
   Array.isArray(order.items) ? order.items : JSON.parse(order.items);
 
 const isAdmin = (user) => user.isAdmin === true;
+
+exports.getUserOrders = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
 const withDishDetails = async (order) => {
   const items = orderItems(order);
@@ -24,6 +69,109 @@ const withDishDetails = async (order) => {
       const dish = dishesById.get(Number(item.id));
       return dish
         ? {
+    // Enrich orders with dish info
+    const ordersWithDishes = await Promise.all(
+      orders.map(async (order) => {
+        const items = JSON.parse(order.items); // parse JSON
+
+        // Fetch dish details
+        const detailedItems = await Promise.all(
+          items.map(async (item) => {
+            const dish = await Dish.findByPk(item.id);
+            if (dish) {
+              return {
+                id: dish.id,
+                dishName: dish.dishName,
+                price: dish.price,
+                quantity: item.quantity,
+              };
+            }
+            return null;
+          })
+        );
+
+        return {
+          ...order.toJSON(),
+          items: detailedItems.filter(Boolean), // remove nulls if dish not found
+        };
+      })
+    );
+
+    res.status(200).json(ordersWithDishes);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ message: 'Error fetching orders' });
+  }
+};
+
+
+exports.getRiderOrders = async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      where: { status: "success" },
+      include: [
+        {
+          model: User,
+          as:"user",
+          attributes: ["id", "latitude", "longitude", "name","phone"],
+        },
+      ],
+    });
+
+    const enrichedOrders = await Promise.all(
+      orders.map(async (order) => {
+        const user = order.user;
+
+        const address =
+          user?.latitude && user?.longitude
+            ? await getAddressFromCoords(user.latitude, user.longitude)
+            : null;
+
+        return {
+          ...order.toJSON(),
+          deliveryAddress: address,
+        };
+      })
+    );
+
+    res.json(enrichedOrders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+};
+
+// get all order in the database
+exports.getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      order: [['createdAt', 'DESC']]
+    });
+    res.json({
+  orders,
+  totalOrders: orders.length,
+});
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    res.status(500).json({ message: 'Error fetching all orders' });
+  }
+}
+
+// GET ORDER BY ID
+exports.getOrderById = async (req, res) => {
+  const { orderId } = req.params;
+
+  try {
+    const order = await Order.findByPk(orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.userId !== req.user.id) return res.status(403).json({ message: 'Unauthorized access' });
+
+    const items = JSON.parse(order.items);
+    const detailedItems = await Promise.all(
+      items.map(async (item) => {
+        const dish = await Dish.findByPk(item.id);
+        if (dish) {
+          return {
             id: dish.id,
             dishName: dish.dishName,
             price: dish.price,

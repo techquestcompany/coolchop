@@ -8,45 +8,32 @@ const { getAdminUserIds } = require("../utils/adminIdentity");
 require("dotenv").config();
 
 
-// Function to generate a random 4-digit verification code
-const generateVerificationCode = () => {
-  return Math.floor(1000 + Math.random() * 9000).toString(); 
-};
+//const nodemailer = require("nodemailer");
 
+// Generate 4-digit code
+const generateVerificationCode = () =>
+  Math.floor(1000 + Math.random() * 9000).toString();
 
-// Function to send verification email
+// Send email
 const sendVerificationEmail = async (email, code) => {
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
+  await transporter.verify(); // catches auth errors
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"Your App Name" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: 'Your Verification Code',
+    subject: "Email Verification Code",
     text: `Your verification code is: ${code}`,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    // Find user by email
-    const existingUser = await User.findOne({ where: { email } });
-    if (!existingUser) {
-      return { status: 400, error: "Email can't be found" };
-    }
-
-    // Update user's record with the verification code
-    await existingUser.update({
-      code,
-    });
-
-  } catch (error) {
-    console.error('Error sending verification email:', error);
-  }
+  await transporter.sendMail(mailOptions);
 };
 
 
@@ -112,20 +99,19 @@ exports.signup = async (req, res) => {
     const { name, email, phone, password, role } = req.body;
 
     // Validate required fields
-    if (!name || !email || !phone || !password || !["customer", "rider"].includes(role)) {
+    
+    if (!name || !email || !phone || !password || !role) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Check if email exists
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
+    // Check email
+    if (await User.findOne({ where: { email } })) {
       return res.status(409).json({ error: "Email already in use" });
     }
 
-    // Check if phone exists
-    const existingPhone = await User.findOne({ where: { phone } });
-    if (existingPhone) {
-      return res.status(409).json({ error: "Phone number already in use" });
+    // Check phone
+    if (await User.findOne({ where: { phone } })) {
+      return res.status(409).json({ error: "Phone already in use" });
     }
 
     // Hash password
@@ -140,27 +126,31 @@ exports.signup = async (req, res) => {
       email,
       phone,
       password: hashedPassword,
+      role,
+      isAdmin: isAdmin ? 1 : 0,
+      isVerified: 0,
       code: verificationCode,
       confirm_location: 0,
-      isAdmin: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      role
     });
 
-    // Send verification email
+    // Send email (CRITICAL STEP)
     await sendVerificationEmail(email, verificationCode);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "User created. Verification code sent to email.",
+      message: "Account created. Verification code sent to email.",
       userId: user.id,
     });
+
   } catch (error) {
-    console.error("Error creating user:", error);
-    res.status(500).json({ error: "Something went wrong. Please try again." });
+    console.error("Signup error:", error.message);
+    return res.status(500).json({
+      error: "Signup failed. Email could not be sent.",
+    });
   }
 };
+
+ 
 
 // Verification function
 exports.verifyCode = async (req, res) => {
@@ -291,6 +281,7 @@ exports.passwordReset = async (req, res) => {
 };
 
 exports.getAllUsers = async (req, res) => {
+
   try {
     const page = Number.parseInt(req.query.page, 10) || 1;
     const limit = Math.min(Number.parseInt(req.query.limit, 10) || 10, 100);
@@ -314,33 +305,9 @@ exports.getAllUsers = async (req, res) => {
     console.error("Error listing users:", error.message);
     return res.status(500).json({ error: "Could not retrieve users." });
   }
+
 };
 
-
-exports.verifyUserId = async (req, res) => {
-  const { token } = req.body;
-
-  if (!token) {
-    return res.status(400).json({ message: 'Token is required' });
-  }
-
-  try {
-    // Decrypt the token to get the user ID
-    const userId = await decrypt(token);
-
-    // Check if the user exists in the database
-    const userExists = await User.findOne({ where: { id: userId } });
-
-    if (userExists) {
-      res.status(200).json({ exists: true });
-    } else {
-      res.status(404).json({ exists: false, message: 'User not found' });
-    }
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    res.status(500).json({ message: 'Error verifying token', error });
-  }
-};
 
 
 exports.updateUserLocation = async (req, res) => {
