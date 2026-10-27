@@ -479,6 +479,7 @@ exports.deleteRestaurant = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 exports.searchRestaurants = async (req, res) => {
   try {
     const searchQuery = req.query.q || "";
@@ -565,3 +566,4 @@ exports.searchDishes = async (req, res) => {
     res.status(500).json({ message: "Search failed" });
   }
 };
+

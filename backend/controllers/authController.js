@@ -405,4 +405,28 @@ exports.updateUserLocation = async (req, res) => {
 
 
 
+exports.verifyUserId = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required' });
+  }
+
+  try {
+    // Decrypt the token to get the user ID
+    const userId = await decrypt(token);
+
+    // Check if the user exists in the database
+    const userExists = await User.findOne({ where: { id: userId } });
+
+    if (userExists) {
+      res.status(200).json({ exists: true });
+    } else {
+      res.status(404).json({ exists: false, message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(500).json({ message: 'Error verifying token', error });
+  }
+};
    
