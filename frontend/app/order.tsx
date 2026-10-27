@@ -14,6 +14,7 @@ import {
   getDishById,
   getRestaurantById,
   getUserData,
+  getApiErrorMessage,
 } from "@/services/api";
 import * as SecureStore from "expo-secure-store";
 
@@ -96,7 +97,7 @@ export default function OrderSummary() {
       setDeliveryFee(fee);
     } catch (error) {
       console.error("Error fetching order details:", error);
-      Alert.alert("Error", "Failed to load order details.");
+      Alert.alert("Unable to load order", getApiErrorMessage(error, "We couldn't load your order details. Please try again."));
     }
   };
 
@@ -136,7 +137,7 @@ export default function OrderSummary() {
       // navigation.goBack();
     } catch (error) {
       console.error("Error deleting order:", error);
-      Alert.alert("Error", "Failed to delete the order.");
+      Alert.alert("Unable to delete order", getApiErrorMessage(error, "We couldn't delete the order. Please try again."));
     }
   };
 
@@ -150,11 +151,14 @@ export default function OrderSummary() {
         Alert.alert("Order Placed", "Waiting for the restaurant to accept.");
         setOrderPlaced(true);
       } else {
-        Alert.alert("Error", "Failed to place the order.");
+        Alert.alert(
+          "Unable to place order",
+          getApiErrorMessage(response.data, "We couldn't place your order. Please try again.")
+        );
       }
     } catch (error) {
       console.error("Error placing order:", error);
-      Alert.alert("Error", "Something went wrong.");
+      Alert.alert("Unable to place order", getApiErrorMessage(error, "We couldn't place your order. Please try again."));
     }
   };
 

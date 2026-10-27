@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { baseURL, getMyRestaurant } from "@/services/api";
+import { baseURL, getMyRestaurant, getApiErrorMessage } from "@/services/api";
 import { getStoredToken } from "@/services/authStorage";
 
 
@@ -31,7 +31,7 @@ export default function VendorProfileScreen() {
       const data = await getMyRestaurant(token);
       setRestaurantData(data);
     } catch (err) {
-      setError("Failed to load restaurant data.");
+      setError(getApiErrorMessage(err, "We couldn't load your restaurant profile. Please try again."));
     } finally {
       setIsLoading(false);
     }

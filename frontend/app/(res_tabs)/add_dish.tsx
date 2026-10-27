@@ -2,12 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Animated, ActivityIndicator, SafeAreaView, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { submitDishes, api } from '../../services/api';
+import { submitDishes, api, getApiErrorMessage } from '../../services/api';
 import Toast from 'react-native-toast-message'; 
 import LottieView from 'lottie-react-native'; 
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
-import * as FileSystem from 'expo-file-system';
 
 // Reusable Input Field
 const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType, multiline }) => (
@@ -59,7 +58,7 @@ export default function AddDishScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -69,12 +68,13 @@ export default function AddDishScreen() {
       const sourceUri = result.assets[0].uri;
 
       try {
-        const fileInfo = await FileSystem.getInfoAsync(sourceUri);
+        const asset = result.assets[0];
+        const fileName = asset.fileName || sourceUri.split(/[?#]/)[0].split('/').pop() || 'dish-image.jpg';
         const formData = new FormData();
         formData.append('file', {
           uri: sourceUri,
-          name: fileInfo.uri.split('/').pop(),
-          type: 'image/jpeg',
+          name: fileName,
+          type: asset.mimeType || 'image/jpeg',
         });
 
         const response = await api.post('/upload/upload_image', formData, {
@@ -166,8 +166,12 @@ export default function AddDishScreen() {
         Toast.show({ type: 'error', text1: 'Dish Submission Failed', text2: response.message || 'Please try again.' });
       }
     } catch (error) {
-      console.log(error);
-      Toast.show({ type: 'error', text1: 'Dish Submission Failed', text2: error.message || 'Something went wrong.' });
+      console.error("Dish submission failed:", error);
+      Toast.show({
+        type: 'error',
+        text1: 'Dish Submission Failed',
+        text2: getApiErrorMessage(error, "We couldn't submit your dishes. Please try again."),
+      });
     } finally {
       setLoading(false);
     }

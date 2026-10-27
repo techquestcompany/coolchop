@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, Image, ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
-import { getAllDishes, getAllRestaurants, baseURL } from '@/services/api'; // Ensure getAllRestaurants is defined
+import { getAllDishes, getAllRestaurants, baseURL, getApiErrorMessage } from '@/services/api';
 import { router } from 'expo-router';
 
 const SearchScreen = () => {
@@ -30,7 +30,7 @@ const SearchScreen = () => {
       }
       setIsLoading(false);
     } catch (err) {
-      setError('Failed to fetch data.');
+      setError(getApiErrorMessage(err, "We couldn't load search results. Please try again."));
       setIsLoading(false);
     }
   };

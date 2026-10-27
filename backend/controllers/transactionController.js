@@ -30,7 +30,7 @@ exports.getUserTransactions = async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching user transactions:", error);
-    res.status(500).json({ message: "Failed to fetch transactions" });
+    res.status(500).json({ message: "We couldn't load your transactions right now. Please try again." });
   }
 };
 
@@ -50,7 +50,8 @@ exports.getTransactionsByRider = async (req, res) => {
 
     res.json(transactions);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch rider transactions" });
+    console.error("Error fetching rider transactions:", error);
+    res.status(500).json({ error: "We couldn't load rider transactions right now. Please try again." });
   }
 };
 
@@ -66,7 +67,7 @@ exports.deleteTransaction = async (req, res) => {
       transaction.userId !== req.user.id &&
       String(req.user.role).toLowerCase() !== "admin"
     ) {
-      return res.status(403).json({ message: "Unauthorized" });
+      return res.status(403).json({ message: "You don't have permission to delete this transaction." });
     }
 
     await transaction.destroy();
@@ -75,7 +76,7 @@ exports.deleteTransaction = async (req, res) => {
 
   } catch (error) {
     console.error("Error deleting transaction:", error);
-    res.status(500).json({ message: "Failed to delete transaction" });
+    res.status(500).json({ message: "We couldn't delete this transaction right now. Please try again." });
   }
 };
 
@@ -110,7 +111,7 @@ exports.getAllTransactions = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching all transactions:", error);
-    res.status(500).json({ message: "Failed to fetch transactions" });
+    res.status(500).json({ message: "We couldn't load transactions right now. Please try again." });
   }
 };
  

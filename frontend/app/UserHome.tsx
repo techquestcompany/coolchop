@@ -13,7 +13,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import debounce from 'lodash/debounce';
 import { useCart } from '@/context/CartContext';
-import { baseURL, getUserData, updateUserLocation, getAllDishes } from '@/services/api';
+import { baseURL, getUserData, updateUserLocation, getAllDishes, getApiErrorMessage } from '@/services/api';
 import { router } from 'expo-router';
 import { getCurrentLocation } from './hooks/useUserLocation';
 import { getStoredToken } from '@/services/authStorage';
@@ -23,6 +23,7 @@ const HomeScreen = () => {
   const [loadingUser, setLoadingUser] = useState(true);
   const [userError, setUserError] = useState(null);
   const [dishes, setDishes] = useState([]);
+  const [dishError, setDishError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -55,7 +56,7 @@ useEffect(() => {
       );
     } catch (err) {
       console.error('Error fetching user:', err);
-      setUserError('User not found. Please login.');
+      setUserError(getApiErrorMessage(err, "We couldn't load your account. Please sign in again."));
     } finally {
       setLoadingUser(false);
     }
@@ -72,8 +73,10 @@ useEffect(() => {
         const response = await getAllDishes(searchQuery, page);
         const newData = Array.isArray(response?.data) ? response.data : [];
         setDishes((prev) => (page === 1 ? newData : [...prev, ...newData]));
+        setDishError(null);
       } catch (err) {
         console.error('Failed to fetch dishes:', err);
+        setDishError(getApiErrorMessage(err, "We couldn't load dishes right now. Please try again."));
       }
     };
     fetchDishesData();
@@ -102,7 +105,8 @@ const sendUserLocation = async () => {
 
     console.log("📍 User location updated");
   } catch (error) {
-    console.error("Location update failed:", error.message);
+    console.error("Location update failed:", error);
+    Alert.alert("Unable to update location", getApiErrorMessage(error, "We couldn't update your location. Please try again."));
   }
 };
 
@@ -149,7 +153,7 @@ const sendUserLocation = async () => {
         style={[styles.button, { backgroundColor: "#000" }]}
         onPress={() => addToCart(item).catch((error) => {
           console.error('Failed to add dish to cart:', error);
-          Alert.alert('Unable to update cart', 'Please sign in and try again.');
+          Alert.alert('Unable to update cart', getApiErrorMessage(error, "We couldn't update your cart. Please try again."));
         })}
       >
         <Text style={styles.buttonText}>Add to Cart</Text>
@@ -194,6 +198,9 @@ const sendUserLocation = async () => {
 
       <Text style={styles.title}>🍴 Featured Foods</Text>
 
+      {dishError ? (
+        <Text style={{ color: 'red', textAlign: 'center', marginTop: 20 }}>{dishError}</Text>
+      ) : null}
       {dishes.length === 0 ? (
         <Text style={{ textAlign: 'center', marginTop: 20 }}>No dishes found.</Text>
       ) : (

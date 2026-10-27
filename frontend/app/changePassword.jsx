@@ -9,7 +9,7 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import {changePassword} from "../services/api";
+import {changePassword, getApiErrorMessage} from "../services/api";
 
 export default function ChangePasswordScreen() {
   const route = useRoute()
@@ -40,7 +40,8 @@ export default function ChangePasswordScreen() {
       }
     } catch (error) {
       console.error("Password change error:", error);
-      Alert.alert("Error", error.message || "An unexpected error occurred.");
+      const message = getApiErrorMessage(error, "We couldn't update your password right now. Please try again.");
+      Alert.alert("Unable to change password", message);
     }
   };
    

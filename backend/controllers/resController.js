@@ -53,6 +53,10 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ error: "Enter your email address and password to sign in." });
+    }
+
     // Check if restaurant exists
     const restaurant = await Restaurant.findOne({ where: { email } });
 
@@ -89,8 +93,8 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error. Please try again later." });
+    console.error("Restaurant sign-in failed:", error);
+    res.status(500).json({ error: "We couldn't sign you in right now. Please try again in a few minutes." });
   }
 };
 
@@ -102,13 +106,13 @@ exports.addRestaurant = async (req, res) => {
     const { restaurantName, email, phone, address, description, password } = req.body;
     
     if (!restaurantName || !email || !phone || !address || !password || !description) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({ error: 'Enter the restaurant name, email, phone, address, description, and password.' });
     }
 
     // Check if email is already registered
     const existingUser = await Restaurant.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already in use' });
+      return res.status(409).json({ error: 'That email address is already associated with a restaurant account.' });
     }
 
     // Hash the password correctly
@@ -128,8 +132,8 @@ exports.addRestaurant = async (req, res) => {
       restaurant: { id: restaurant.id, email: restaurant.email } 
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error creating restaurant. Please try again later.' });
+    console.error("Restaurant registration failed:", error);
+    res.status(500).json({ error: "We couldn't create your restaurant account right now. Please try again." });
   }
 };
 exports.createDishes = async (req, res) => {
@@ -170,7 +174,7 @@ exports.createDishes = async (req, res) => {
     return res.status(200).json({ message: "Dishes saved successfully" });
   } catch (error) {
     console.error("Error saving dishes:", error);
-    return res.status(500).json({ message: "Error saving dishes", error: error.message });
+    return res.status(500).json({ message: "We couldn't save your dishes right now. Please try again." });
   }
 };
 
@@ -199,7 +203,8 @@ exports.getAllRestaurants = async (req, res) => {
       data: rows, 
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving restaurants', error });
+    console.error("Error retrieving restaurants:", error);
+    res.status(500).json({ message: "We couldn't load restaurants right now. Please try again." });
   }
 };
 
@@ -218,8 +223,8 @@ exports.approveRestaurant =  async (req, res) => {
 
     res.json({ message: 'Restaurant approved successfully' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to approve restaurant' });
+    console.error("Error approving restaurant:", error);
+    res.status(500).json({ message: "We couldn't approve this restaurant right now. Please try again." });
   }
 }
 
@@ -241,7 +246,7 @@ exports.getRestaurantById = async (req, res) => {
     }
   } catch (error) {
     console.error('Error retrieving restaurant:', error);
-    res.status(500).json({ message: 'Error retrieving restaurant', error });
+    res.status(500).json({ message: "We couldn't load restaurant details right now. Please try again." });
   }
 };
 
@@ -261,7 +266,7 @@ exports.getPublicRestaurantById = async (req, res) => {
     return res.status(200).json(restaurant);
   } catch (error) {
     console.error("Error retrieving restaurant:", error.message);
-    return res.status(500).json({ message: "Error retrieving restaurant" });
+    return res.status(500).json({ message: "We couldn't load restaurant details right now. Please try again." });
   }
 };
 
@@ -281,7 +286,7 @@ exports.deleteRestaurantById = async (req, res) => {
     res.status(200).json({ message: 'Restaurant deleted successfully' });
   } catch (error) {
     console.error('Delete error:', error);
-    res.status(500).json({ message: 'Error deleting restaurant', error });
+    res.status(500).json({ message: "We couldn't delete this restaurant right now. Please try again." });
   }
 };
 
@@ -309,7 +314,7 @@ exports.deleteDish = async (req, res) => {
     res.status(200).json({ message: "Dish deleted successfully" });
   } catch (error) {
     console.error("Error deleting dish:", error);
-    res.status(500).json({ message: "Internal server error", error });
+    res.status(500).json({ message: "We couldn't delete this dish right now. Please try again." });
   }
 };
 
@@ -327,7 +332,7 @@ exports.getDishesForRestaurant = async (req, res) => {
     return res.status(200).json(dishes);
   } catch (error) {
     console.error("Error retrieving restaurant dishes:", error.message);
-    return res.status(500).json({ message: "Error retrieving restaurant dishes" });
+    return res.status(500).json({ message: "We couldn't load this restaurant's dishes right now. Please try again." });
   }
 };
 
@@ -348,7 +353,7 @@ exports.getDishesByRestaurantId = async (req, res) => {
     }
   } catch (error) {
     console.error('Error retrieving dishes:', error);
-    res.status(500).json({ message: 'Error retrieving dishes', error });
+    res.status(500).json({ message: "We couldn't load this restaurant's dishes right now. Please try again." });
   }
 };
 
@@ -387,8 +392,8 @@ exports.getAllDishes = async (req, res) => {
       data: rows, 
     });
   } catch (error) {
-    console.log(error)
-    res.status(500).json({ message: 'Error retrieving dishes', error });
+    console.error("Error retrieving dishes:", error);
+    res.status(500).json({ message: "We couldn't load dishes right now. Please try again." });
   }
 };
 
@@ -405,7 +410,7 @@ exports.getDishById = async (req, res) => {
     res.status(200).json(dish);
   } catch (error) {
     console.error("Error retrieving dish:", error);
-    res.status(500).json({ message: "Error retrieving dish", error });
+    res.status(500).json({ message: "We couldn't load this dish right now. Please try again." });
   }
 };
 

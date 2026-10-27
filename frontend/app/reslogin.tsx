@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Checkbox } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { loginRestaurant, verifyToken } from '../services/api';
+import { loginRestaurant, verifyToken, getApiErrorMessage } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -131,10 +131,11 @@ export default function VendorLoginScreen() {
         });
       }
     } catch (error) {
+      console.error("Restaurant sign-in failed:", error);
       Toast.show({
         type: 'error',
         text1: 'Login failed',
-        text2: 'Please try again.',
+        text2: getApiErrorMessage(error, "We couldn't sign you in. Please check your details and try again."),
       });
     } finally {
       setLoading(false);

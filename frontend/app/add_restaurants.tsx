@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView, KeyboardAvoidingView, SafeAreaView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { registerRestaurant } from '../services/api';
+import { registerRestaurant, getApiErrorMessage } from '../services/api';
 import Toast from 'react-native-toast-message';
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
@@ -64,7 +64,7 @@ export default function RestaurantRegistrationScreen() {
       Toast.show({
         type: 'error',
         text1: 'Registration Failed',
-        text2: error.message || 'Something went wrong.',
+        text2: getApiErrorMessage(error, "We couldn't register your restaurant right now. Please try again."),
       });
     } finally {
       setLoading(false);

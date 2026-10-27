@@ -22,6 +22,7 @@ import {
   getUserDishRating,
   saveRating,
   saveDishReview,
+  getApiErrorMessage,
 
 } from "@/services/api";
 import * as SecureStore from "expo-secure-store";
@@ -95,7 +96,7 @@ const DishInfoScreen = () => {
       setDish(response);
       setIsLoading(false);
     } catch (err) {
-      setError("Failed to fetch dish details.");
+      setError(getApiErrorMessage(err, "We couldn't load this dish. Please try again."));
       setIsLoading(false);
     }
   };
@@ -116,7 +117,11 @@ const handleRating = async (userRating: number) => {
     }
   } catch (err) {
     console.error("Rating error:", err);
-    Toast.show({ type: "error", text1: "Failed to submit rating." });
+    Toast.show({
+      type: "error",
+      text1: "Unable to submit rating",
+      text2: getApiErrorMessage(err, "We couldn't save your rating. Please try again."),
+    });
   }
 };
 
@@ -140,7 +145,11 @@ const handleRating = async (userRating: number) => {
 
   } catch (err) {
     console.error("Failed to save review:", err);
-    Toast.show({ type: "error", text1: "Failed to submit review." });
+    Toast.show({
+      type: "error",
+      text1: "Unable to submit review",
+      text2: getApiErrorMessage(err, "We couldn't save your review. Please try again."),
+    });
   }
 };
 

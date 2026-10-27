@@ -23,6 +23,7 @@ import {
   saveReview,
   saveRating,
   getUserRating,
+  getApiErrorMessage,
 } from "@/services/api";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -83,7 +84,7 @@ const RestaurantInfoScreen = () => {
       setDishes(dishesData);
       setIsLoading(false);
     } catch (err) {
-      setError("Failed to load restaurant information.");
+      setError(getApiErrorMessage(err, "We couldn't load this restaurant. Please try again."));
       setIsLoading(false);
     }
   };
@@ -96,7 +97,11 @@ const RestaurantInfoScreen = () => {
       Toast.show({ type: "success", text1: "Added to cart!" });
       setShowCartButton(true);
     } catch (err) {
-      Toast.show({ type: "error", text1: "Failed to add to cart" });
+      Toast.show({
+        type: "error",
+        text1: "Unable to add to cart",
+        text2: getApiErrorMessage(err, "We couldn't add that item to your cart. Please try again."),
+      });
     }
   };
 
@@ -147,7 +152,11 @@ const RestaurantInfoScreen = () => {
         throw new Error(data.message || "Failed to submit rating.");
       }
     } catch (err) {
-      Toast.show({ type: "error", text1: "Failed to submit rating." });
+      Toast.show({
+        type: "error",
+        text1: "Unable to submit rating",
+        text2: getApiErrorMessage(err, "We couldn't save your rating. Please try again."),
+      });
     }
   
   };
@@ -165,7 +174,11 @@ const RestaurantInfoScreen = () => {
       }
     } catch (err) {
       console.error("Failed to save review:", err);
-      Toast.show({ type: "error", text1: "Failed to submit review." });
+      Toast.show({
+        type: "error",
+        text1: "Unable to submit review",
+        text2: getApiErrorMessage(err, "We couldn't save your review. Please try again."),
+      });
     }
   };
 

@@ -3,7 +3,7 @@ import { View, Text, SafeAreaView, StyleSheet, TouchableOpacity, Alert, Activity
 import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as SecureStore from "expo-secure-store";
-import { InitTransactionReq, reconcilePayment } from '../services/api';
+import { InitTransactionReq, reconcilePayment, getApiErrorMessage } from '../services/api';
 import { useCart } from "@/context/CartContext";
 
 const getPendingReference = async () =>
@@ -81,7 +81,7 @@ const InitTransaction = () => {
       setShowPaystack(true);
     } catch (error) {
       console.error("InitTransaction error:", error);
-      Alert.alert("Error", "Failed to initialize payment.");
+      Alert.alert("Unable to start payment", getApiErrorMessage(error, "We couldn't start your payment. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,7 @@ const InitTransaction = () => {
       }
     } catch (error) {
       console.error("Payment status check failed:", error);
-      setPaymentStatus("Could not confirm payment status. Please try again.");
+      setPaymentStatus(getApiErrorMessage(error, "We couldn't confirm your payment status. Please try again."));
     } finally {
       setCheckingStatus(false);
     }

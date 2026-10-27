@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Platform } from 'react-native';
 import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
-import { login } from '../services/api';
+import { login, getApiErrorMessage } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
 import * as SecureStore from 'expo-secure-store';
@@ -93,10 +93,11 @@ const handleSignIn = async () => {
     }
   } catch (error) {
     console.error("Sign-in error:", error);
+    const message = getApiErrorMessage(error, "We couldn't sign you in right now. Please try again.");
     Toast.show({
       type: "error",
       text1: "Sign In Failed ⚠️",
-      text2: error.response?.data?.message || "Something went wrong",
+      text2: message,
     });
   } finally {
     setLoading(false);

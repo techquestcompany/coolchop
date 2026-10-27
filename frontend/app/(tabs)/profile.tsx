@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { getUserData, baseURL } from "@/services/api";
+import { getUserData, baseURL, getApiErrorMessage } from "@/services/api";
 import { router } from "expo-router";
 import { getStoredToken } from "@/services/authStorage";
 
@@ -38,7 +38,7 @@ export default function ProfileScreen() {
       const data = await getUserData(token);
       setUser(data);
     } catch (err) {
-      setError("Failed to load user data.");
+      setError(getApiErrorMessage(err, "We couldn't load your profile. Please try again."));
     } finally {
       setIsLoading(false);
     }

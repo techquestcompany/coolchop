@@ -146,18 +146,37 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/transactions", transactionRoutes);
 
+app.use((req, res) => {
+  return res.status(404).json({
+    error: "We couldn't find the page you're looking for.",
+    requestId: req.requestId,
+  });
+});
+
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
+  const status = Number.isInteger(error.status) ? error.status : 500;
+  const message =
+    error.type === "entity.parse.failed"
+      ? "Your request contains invalid data. Please check it and try again."
+      : error.type === "entity.too.large"
+        ? "Your request is too large. Please reduce its size and try again."
+        : status === 403
+          ? "This request isn't allowed from this app."
+          : status < 500
+            ? "Your request couldn't be completed. Please check your details and try again."
+            : "An unexpected server error occurred. Please try again.";
   console.error(
     JSON.stringify({
       level: "error",
       event: "http_error",
       requestId: req.requestId,
       message: error.message,
+      status,
     })
   );
-  return res.status(error.status || 500).json({
-    error: error.status === 403 ? error.message : "An unexpected server error occurred.",
+  return res.status(status).json({
+    error: message,
     requestId: req.requestId,
   });
 });

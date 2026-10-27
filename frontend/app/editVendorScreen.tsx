@@ -9,7 +9,7 @@ import {
   ScrollView,
   Alert
 } from 'react-native';
-import { updateRestaurantData, getMyRestaurant } from '@/services/api';
+import { updateRestaurantData, getMyRestaurant, getApiErrorMessage } from '@/services/api';
 import { getStoredToken } from '@/services/authStorage';
 
 export default function EditVendorProfileScreen() {
@@ -40,7 +40,7 @@ export default function EditVendorProfileScreen() {
         description: data.description || ""
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to load restaurant data.');
+      Alert.alert('Unable to load profile', getApiErrorMessage(error, "We couldn't load your restaurant profile. Please try again."));
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +58,7 @@ export default function EditVendorProfileScreen() {
       Alert.alert('Success', 'Profile updated successfully.');
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to update profile.');
+      Alert.alert('Unable to update profile', getApiErrorMessage(error, "We couldn't update your restaurant profile. Please try again."));
     }
   };
 

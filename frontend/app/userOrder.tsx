@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { fetchOrdersByUser, updateOrder } from '../services/api';
+import { fetchOrdersByUser, updateOrder, getApiErrorMessage } from '../services/api';
 import { getStoredToken } from '../services/authStorage';
 
 const parseItems = (items) => {
@@ -46,7 +46,8 @@ const UserOrders = () => {
         setOrders(data);
         setFilteredOrders(data.slice(0, itemsPerPage));
       } catch (error) {
-        console.error('Error initializing user orders:', error.message);
+        console.error('Error initializing user orders:', error);
+        Alert.alert('Unable to load orders', getApiErrorMessage(error, "We couldn't load your orders. Please try again."));
       } finally {
         setLoading(false);
       }
@@ -68,7 +69,7 @@ const UserOrders = () => {
       Alert.alert('Order cancelled successfully');
     } catch (error) {
       console.error('Cancel order error:', error);
-      Alert.alert('Failed to cancel order');
+      Alert.alert('Unable to cancel order', getApiErrorMessage(error, "We couldn't cancel this order. Please try again."));
     }
   };
 

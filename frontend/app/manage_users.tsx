@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { DataTable, Text } from 'react-native-paper';
-import { getAllUsers } from '../services/api';
+import { getAllUsers, getApiErrorMessage } from '../services/api';
 import { getStoredToken } from '../services/authStorage';
 
 interface ManagedUser {
@@ -32,7 +32,7 @@ const App = () => {
       setTotalPages(pages);
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to load users');
+      Alert.alert('Unable to load users', getApiErrorMessage(error, "We couldn't load users. Please try again."));
     }
   };
 

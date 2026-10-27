@@ -31,22 +31,7 @@ const sendVerificationEmail = async (email, code) => {
     text: `Your verification code is: ${code}`,
   };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    // Find user by email
-    const existingUser = await User.findOne({ where: { email } });
-    if (!existingUser) {
-      return { status: 400, error: "Email can't be found" };
-    }
-
-    // Update user's record with the verification code
-    await existingUser.update({
-      code,
-    });
-
-  } catch (error) {
-    console.error('Error sending verification email:', error);
-  }
+  await transporter.sendMail(mailOptions);
 };
 
 
@@ -55,17 +40,21 @@ exports.login = async (req, res) => {
   try {
     const { email, password, longitude, latitude } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ error: "Enter your email address and password to sign in." });
+    }
+
     // Find user
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ error: "Invalid email or password" });
+    if (!user) return res.status(400).json({ error: "The email address or password is incorrect. Please check your details and try again." });
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Invalid email or password" });
+    if (!isMatch) return res.status(400).json({ error: "The email address or password is incorrect. Please check your details and try again." });
 
     // Check verification
     if (!user.isVerified) {
-      return res.status(400).json({ error: "User is not verified. Please check your email." });
+      return res.status(400).json({ error: "Please verify your email address before signing in. Check your inbox for the verification code." });
     }
 
     // Update user location if provided
@@ -101,8 +90,8 @@ exports.login = async (req, res) => {
 
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Error signing in:", error);
+    res.status(500).json({ error: "We couldn't sign you in right now. Please try again in a few minutes." });
   }
 };
 
@@ -113,7 +102,7 @@ exports.signup = async (req, res) => {
 
     // Validate required fields
     if (!name || !email || !phone || !password || !["customer", "rider"].includes(role)) {
-      return res.status(400).json({ error: "All fields are required" });
+      return res.status(400).json({ error: "Enter your name, email, phone number, and password, and choose a valid account type." });
     }
 
     // Check if email exists
@@ -149,7 +138,14 @@ exports.signup = async (req, res) => {
     });
 
     // Send verification email
-    await sendVerificationEmail(email, verificationCode);
+    try {
+      await sendVerificationEmail(email, verificationCode);
+    } catch (error) {
+      console.error("Account created, but verification email could not be sent:", error);
+      return res.status(503).json({
+        error: "Your account was created, but we couldn't send the verification email. Please try again later rather than creating another account.",
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -158,7 +154,7 @@ exports.signup = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating user:", error);
-    res.status(500).json({ error: "Something went wrong. Please try again." });
+    res.status(500).json({ error: "We couldn't create your account right now. Please check your details and try again." });
   }
 };
 
@@ -167,22 +163,27 @@ exports.verifyCode = async (req, res) => {
   const { email, code } = req.body;
 
   try {
+    if (!email || !code) {
+      return res.status(400).json({ error: "Enter your email address and verification code." });
+    }
+
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
-      return res.status(400).json({ error: "Invalid email or code" });
+      return res.status(404).json({ error: "We couldn't find an account with that email address. Check it and try again." });
     }
 
     // Check if the code matches
     if (user.code !== code) {
-      return res.status(400).json({ error: "Invalid verification code" });
+      return res.status(400).json({ error: "That verification code is incorrect or has expired. Check the code and try again." });
     }
 
     await user.update({ code: null });
 
     res.status(200).json({ message: "Code verified successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Server error" });
+    console.error("Error verifying email code:", error);
+    res.status(500).json({ error: "We couldn't verify your code right now. Please try again." });
   }
 };
 
@@ -208,7 +209,7 @@ exports.getUserData = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getting user data:", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "We couldn't load your account details right now. Please try again." });
   }
 };
 
@@ -217,14 +218,14 @@ exports.searchUser = async (req, res) => {
   try {
     const { q } = req.query;
     if (!q) {
-      return res.status(400).send("Query parameter is required");
+      return res.status(400).json({ error: "Enter a name to search for." });
     }
     const regex = new RegExp(q, "i"); 
     const users = await User.find({ name: regex }).limit(10); 
     res.json(users);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Server error");
+    console.error("Error searching users:", error);
+    res.status(500).json({ error: "We couldn't complete the user search right now. Please try again." });
   }
 };
 
@@ -234,17 +235,21 @@ exports.searchUser = async (req, res) => {
 exports.forgottenPassword = async (req, res) => {
   try {
     const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Enter your email address to reset your password." });
+    }
+
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "We couldn't find an account with that email address. Check it and try again." });
 
     const resetCode = generateVerificationCode();
+    await user.update({ resetToken: resetCode, code: resetCode });
     await sendVerificationEmail(email, resetCode);
-    await user.update({ resetToken: resetCode });
 
     res.status(200).json({ message: "Password reset code sent successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error requesting a password reset:", error);
+    res.status(500).json({ message: "We couldn't send a password reset code right now. Please try again in a few minutes." });
   }
 };
 
@@ -253,41 +258,53 @@ exports.changePassword = async (req, res) => {
   try {
     const { newPassword, confirmPassword, email, resetToken } = req.body;
 
+    if (!newPassword || !confirmPassword || !email || !resetToken) {
+      return res.status(400).json({ message: "Enter your email, reset code, new password, and password confirmation." });
+    }
+
     if (newPassword !== confirmPassword)
-      return res.status(400).json({ message: "Passwords do not match" });
+      return res.status(400).json({ message: "Your new password and confirmation don't match. Please check both fields." });
 
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "We couldn't find an account with that email address. Check it and try again." });
 
     if (user.resetToken !== resetToken)
-      return res.status(401).json({ message: "Invalid or expired reset token" });
+      return res.status(401).json({ message: "That password reset code is incorrect or has expired. Request a new code and try again." });
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await user.update({ password: hashedPassword, code: null, resetToken: null });
 
     res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error changing password:", error);
+    res.status(500).json({ message: "We couldn't update your password right now. Please try again." });
   }
 };
 
 // Password Reset function
 exports.passwordReset = async (req, res) => {
-  const { token, newPassword } = req.body;
+  try {
+    const { token, newPassword } = req.body;
 
-  const passwordReset = await User.findOne({ where: { resetToken: token } });
-  if (!passwordReset || passwordReset.tokenExpiry < Date.now()) {
-    return res.status(400).json({ message: "Invalid or expired token" });
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Enter your password reset code and new password." });
+    }
+
+    const user = await User.findOne({ where: { resetToken: token } });
+    if (!user || (user.tokenExpiry && user.tokenExpiry < Date.now())) {
+      return res.status(400).json({ message: "That password reset code is incorrect or has expired. Request a new code and try again." });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetToken = null;
+    user.code = null;
+    await user.save();
+
+    res.json({ message: "Your password has been updated successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "We couldn't reset your password right now. Please try again." });
   }
-
-  const customer = await User.findByPk(passwordReset.customerId);
-  customer.password = await bcrypt.hash(newPassword, 10);
-
-  await customer.save();
-  await passwordReset.destroy(); // Delete the reset token
-
-  res.json({ message: "Password updated successfully" });
 };
 
 exports.getAllUsers = async (req, res) => {
@@ -312,7 +329,7 @@ exports.getAllUsers = async (req, res) => {
     });
   } catch (error) {
     console.error("Error listing users:", error.message);
-    return res.status(500).json({ error: "Could not retrieve users." });
+    return res.status(500).json({ error: "We couldn't load users right now. Please try again." });
   }
 };
 
@@ -321,26 +338,31 @@ exports.verifyUserId = async (req, res) => {
   const { token } = req.body;
 
   if (!token) {
-    return res.status(400).json({ message: 'Token is required' });
+    return res.status(400).json({ message: 'A verification token is required. Please try the link again.' });
+  }
+
+  let userId;
+  try {
+    userId = await decrypt(token);
+  } catch (error) {
+    console.error('Error decrypting verification token:', error);
+    return res.status(400).json({ message: 'That verification link is invalid or has expired. Please request a new one.' });
   }
 
   try {
-    // Decrypt the token to get the user ID
-    const userId = await decrypt(token);
-
     // Check if the user exists in the database
     const userExists = await User.findOne({ where: { id: userId } });
 
     if (userExists) {
       res.status(200).json({ exists: true });
     } else {
-      res.status(404).json({ exists: false, message: 'User not found' });
+      res.status(404).json({ exists: false, message: "We couldn't find an account for that verification link." });
     }
   } catch (error) {
-    console.error('Error verifying token:', error);
-    res.status(500).json({ message: 'Error verifying token', error });
+    console.error('Error checking verification link:', error);
+    res.status(500).json({ message: "We couldn't check that verification link right now. Please try again." });
   }
-};
+}; 
 
 
 exports.updateUserLocation = async (req, res) => {
@@ -353,7 +375,7 @@ exports.updateUserLocation = async (req, res) => {
       latitude === undefined ||
       longitude === undefined
     ) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ error: "Provide both your latitude and longitude to update your location." });
     }
 
     const user = await User.findByPk(userId);
@@ -372,7 +394,7 @@ exports.updateUserLocation = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating user location:", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "We couldn't update your location right now. Please try again." });
   }
 };
 

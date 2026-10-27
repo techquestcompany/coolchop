@@ -8,7 +8,7 @@ exports.updateUserLocation = async (req, res) => {
     const userId = req.user.id; // from token middleware
 
     const user = await User.findByPk(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: "We couldn't find your account. Please sign in again." });
 
     const { latitude, longitude, confirmLocation } = req.body;
 
@@ -17,7 +17,7 @@ exports.updateUserLocation = async (req, res) => {
       longitude === undefined ||
       confirmLocation === undefined
     ) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ error: "Provide your latitude, longitude, and location confirmation." });
     }
 
     await user.update({
@@ -29,7 +29,7 @@ exports.updateUserLocation = async (req, res) => {
     return res.status(200).json({ message: "User location updated successfully" });
   } catch (error) {
     console.error("Error updating user location:", error);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: "We couldn't update your location right now. Please try again." });
   }
 };
 
@@ -39,12 +39,11 @@ exports.getConfirmLocationById = async (req, res) => {
 
     const user = await User.findByPk(userId);
     if (!user)
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "We couldn't find your account. Please sign in again." });
 
     return res.json({ confirmLocation: user.confirm_location });
   } catch (error) {
     console.error("Error fetching confirm location:", error);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: "We couldn't load your saved location right now. Please try again." });
   }
 };
-

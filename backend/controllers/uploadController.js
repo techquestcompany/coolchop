@@ -17,15 +17,24 @@ const upload = multer({ storage: storage }).single('file');
 exports.uploadUserImage =  (req, res) => {
   upload(req, res, function (err) {
     if (err) {
-      return res.status(400).json({ success: false, message: 'Failed to upload image', error: err.message });
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({
+          success: false,
+          message: "We couldn't accept that image. Please choose a supported image and try again.",
+        });
+      }
+      console.error("Image upload failed:", err);
+      return res.status(500).json({
+        success: false,
+        message: "We couldn't upload your image right now. Please try again.",
+      });
     }
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(400).json({ success: false, message: 'Choose an image to upload.' });
     }
     const imageUrl = `${req.protocol}://${req.get('host')}/public/uploads/${req.file.filename}`;
-    res.json({ success: true, url: imageUrl, imageName : req.file.filename });
+    return res.json({ success: true, url: imageUrl, imageName : req.file.filename });
   });
 };
-
 
 

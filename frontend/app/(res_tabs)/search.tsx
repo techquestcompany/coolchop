@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { getAllDishes, baseURL } from '@/services/api';
+import { getAllDishes, baseURL, getApiErrorMessage } from '@/services/api';
 import { router } from 'expo-router';
 
 const SearchScreen = () => {
@@ -35,7 +35,7 @@ const SearchScreen = () => {
       setHasMore(pageNumber < response.totalPages);
     } catch (err) {
       console.error('Fetch error:', err?.response?.data || err.message);
-      setError('Failed to fetch dishes.');
+      setError(getApiErrorMessage(err, "We couldn't load dishes. Please try again."));
     }
 
     setIsLoading(false);

@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { getUserData, updateUserData } from '@/services/api';
+import { getUserData, updateUserData, getApiErrorMessage } from '@/services/api';
 import { getStoredToken } from '@/services/authStorage';
 
 export default function EditUserProfileScreen() {
@@ -40,7 +40,7 @@ export default function EditUserProfileScreen() {
         phone: data.phone|| ''
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to load user data.');
+      Alert.alert('Unable to load profile', getApiErrorMessage(error, "We couldn't load your profile. Please try again."));
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +64,7 @@ export default function EditUserProfileScreen() {
       Alert.alert('Success', 'Profile updated successfully.');
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to update profile.');
+      Alert.alert('Unable to update profile', getApiErrorMessage(error, "We couldn't update your profile. Please try again."));
     } finally {
       setIsSubmitting(false);
     }

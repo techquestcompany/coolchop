@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { DataTable, Text, Menu, IconButton } from 'react-native-paper';
-import { getAllRestaurants, approveRestaurantById } from '../services/api';
+import { getAllRestaurants, approveRestaurantById, getApiErrorMessage } from '../services/api';
 import { getStoredToken } from '../services/authStorage';
 
 interface ManagedRestaurant {
@@ -25,7 +25,7 @@ const App = () => {
       setPage(result.page);
       setTotalPages(result.totalPages);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load restaurants');
+      Alert.alert('Unable to load restaurants', getApiErrorMessage(error, "We couldn't load restaurants. Please try again."));
     }
   };
 
@@ -51,7 +51,7 @@ const App = () => {
       ); 
       Alert.alert('Success', 'Restaurant approved');
     } catch (err) {
-      Alert.alert('Error', 'Failed to approve restaurant.');
+      Alert.alert('Unable to approve restaurant', getApiErrorMessage(err, "We couldn't approve this restaurant. Please try again."));
     }
   };
 

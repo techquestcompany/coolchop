@@ -10,11 +10,55 @@ export const BASE_URL = "https://www.coolchop.xyz/api"
 // 172.20.10.5
 
 export const api = axios.create({
-  baseURL: baseURL,
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+export const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (data && typeof data === "object") {
+      const body = data as { error?: unknown; message?: unknown };
+      if (typeof body.message === "string") return body.message;
+      if (typeof body.error === "string") return body.error;
+    }
+    if (!error.response) {
+      return "We couldn't connect to the server. Check your internet connection and try again.";
+    }
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === "object") {
+    const message = (error as { error?: unknown; message?: unknown }).message
+      ?? (error as { error?: unknown }).error;
+    if (typeof message === "string") return message;
+  }
+  return fallback;
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      const responseData = error.response?.data;
+      if (responseData && typeof responseData === "object") {
+        const body = responseData as { error?: unknown; message?: unknown };
+        const message =
+          typeof body.message === "string"
+            ? body.message
+            : typeof body.error === "string"
+              ? body.error
+              : undefined;
+        if (message) error.message = message;
+      } else if (!error.response) {
+        error.message = "We couldn't connect to the server. Check your internet connection and try again.";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
   
 interface Dish {
   dishName: string;
@@ -27,37 +71,26 @@ interface Dish {
 
 // Function to handle user signup
 export const signUp = async (name: string, email: string, phone: string,  password: string, role: string) => {
-  try {
-    const response = await api.post('/user/signup', {name, email, phone, password,role});
-    return response.data;
-  } catch (error:string) {
-    if (error.response) {
-      
-      console.error('Server Error:', error.response.data);
-    } else {
-      
-      console.error('Error signing up:', error.message);
-    }
-    throw error;
-  }
-};
+  const response = await api.post('/user/signup', {name, email, phone, password,role});
+  return response.data;
+ };
 
 export const login = async (email: string, password: string) => {
   try {
     const response = await api.post('/user/login', { email, password });
 
     return response.data;
-  } catch (error) {
-    if (error.response) {
-    
-      console.error("Server Error:", error.response.data);
-      console.error("Status Code:", error.response.status);
-    } else if (error.request) {
-      // The request was made, but no response was received
-      console.error("No response received:", error.request);
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        console.error("Sign-in request failed:", error.response.status, error.response.data);
+      } else if (error.request) {
+        console.error("Sign-in request received no response:", error.request);
+      } else {
+        console.error("Sign-in request could not be created:", error.message);
+      }
     } else {
-      // Something happened in setting up the request
-      console.error("Request Error:", error.message);
+      console.error("Sign-in request failed:", error);
     }
     throw error;
   }
@@ -85,8 +118,11 @@ export const getAllUsers = async (token: string, page = 1, limit = 10) => {
       headers: { Authorization: `Bearer ${token}`, },
     });
     return response.data;
-  } catch (error) {
-    console.error('Error getting user data:', error?.response?.data);
+  } catch (error: unknown) {
+    console.error(
+      'Error getting user data:',
+      axios.isAxiosError(error) ? error.response?.data : error
+    );
     throw error;
   }
 };
@@ -98,8 +134,11 @@ export const approveRestaurantById = async (id, token: string) =>{
       { headers: { Authorization: `Bearer ${token}` } },
     );
     return response.data;
-  } catch (error) {
-    console.error('Error getting user data:', error?.response.data);
+  } catch (error: unknown) {
+    console.error(
+      'Error approving restaurant:',
+      axios.isAxiosError(error) ? error.response?.data : error
+    );
     throw error;
   }
 }
@@ -135,9 +174,12 @@ export const passResetVerifyCode = async (email: string, code: string) => {
     const response = await api.post('/user/verify', { email, code });
     console.log('Verification response:', response.data); 
     return response.data;  
-  } catch (error) {
-    console.error('Error verifying code:', error.response?.data);
-    throw error.response?.data || { message: 'Unknown error' };
+  } catch (error: unknown) {
+    console.error(
+      'Error verifying code:',
+      axios.isAxiosError(error) ? error.response?.data : error
+    );
+    throw error;
   }
 };
 
@@ -147,7 +189,7 @@ export const changePassword = async (
   email,
   resetToken
 ) => {
-  const response = await api.post('/changePassword', {
+  const response = await api.post('/user/changePassword', {
     newPassword,
     confirmPassword,
     email,
@@ -662,18 +704,21 @@ export const deleteAccount =async (token:string)=>{
       return { success: false, message: errorData.message || 'Failed to delete account' };
     }
   }
-  catch(e){
-    return { success: false, message: error.message };
-
+  catch(error: unknown){
+    return {
+      success: false,
+      message: getApiErrorMessage(error, "We couldn't delete your account right now. Please try again."),
+    };
   }
 }
 // Handle saving the notification method and sending it to the backend
  export const saveNotificationPreference = async (notificationMethod) => {
     try {
       const response = await axios.post('/notfication/addNotifcation', notificationMethod);
+      return response.data;
     } catch (error) {
       console.error('Error saving preferences:', error);
-      Alert.alert('Error', 'There was an error saving your preferences.');
+      throw error;
     }
     
   };

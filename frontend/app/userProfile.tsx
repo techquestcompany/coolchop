@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { baseURL, getUserData } from "@/services/api";
+import { baseURL, getUserData, getApiErrorMessage } from "@/services/api";
 import { getStoredToken } from "@/services/authStorage";
 
 type UserProfile = {
@@ -38,7 +38,7 @@ export default function UserProfileScreen() {
       const data = await getUserData(token);
       setUserData(data);
     } catch (err) {
-      setError("Failed to load user data.");
+      setError(getApiErrorMessage(err, "We couldn't load your profile. Please try again."));
     } finally {
       setIsLoading(false);
     }

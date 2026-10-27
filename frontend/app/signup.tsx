@@ -3,7 +3,7 @@ import { View, Text,TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, 
 import { FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from "expo-router/react-navigation";
 import {Picker} from '@react-native-picker/picker';
-import { signUp } from '../services/api';
+import { signUp, getApiErrorMessage } from '../services/api';
 
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, keyboardType }) => {
@@ -52,8 +52,8 @@ export default function SignUpScreen() {
           Alert.alert(response.error || "Account creation failed");
         }
       } catch (error) {
-        console.error("Signup Error:", error);
-        Alert.alert("Something went wrong, please try again.");
+        const message = getApiErrorMessage(error, "We couldn't create your account. Please try again.");
+        Alert.alert("Signup failed", message);
       } finally {
         setLoading(false);
       }

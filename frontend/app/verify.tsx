@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, ActivityIndicator, TouchableOpacity, StyleSheet,Button } from 'react-native';
 import { router } from 'expo-router';
-import { verify,sendVerification, getUserData } from '../services/api';
+import { verify,sendVerification, getUserData, getApiErrorMessage } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { useNavigation, useRoute } from 'expo-router/react-navigation';
 
@@ -73,7 +73,7 @@ const VerificationScreen = () => {
       Toast.show({
         type: 'error',
         text1: 'Verification Failed ⚠️',
-        text2: error.message || 'Something went wrong.',
+        text2: getApiErrorMessage(error, "We couldn't verify your email right now. Please try again."),
       });
     } finally {
       setLoading(false);

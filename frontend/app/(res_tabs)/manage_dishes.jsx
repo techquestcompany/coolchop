@@ -10,7 +10,7 @@ import {
   Alert,
   Image,
 } from "react-native";
-import { getMyRestaurantDishes, deleteDish,baseURL} from "@/services/api";
+import { getMyRestaurantDishes, deleteDish, baseURL, getApiErrorMessage } from "@/services/api";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
 import { getStoredToken } from "@/services/authStorage";
@@ -48,7 +48,11 @@ const ManageDishes = () => {
     setLoading(false);
   } catch (err) {
     console.error("Failed to fetch dishes:", err);
-    Toast.show({ type: "error", text1: "Failed to fetch dishes" });
+    Toast.show({
+      type: "error",
+      text1: "Unable to load dishes",
+      text2: getApiErrorMessage(err, "We couldn't load your dishes. Please try again."),
+    });
     setLoading(false);
   }
 };
@@ -90,7 +94,11 @@ const ManageDishes = () => {
     fetchDishes(); // Refresh list
   } catch (err) {
     console.error(err);
-    Toast.show({ type: "error", text1: "Failed to delete dish." });
+    Toast.show({
+      type: "error",
+      text1: "Unable to delete dish",
+      text2: getApiErrorMessage(err, "We couldn't delete this dish. Please try again."),
+    });
   }
 },
 

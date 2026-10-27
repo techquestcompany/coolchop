@@ -4,18 +4,18 @@ const { Restaurant, Dish, Rating } = require('../models');
 exports.addDishRating = async (req, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized. No user found." });
+      return res.status(401).json({ message: "Please sign in to rate a dish." });
     }
 
     const userId = req.user.id;
     const { dishId, userRating } = req.body;
 
     if (!dishId) {
-      return res.status(400).json({ error: "dishId is required" });
+      return res.status(400).json({ error: "Select a dish to rate." });
     }
 
     if (userRating === undefined) {
-      return res.status(400).json({ error: "userRating is required" });
+      return res.status(400).json({ error: "Choose a rating before submitting." });
     }
 
     // Check if user already rated this dish
@@ -52,7 +52,7 @@ exports.addDishRating = async (req, res) => {
 
   } catch (error) {
     console.error("Error adding dish rating:", error);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "We couldn't save your rating right now. Please try again." });
   }
 };
 
@@ -70,7 +70,7 @@ exports.getRatingsByRestaurant = async (req, res) => {
     res.status(200).json({ ratings });
   } catch (error) {
     console.error("Error fetching ratings:", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "We couldn't load restaurant ratings right now. Please try again." });
   }
 };
 
@@ -88,7 +88,6 @@ exports.getRatingsByDish = async (req, res) => {
     res.status(200).json({ ratings });
   } catch (error) {
     console.error("Error fetching ratings:", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "We couldn't load dish ratings right now. Please try again." });
   }
 };
-

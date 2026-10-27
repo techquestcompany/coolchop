@@ -45,7 +45,7 @@ exports.getAllOrders = async (req, res) => {
     return res.status(200).json(detailedOrders);
   } catch (error) {
     console.error("Error fetching orders:", error.message);
-    return res.status(500).json({ message: "Error fetching orders" });
+    return res.status(500).json({ message: "We couldn't load your orders right now. Please try again." });
   }
 };
 
@@ -73,7 +73,7 @@ exports.getRestaurantOrders = async (req, res) => {
     );
   } catch (error) {
     console.error("Error fetching restaurant orders:", error.message);
-    return res.status(500).json({ message: "Error fetching restaurant orders" });
+    return res.status(500).json({ message: "We couldn't load restaurant orders right now. Please try again." });
   }
 };
 
@@ -87,15 +87,15 @@ exports.getOrderById = async (req, res) => {
     const order = await Order.findByPk(orderId);
     if (!order) return res.status(404).json({ message: "Order not found" });
     if (!isAdmin(req.user) && req.user.role !== "customer") {
-      return res.status(403).json({ message: "Unauthorized access" });
+      return res.status(403).json({ message: "You don't have permission to view this order." });
     }
     if (!isAdmin(req.user) && order.userId !== req.user.id) {
-      return res.status(403).json({ message: "Unauthorized access" });
+      return res.status(403).json({ message: "You don't have permission to view this order." });
     }
     return res.status(200).json(await withDishDetails(order));
   } catch (error) {
     console.error("Error fetching order:", error.message);
-    return res.status(500).json({ message: "Error fetching order" });
+    return res.status(500).json({ message: "We couldn't load this order right now. Please try again." });
   }
 };
 
@@ -165,7 +165,7 @@ exports.updateOrder = async (req, res) => {
     });
 
     if (result.notFound) return res.status(404).json({ message: "Order not found" });
-    if (result.forbidden) return res.status(403).json({ message: "Unauthorized" });
+    if (result.forbidden) return res.status(403).json({ message: "You don't have permission to make that change." });
     if (result.paymentAlreadySucceeded) {
       return res.status(409).json({ message: "A paid order cannot be cancelled" });
     }
@@ -175,7 +175,7 @@ exports.updateOrder = async (req, res) => {
     return res.status(200).json({ message: "Order updated successfully", order: result.order });
   } catch (error) {
     console.error("Error updating order:", error.message);
-    return res.status(500).json({ message: "Error updating order" });
+    return res.status(500).json({ message: "We couldn't update this order right now. Please try again." });
   }
 };
 
@@ -207,10 +207,10 @@ exports.deleteOrder = async (req, res) => {
     });
 
     if (result.notFound) return res.status(404).json({ message: "Order not found" });
-    if (result.forbidden) return res.status(403).json({ message: "Unauthorized" });
+    if (result.forbidden) return res.status(403).json({ message: "You don't have permission to delete this order." });
     return res.status(200).json({ message: "Order deleted successfully" });
   } catch (error) {
     console.error("Error deleting order:", error.message);
-    return res.status(500).json({ message: "Error deleting order" });
+    return res.status(500).json({ message: "We couldn't delete this order right now. Please try again." });
   }
 };

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { router } from "expo-router";
-import { sendVerification } from "@/services/api";
+import { sendVerification, getApiErrorMessage } from "@/services/api";
 import{
   View,
   Text,
@@ -14,27 +14,21 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
 
   const handleResetPassword = async () => {
-    if (email === "") {
+    if (!email.trim()) {
       Alert.alert("Error", "Please enter your email address.");
-    } else {
-      Alert.alert(
-        "A Password reset code has been sent to your email"
-          
-      );
+      return;
     }
 
-
-    const response = await sendVerification(email)
-    if(response.message){
-      console.log("code sent sent successfully")
-    }else{
-      console.log("there was an error")
+    try {
+      await sendVerification(email.trim());
+      router.push({
+        pathname: 'passResetCode',
+        params: { email: email.trim() },
+      });
+    } catch (error) {
+      const message = getApiErrorMessage(error, "We couldn't send a reset code right now. Please try again.");
+      Alert.alert("Unable to send reset code", message);
     }
-    router.push({
-      pathname: 'passResetCode',
-      params: { email },
-    });
-    
   };
 
   return (

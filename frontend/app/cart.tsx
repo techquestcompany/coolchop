@@ -10,8 +10,9 @@ import {
   TextInput,
   ScrollView,
   Platform,
+  Alert,
 } from "react-native";
-import { getMyCart, removeFromMyCart, setMyCartQuantity, baseURL } from "@/services/api";
+import { getMyCart, removeFromMyCart, setMyCartQuantity, baseURL, getApiErrorMessage } from "@/services/api";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 
@@ -42,7 +43,7 @@ const CartScreen = () => {
       setIsLoading(false);
     } catch (err) {
       console.error("Failed to fetch cart items:", err);
-      setError("Failed to load cart items.");
+      setError(getApiErrorMessage(err, "We couldn't load your cart. Please try again."));
       setIsLoading(false);
     }
   };
@@ -55,6 +56,7 @@ const CartScreen = () => {
       setCartItems(cartItems.filter((item) => item.id !== dishId));
     } catch (err) {
       console.error("Failed to remove item:", err);
+      Alert.alert("Unable to remove item", getApiErrorMessage(err, "We couldn't remove that item. Please try again."));
     }
   };
 
@@ -71,6 +73,7 @@ const CartScreen = () => {
       );
     } catch (err) {
       console.error("Failed to update quantity:", err);
+      Alert.alert("Unable to update quantity", getApiErrorMessage(err, "We couldn't update the quantity. Please try again."));
     }
   };
 

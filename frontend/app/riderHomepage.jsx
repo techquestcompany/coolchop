@@ -16,6 +16,7 @@ import {
   getRiderOrders,
   acceptRiderOrder,
   updateUserLocation,
+  getApiErrorMessage,
 } from "@/services/api";
 
 const RiderHome = () => {
@@ -44,6 +45,7 @@ const RiderHome = () => {
         await loadOrders(token);
       } catch (err) {
         console.error(err);
+        Alert.alert("Unable to load rider dashboard", getApiErrorMessage(err, "We couldn't load your dashboard. Please try again."));
       } finally {
         setLoading(false);
       }
@@ -91,7 +93,7 @@ const RiderHome = () => {
       await acceptRiderOrder(orderId, token);
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch (err) {
-      Alert.alert("Error", "Failed to accept order");
+      Alert.alert("Unable to accept order", getApiErrorMessage(err, "We couldn't accept this order. Please try again."));
     }
   };
 
