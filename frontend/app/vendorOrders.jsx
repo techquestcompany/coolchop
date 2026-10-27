@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { fetchRestaurantOrders, updateOrder } from '../services/api';
+import { fetchRestaurantOrders, updateOrder, getApiErrorMessage } from '../services/api';
 import { getStoredToken } from '../services/authStorage';
 
 /* ---------- Helper to safely parse order items ---------- */
@@ -50,6 +50,7 @@ const VendorOrders = () => {
       await loadOrders(storedToken);
     } catch (error) {
       console.error('Error loading token or orders:', error);
+      Alert.alert('Unable to load restaurant orders', getApiErrorMessage(error, "We couldn't load orders. Please try again."));
     }
   };
 
@@ -60,8 +61,12 @@ const VendorOrders = () => {
       setOrders(data);
       setFilteredOrders(data);
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      Alert.alert('Error fetching orders');
+      console.error('Error fetching orders:', {
+        message: error.message,
+        status: error.response?.status,
+        response: error.response?.data,
+      });
+      Alert.alert('Unable to load orders', getApiErrorMessage(error, "We couldn't load restaurant orders. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -95,7 +100,7 @@ const VendorOrders = () => {
     setFilteredOrders(updated);
   } catch (err) {
     console.error(err);
-    Alert.alert('Error', 'Status update failed');
+    Alert.alert('Unable to update order', getApiErrorMessage(err, "We couldn't update this order. Please try again."));
   }
 };
 

@@ -753,16 +753,17 @@ export const deleteAccount =async (token:string)=>{
   }
 };
 /* 🔥 Rider APIs */
-export const getRiderOrders = async () =>{
-
-  try{
-const response = await api.get('/orders/rider_orders');
-return response.data;
-  }catch(error){
-console.error('Error fetching rider orders:', error);
-throw error;
+export const getRiderOrders = async (token: string) => {
+  try {
+    const response = await api.get('/orders/rider_orders', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching rider orders:', error);
+    throw error;
   }
-}
+};
 
 export const acceptRiderOrder = (orderId: number, token: string) =>
   api.post(

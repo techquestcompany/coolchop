@@ -6,7 +6,7 @@ import { submitDishes, api, getApiErrorMessage } from '../../services/api';
 import Toast from 'react-native-toast-message'; 
 import LottieView from 'lottie-react-native'; 
 import * as ImagePicker from 'expo-image-picker';
-import * as SecureStore from 'expo-secure-store';
+import { getStoredToken } from '@/services/authStorage';
 
 // Reusable Input Field
 const InputField = ({ iconName, placeholder, value, onChangeText, keyboardType, multiline }) => (
@@ -68,6 +68,12 @@ export default function AddDishScreen() {
       const sourceUri = result.assets[0].uri;
 
       try {
+        const token = await getStoredToken('restaurant_token');
+        if (!token) {
+          Alert.alert('Sign in required', 'Please sign in to your restaurant account before uploading images.');
+          return;
+        }
+
         const asset = result.assets[0];
         const fileName = asset.fileName || sourceUri.split(/[?#]/)[0].split('/').pop() || 'dish-image.jpg';
         const formData = new FormData();
@@ -78,7 +84,10 @@ export default function AddDishScreen() {
         });
 
         const response = await api.post('/upload/upload_image', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (response.data.success) {
@@ -92,7 +101,10 @@ export default function AddDishScreen() {
         }
       } catch (error) {
         console.error('Error uploading the image:', error);
-        Alert.alert('Error', 'Failed to upload the image');
+        Alert.alert(
+          'Unable to upload image',
+          getApiErrorMessage(error, "We couldn't upload your image. Please try again.")
+        );
       }
     }
   };

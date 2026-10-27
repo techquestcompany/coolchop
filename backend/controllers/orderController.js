@@ -1,66 +1,29 @@
-
-const { Order, Dish, Transaction,User, sequelize } = require("../models");
+const { Order, Dish, Transaction, User, sequelize } = require("../models");
+const getAddressFromCoords = require("../utils/getAddressFromCoords");
+const crypto = require("crypto");
 
 const ORDER_STATUSES = new Set(["preparing", "on_delivery", "delivered", "cancelled"]);
 const RESTAURANT_TRANSITIONS = {
   preparing: "on_delivery",
   on_delivery: "delivered",
-}
-const getAddressFromCoords = require("../utils/getAddressFromCoords");
-
-// CREATE ORDER
-exports.createOrder = async (req, res) => {
-  const userId = req.user.id; // ⭐ From token middleware
-  const { items, note } = req.body;
-
-  if (!items || items.length === 0) {
-    return res.status(400).json({ message: 'Items are required' });
-  }
-
-  try {
-    // Calculate total amount based on item prices
-    let totalAmount = 0;
-    for (const item of items) {
-      const dish = await Dish.findByPk(item.id);
-      if (!dish) {
-        return res.status(400).json({ message: `Dish with ID ${item.id} not found` });
-      }
-      totalAmount += dish.price * item.quantity;
-    }
-
-    // Generate a unique order number
-    const orderNumber = `ORD-${Date.now()}-${userId}`;
-
-    // Save the order
-    const order = await Order.create({
-      orderNumber,
-      userId,
-      items: JSON.stringify(items),
-      totalAmount,
-      note,
-    });
-
-    res.status(201).json({ message: 'Order created successfully', order });
-  } catch (error) {
-    console.error('Error creating order:', error);
-    res.status(500).json({ message: 'Error creating order' });
-  }
 };
 
-const orderItems = (order) =>
-  Array.isArray(order.items) ? order.items : JSON.parse(order.items);
+const orderItems = (order) => {
+  const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items);
+  if (!Array.isArray(items)) {
+    throw new Error(`Order ${order.id} contains invalid item data.`);
+  }
+  return items;
+};
 
 const isAdmin = (user) => user.isAdmin === true;
 
-exports.getUserOrders = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
 const withDishDetails = async (order) => {
   const items = orderItems(order);
-  const dishes = await Dish.findAll({
-    where: { id: items.map((item) => Number(item.id)) },
-  });
+  const dishIds = [...new Set(items.map((item) => Number(item.id)).filter(Number.isInteger))];
+  const dishes = dishIds.length
+    ? await Dish.findAll({ where: { id: dishIds } })
+    : [];
   const dishesById = new Map(dishes.map((dish) => [Number(dish.id), dish]));
 
   return {
@@ -69,117 +32,62 @@ const withDishDetails = async (order) => {
       const dish = dishesById.get(Number(item.id));
       return dish
         ? {
-    // Enrich orders with dish info
-    const ordersWithDishes = await Promise.all(
-      orders.map(async (order) => {
-        const items = JSON.parse(order.items); // parse JSON
-
-        // Fetch dish details
-        const detailedItems = await Promise.all(
-          items.map(async (item) => {
-            const dish = await Dish.findByPk(item.id);
-            if (dish) {
-              return {
-                id: dish.id,
-                dishName: dish.dishName,
-                price: dish.price,
-                quantity: item.quantity,
-              };
-            }
-            return null;
-          })
-        );
-
-        return {
-          ...order.toJSON(),
-          items: detailedItems.filter(Boolean), // remove nulls if dish not found
-        };
-      })
-    );
-
-    res.status(200).json(ordersWithDishes);
-  } catch (error) {
-    console.error('Error fetching orders:', error);
-    res.status(500).json({ message: 'Error fetching orders' });
-  }
-};
-
-
-exports.getRiderOrders = async (req, res) => {
-  try {
-    const orders = await Order.findAll({
-      where: { status: "success" },
-      include: [
-        {
-          model: User,
-          as:"user",
-          attributes: ["id", "latitude", "longitude", "name","phone"],
-        },
-      ],
-    });
-
-    const enrichedOrders = await Promise.all(
-      orders.map(async (order) => {
-        const user = order.user;
-
-        const address =
-          user?.latitude && user?.longitude
-            ? await getAddressFromCoords(user.latitude, user.longitude)
-            : null;
-
-        return {
-          ...order.toJSON(),
-          deliveryAddress: address,
-        };
-      })
-    );
-
-    res.json(enrichedOrders);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch orders" });
-  }
-};
-
-// get all order in the database
-exports.getAllOrders = async (req, res) => {
-  try {
-    const orders = await Order.findAll({
-      order: [['createdAt', 'DESC']]
-    });
-    res.json({
-  orders,
-  totalOrders: orders.length,
-});
-  } catch (error) {
-    console.error('Error fetching all orders:', error);
-    res.status(500).json({ message: 'Error fetching all orders' });
-  }
-}
-
-// GET ORDER BY ID
-exports.getOrderById = async (req, res) => {
-  const { orderId } = req.params;
-
-  try {
-    const order = await Order.findByPk(orderId);
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (order.userId !== req.user.id) return res.status(403).json({ message: 'Unauthorized access' });
-
-    const items = JSON.parse(order.items);
-    const detailedItems = await Promise.all(
-      items.map(async (item) => {
-        const dish = await Dish.findByPk(item.id);
-        if (dish) {
-          return {
             id: dish.id,
             dishName: dish.dishName,
             price: dish.price,
             quantity: Number(item.quantity),
           }
-        : { id: Number(item.id), quantity: Number(item.quantity), unavailable: true }
+        : { id: Number(item.id), quantity: Number(item.quantity), unavailable: true };
     }),
   };
+};
+
+exports.createOrder = async (req, res) => {
+  const { items, note } = req.body;
+  if (
+    !Array.isArray(items) ||
+    items.length === 0 ||
+    items.some(
+      (item) =>
+        !Number.isInteger(Number(item?.id)) ||
+        Number(item.id) < 1 ||
+        !Number.isInteger(Number(item?.quantity)) ||
+        Number(item.quantity) < 1 ||
+        Number(item.quantity) > 99
+    )
+  ) {
+    return res.status(400).json({ message: "Add at least one valid item to your order." });
+  }
+
+  try {
+    const normalizedItems = items.map((item) => ({
+      id: Number(item.id),
+      quantity: Number(item.quantity),
+    }));
+    const dishes = await Dish.findAll({
+      where: { id: [...new Set(normalizedItems.map((item) => item.id))] },
+    });
+    const dishesById = new Map(dishes.map((dish) => [Number(dish.id), dish]));
+    if (normalizedItems.some((item) => !dishesById.has(item.id))) {
+      return res.status(400).json({ message: "One or more dishes are no longer available." });
+    }
+
+    const totalAmount = normalizedItems.reduce(
+      (sum, item) => sum + Number(dishesById.get(item.id).price) * item.quantity,
+      0
+    );
+    const order = await Order.create({
+      orderNumber: `ORD-${crypto.randomUUID()}`,
+      userId: req.user.id,
+      items: normalizedItems,
+      totalAmount,
+      note: typeof note === "string" ? note.slice(0, 500) : null,
+    });
+    return res.status(201).json({ message: "Order created successfully", order });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return res.status(500).json({ message: "We couldn't create your order right now. Please try again." });
+  }
 };
 
 exports.getAllOrders = async (req, res) => {
@@ -189,10 +97,9 @@ exports.getAllOrders = async (req, res) => {
       where,
       order: [["createdAt", "DESC"]],
     });
-    const detailedOrders = await Promise.all(orders.map(withDishDetails));
-    return res.status(200).json(detailedOrders);
+    return res.status(200).json(await Promise.all(orders.map(withDishDetails)));
   } catch (error) {
-    console.error("Error fetching orders:", error.message);
+    console.error("Error fetching orders:", error);
     return res.status(500).json({ message: "We couldn't load your orders right now. Please try again." });
   }
 };
@@ -203,37 +110,79 @@ exports.getRestaurantOrders = async (req, res) => {
       where: { status: ["preparing", "on_delivery"] },
       order: [["createdAt", "DESC"]],
     });
-    const itemIds = [
-      ...new Set(orders.flatMap((order) => orderItems(order).map((item) => Number(item.id)))),
-    ];
+    if (orders.length === 0) return res.status(200).json([]);
+
+    const itemsByOrder = orders.map((order) => ({
+      order,
+      items: orderItems(order),
+    }));
+    const dishIds = [
+      ...new Set(itemsByOrder.flatMap(({ items }) => items.map((item) => Number(item.id)))),
+    ].filter(Number.isInteger);
+    if (dishIds.length === 0) return res.status(200).json([]);
+
     const dishes = await Dish.findAll({
-      where: { id: itemIds, restaurantId: req.user.id },
+      where: { id: dishIds, restaurantId: req.user.id },
     });
     const ownedDishIds = new Set(dishes.map((dish) => Number(dish.id)));
-
-    const restaurantOrders = orders.filter((order) => {
-      const items = orderItems(order);
-      return items.length > 0 && items.every((item) => ownedDishIds.has(Number(item.id)));
-    });
+    const restaurantOrders = itemsByOrder
+      .filter(
+        ({ items }) =>
+          items.length > 0 && items.every((item) => ownedDishIds.has(Number(item.id)))
+      )
+      .map(({ order }) => order);
     const detailedOrders = await Promise.all(restaurantOrders.map(withDishDetails));
+
     return res.status(200).json(
       detailedOrders.map(({ reference, userId, ...order }) => order)
     );
   } catch (error) {
-    console.error("Error fetching restaurant orders:", error.message);
-    return res.status(500).json({ message: "We couldn't load restaurant orders right now. Please try again." });
+    console.error(`Error fetching orders for restaurant ${req.user.id}:`, error);
+    return res.status(500).json({
+      message: "We couldn't load restaurant orders right now. Please try again.",
+      requestId: req.requestId,
+    });
+  }
+};
+
+exports.getRiderOrders = async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      where: { status: "success" },
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "latitude", "longitude", "name", "phone"],
+        },
+      ],
+    });
+    const enrichedOrders = await Promise.all(
+      orders.map(async (order) => {
+        const user = order.user;
+        const address =
+          user?.latitude && user?.longitude
+            ? await getAddressFromCoords(user.latitude, user.longitude)
+            : null;
+        return { ...order.toJSON(), deliveryAddress: address };
+      })
+    );
+    return res.status(200).json(enrichedOrders);
+  } catch (error) {
+    console.error("Error fetching rider orders:", error);
+    return res.status(500).json({ message: "We couldn't load available orders right now. Please try again." });
   }
 };
 
 exports.getOrderById = async (req, res) => {
   const orderId = Number(req.params.orderId);
   if (!Number.isInteger(orderId) || orderId < 1) {
-    return res.status(400).json({ message: "A valid order ID is required" });
+    return res.status(400).json({ message: "Enter a valid order ID." });
   }
 
   try {
     const order = await Order.findByPk(orderId);
-    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!order) return res.status(404).json({ message: "We couldn't find that order." });
     if (!isAdmin(req.user) && req.user.role !== "customer") {
       return res.status(403).json({ message: "You don't have permission to view this order." });
     }
@@ -242,7 +191,7 @@ exports.getOrderById = async (req, res) => {
     }
     return res.status(200).json(await withDishDetails(order));
   } catch (error) {
-    console.error("Error fetching order:", error.message);
+    console.error("Error fetching order:", error);
     return res.status(500).json({ message: "We couldn't load this order right now. Please try again." });
   }
 };
@@ -251,10 +200,10 @@ exports.updateOrder = async (req, res) => {
   const orderId = Number(req.params.orderId);
   const { status } = req.body;
   if (!Number.isInteger(orderId) || orderId < 1 || !ORDER_STATUSES.has(status)) {
-    return res.status(400).json({ message: "A valid order ID and status are required" });
+    return res.status(400).json({ message: "Enter a valid order ID and status." });
   }
   if (Object.keys(req.body).some((key) => key !== "status")) {
-    return res.status(400).json({ message: "Only the order status can be changed" });
+    return res.status(400).json({ message: "Only the order status can be changed." });
   }
 
   try {
@@ -275,21 +224,17 @@ exports.updateOrder = async (req, res) => {
         if (RESTAURANT_TRANSITIONS[order.status] !== status) {
           return { invalidTransition: true };
         }
-        const items = orderItems(order);
-        const dishIds = [...new Set(items.map((item) => Number(item.id)))];
+        const dishIds = [...new Set(orderItems(order).map((item) => Number(item.id)))];
         const dishes = await Dish.findAll({
-          where: {
-            id: dishIds,
-            restaurantId: req.user.id,
-          },
+          where: { id: dishIds, restaurantId: req.user.id },
           transaction,
         });
         if (dishIds.length === 0 || dishes.length !== dishIds.length) {
           return { forbidden: true };
         }
       } else if (!admin) {
-        if (req.user.role !== "customer") return { forbidden: true };
         if (
+          req.user.role !== "customer" ||
           status !== "cancelled" ||
           order.status !== "pending" ||
           order.reference
@@ -312,17 +257,19 @@ exports.updateOrder = async (req, res) => {
       return { order };
     });
 
-    if (result.notFound) return res.status(404).json({ message: "Order not found" });
-    if (result.forbidden) return res.status(403).json({ message: "You don't have permission to make that change." });
+    if (result.notFound) return res.status(404).json({ message: "We couldn't find that order." });
+    if (result.forbidden) {
+      return res.status(403).json({ message: "You don't have permission to make that change." });
+    }
     if (result.paymentAlreadySucceeded) {
-      return res.status(409).json({ message: "A paid order cannot be cancelled" });
+      return res.status(409).json({ message: "A paid order cannot be cancelled." });
     }
     if (result.invalidTransition) {
-      return res.status(409).json({ message: "Order status cannot be changed to that value" });
+      return res.status(409).json({ message: "That order status change isn't available." });
     }
     return res.status(200).json({ message: "Order updated successfully", order: result.order });
   } catch (error) {
-    console.error("Error updating order:", error.message);
+    console.error("Error updating order:", error);
     return res.status(500).json({ message: "We couldn't update this order right now. Please try again." });
   }
 };
@@ -330,7 +277,7 @@ exports.updateOrder = async (req, res) => {
 exports.deleteOrder = async (req, res) => {
   const orderId = Number(req.params.orderId);
   if (!Number.isInteger(orderId) || orderId < 1) {
-    return res.status(400).json({ message: "A valid order ID is required" });
+    return res.status(400).json({ message: "Enter a valid order ID." });
   }
 
   try {
@@ -354,11 +301,13 @@ exports.deleteOrder = async (req, res) => {
       return { deleted: true };
     });
 
-    if (result.notFound) return res.status(404).json({ message: "Order not found" });
-    if (result.forbidden) return res.status(403).json({ message: "You don't have permission to delete this order." });
+    if (result.notFound) return res.status(404).json({ message: "We couldn't find that order." });
+    if (result.forbidden) {
+      return res.status(403).json({ message: "You don't have permission to delete this order." });
+    }
     return res.status(200).json({ message: "Order deleted successfully" });
   } catch (error) {
-    console.error("Error deleting order:", error.message);
+    console.error("Error deleting order:", error);
     return res.status(500).json({ message: "We couldn't delete this order right now. Please try again." });
   }
 };

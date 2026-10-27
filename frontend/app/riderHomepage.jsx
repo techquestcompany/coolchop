@@ -81,8 +81,8 @@ const RiderHome = () => {
   };
 
   /** 📦 Load Available Orders */
-  const loadOrders = async () => {
-    const res = await getRiderOrders();
+  const loadOrders = async (token) => {
+    const res = await getRiderOrders(token);
     setOrders(res|| []);
   };
 

@@ -18,8 +18,8 @@ router.get('/restaurants/:restaurantId/dishes', resController.getDishesForRestau
 router.get('/restaurants/:id', resController.getPublicRestaurantById);
 router.get('/dishes', resController.getAllDishes);
 router.get('/dish/:id', resController.getDishById);
-router.get('dishes/search',resController.searchDishes)
-router.get("search",resController.searchRestaurants)
+router.get('/dishes/search', resController.searchDishes);
+router.get('/search', resController.searchRestaurants);
 
 
 module.exports = router;

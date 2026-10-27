@@ -7,13 +7,8 @@ const requireRole = require("../utils/requireRole");
 router.post('/signup', userController.signup);
 router.post('/login', userController.login);
 router.post('/verify', userController.verifyCode);
-<<<<<<< HEAD
 router.post('/token', userController.verifyUserId);
 router.get('/me', tokenMiddleware, requireRole("customer", "rider", "admin"), userController.getUserData);
-=======
-
-router.get('/me', tokenMiddleware,userController.getUserData);
->>>>>>> 661a36b ( modified the controller files)
 router.post("/forgottenPassword",userController.forgottenPassword)
 router.post("/resetPassword",userController.passwordReset);
 router.get("/allUsers", tokenMiddleware, requireRole("admin"), userController.getAllUsers)
