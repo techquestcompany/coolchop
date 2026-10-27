@@ -8,26 +8,28 @@ const { getAdminUserIds } = require("../utils/adminIdentity");
 require("dotenv").config();
 
 
-// Function to generate a random 4-digit verification code
-const generateVerificationCode = () => {
-  return Math.floor(1000 + Math.random() * 9000).toString(); 
-};
+//const nodemailer = require("nodemailer");
 
+// Generate 4-digit code
+const generateVerificationCode = () =>
+  Math.floor(1000 + Math.random() * 9000).toString();
 
-// Function to send verification email
+// Send email
 const sendVerificationEmail = async (email, code) => {
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
+  await transporter.verify(); // catches auth errors
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"Your App Name" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: 'Your Verification Code',
+    subject: "Email Verification Code",
     text: `Your verification code is: ${code}`,
   };
 
@@ -105,16 +107,14 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ error: "Enter your name, email, phone number, and password, and choose a valid account type." });
     }
 
-    // Check if email exists
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
+    // Check email
+    if (await User.findOne({ where: { email } })) {
       return res.status(409).json({ error: "Email already in use" });
     }
 
-    // Check if phone exists
-    const existingPhone = await User.findOne({ where: { phone } });
-    if (existingPhone) {
-      return res.status(409).json({ error: "Phone number already in use" });
+    // Check phone
+    if (await User.findOne({ where: { phone } })) {
+      return res.status(409).json({ error: "Phone already in use" });
     }
 
     // Hash password
@@ -129,12 +129,11 @@ exports.signup = async (req, res) => {
       email,
       phone,
       password: hashedPassword,
+      role,
+      isAdmin: isAdmin ? 1 : 0,
+      isVerified: 0,
       code: verificationCode,
       confirm_location: 0,
-      isAdmin: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      role
     });
 
     // Send verification email
@@ -147,16 +146,19 @@ exports.signup = async (req, res) => {
       });
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "User created. Verification code sent to email.",
+      message: "Account created. Verification code sent to email.",
       userId: user.id,
     });
+
   } catch (error) {
     console.error("Error creating user:", error);
     res.status(500).json({ error: "We couldn't create your account right now. Please check your details and try again." });
   }
 };
+
+ 
 
 // Verification function
 exports.verifyCode = async (req, res) => {
@@ -308,6 +310,7 @@ exports.passwordReset = async (req, res) => {
 };
 
 exports.getAllUsers = async (req, res) => {
+
   try {
     const page = Number.parseInt(req.query.page, 10) || 1;
     const limit = Math.min(Number.parseInt(req.query.limit, 10) || 10, 100);
@@ -331,6 +334,7 @@ exports.getAllUsers = async (req, res) => {
     console.error("Error listing users:", error.message);
     return res.status(500).json({ error: "We couldn't load users right now. Please try again." });
   }
+
 };
 
 
