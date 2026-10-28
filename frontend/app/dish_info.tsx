@@ -19,7 +19,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import {
   baseURL,
   getDishById,
-  getUserDishRating,
+  getUserDishRatings,
   saveRating,
   saveDishReview,
   getApiErrorMessage,
@@ -74,15 +74,20 @@ const DishInfoScreen = () => {
 
   const fetchUserRating = async () => {
     try {
-      const userId = await SecureStore.getItemAsync("customer_token");
-      const response = await getUserDishRatings(userId, id);
+      const userId = await SecureStore.getItemAsync("userId");
+      if (!userId || !id) {
+        setRating(0);
+        return;
+      }
+      const response = await getUserDishRatings(Number(id));
 
       if (!response || !Array.isArray(response.ratings) || response.ratings.length === 0) {
         setRating(0);
         return;
       }
 
-      const userRating = response.ratings[0]?.userRating ?? 0;
+      const userRating =
+        response.ratings.find((item) => String(item.userId) === String(userId))?.userRating ?? 0;
       setRating(userRating > 0 ? userRating : 0);
     } catch (err) {
       console.error("Failed to fetch user rating:", err);
@@ -102,6 +107,7 @@ const DishInfoScreen = () => {
   };
 
 const handleRating = async (userRating: number) => {
+  const previousRating = rating;
   setRating(userRating); // update UI immediately
 
   try {
@@ -116,6 +122,7 @@ const handleRating = async (userRating: number) => {
       Toast.show({ type: "success", text1: "Thanks for your feedback!" });
     }
   } catch (err) {
+    setRating(previousRating);
     console.error("Rating error:", err);
     Toast.show({
       type: "error",
@@ -168,7 +175,11 @@ const handleRating = async (userRating: number) => {
     setShowCartButton(true);
   } catch (err) {
     console.error("Failed to add to cart:", err);
-    Toast.show({ type: "error", text1: "Failed to add to cart" });
+    Toast.show({
+      type: "error",
+      text1: "Unable to add to cart",
+      text2: getApiErrorMessage(err, "We couldn't add that item to your cart. Please try again."),
+    });
   }
 };
 

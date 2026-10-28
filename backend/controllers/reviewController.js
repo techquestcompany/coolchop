@@ -1,18 +1,29 @@
-const {Review} = require('../models');
+const {Review, Restaurant} = require('../models');
 
 // Add a new review for a restaurant
 exports.addReview = async (req, res) => {
   try {
-    const { userId, restaurantId, content } = req.body;
+    const userId = req.user.id;
+    const { restaurantId, review } = req.body;
 
-    if (!userId || !restaurantId || !content) {
+    if (
+      !Number.isInteger(Number(restaurantId)) ||
+      Number(restaurantId) < 1 ||
+      typeof review !== "string" ||
+      !review.trim()
+    ) {
       return res.status(400).json({ error: 'Enter your review and the restaurant it is for.' });
+    }
+
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ error: "We couldn't find that restaurant." });
     }
 
     const newReview = await Review.create({
       userId,
       restaurantId,
-      content,
+      review: review.trim(),
     });
 
     res.status(201).json({

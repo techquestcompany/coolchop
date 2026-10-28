@@ -215,6 +215,56 @@ exports.getUserData = async (req, res) => {
   }
 };
 
+exports.updateUserData = async (req, res) => {
+  const { name, email, phone } = req.body;
+  if (
+    typeof name !== "string" ||
+    !name.trim() ||
+    typeof email !== "string" ||
+    !email.trim() ||
+    typeof phone !== "string" ||
+    !phone.trim()
+  ) {
+    return res.status(400).json({
+      error: "Enter your name, email address, and phone number.",
+    });
+  }
+
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "We couldn't find your account. Please sign in again." });
+    }
+
+    await user.update({
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+    });
+
+    return res.status(200).json({
+      message: "Your profile has been updated.",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        profileImage: user.profileImage,
+      },
+    });
+  } catch (error) {
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({
+        error: "That email address or phone number is already being used by another account.",
+      });
+    }
+    console.error("Error updating user data:", error);
+    return res.status(500).json({
+      error: "We couldn't update your profile right now. Please try again.",
+    });
+  }
+};
+
 
 exports.searchUser = async (req, res) => {
   try {

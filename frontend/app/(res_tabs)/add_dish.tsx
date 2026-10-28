@@ -154,10 +154,9 @@ export default function AddDishScreen() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const token = await SecureStore.getItemAsync('restaurant_token');
-      console.log('dish TOKEN:', token); 
+      const token = await getStoredToken('restaurant_token');
       if (!token) {
-        Alert.alert('Error', 'Token not found. Please log in again.');
+        Alert.alert('Sign in required', 'Please sign in to your restaurant account before submitting dishes.');
         return;
       }
 

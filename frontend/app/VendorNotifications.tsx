@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Picker, Alert } from 'react-native';
-import axios from 'axios';
 
 const NotificationPreferences = () => {
   const [showModal, setShowModal] = useState(false);
@@ -17,7 +16,13 @@ const NotificationPreferences = () => {
     setShowModal(true);
   };
 
-  
+  const saveNotificationPreference = () => {
+    setShowModal(false);
+    Alert.alert(
+      'Not available yet',
+      'Notification preferences cannot be saved because this feature is not available on the server yet.'
+    );
+  };
 
   return (
     <View style={styles.container}>

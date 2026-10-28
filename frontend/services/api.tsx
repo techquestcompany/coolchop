@@ -5,6 +5,7 @@ import Constants from "expo-constants";
 
 export const API_URL = "https://www.coolchop.xyz/api"
 export const BASE_URL = "https://www.coolchop.xyz/api"
+export const baseURL = BASE_URL
 // const API_URL = 'http://192.168.0.103:3000/api';
 //13.60.180.213
 // 172.20.10.5
@@ -144,9 +145,12 @@ export const approveRestaurantById = async (id, token: string) =>{
 }
 
 
-export const updateUserData = async (data, token) => {
+export const updateUserData = async (
+  data: { name: string; email: string; phone: string },
+  token: string
+) => {
   try {
-    const response = await api.put('/user/update_data', data, {
+    const response = await api.put('/user/me', data, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
@@ -211,7 +215,7 @@ export const sendVerification= async (email: string)=>{
 }
 export const uploadImage = async (profileImage: string, token: string) => {
   const formData = new FormData();
-  formData.append('profileImage', {
+  formData.append('file', {
     uri: profileImage,
     type: 'image/jpeg', //Adjust this based on the image type
     name: 'profileImage.jpg', // Provide a filename
@@ -393,8 +397,10 @@ export const verifyToken = async (token: string) => {
 // Function to verify if the token is valid
 export const verifyResToken = async (token: string) => {
   try {
-    const response = await api.post('/restaurant/token', { token }); 
-    return response.data.isValid; 
+    await api.get('/restaurant/myrestaurant', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return true;
   } catch (error) {
     throw error;
   }
@@ -429,9 +435,12 @@ export const getCartItems = async (user_id: string, token: string) => {
 
 
 // Function to delete a dish from the cart
-export const deleteFromCart = async (user_id: string, dishId: string) => {
+export const deleteFromCart = async (dishId: string, token: string) => {
   try {
-    const response = await api.delete('/cart/remove', { data: { user_id, dishId } });
+    const response = await api.delete('/cart/remove', {
+      data: { dishId },
+      headers: { Authorization: `Bearer ${token}` },
+    });
     return response.data;
   } catch (error) {
     console.error('Error removing from cart:', error);
@@ -518,16 +527,13 @@ export const updateCartQuantity = async ( dishId: string, quantity: number,token
   }
 };
 
-export const deleteCartItem = async ( dishId:string,token: string)=>{
+export const deleteCartItem = async (dishId: string, token: string) => {
   try {
-    const response = await api.delete(`/cart/remove/${dishId}`,{
-      headers:{
-        Authorization:`Bearer ${token}`
-      }
-     
-    }
-  )
-  return response.data
+    const response = await api.delete('/cart/remove', {
+      data: { dishId },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
   } catch (error) {
     console.error('Deleting cart quantity:', error);
     throw error;
@@ -542,12 +548,12 @@ export const updateUserLocation = async (
   longitude: number,
   confirmLocation = true
 ) => {
-  const response = await api.post(
-    "/user/location",
+  const response = await api.put(
+    "/location/confirm",
     {
       latitude,
       longitude,
-      
+      confirmLocation,
     },
     {
       headers: {
@@ -587,10 +593,11 @@ export const saveRating = async (dishId: number, userRating: number, token: stri
 // Function to fetch the user's rating for a restaurant
 export const getUserRating = async (userId: string, restaurantId: string) => {
   try {
-    const response = await api.get(`/ratings/${restaurantId}`, {
-      params: { userId },
-    });
-    return response.data;
+    const response = await api.get(`/ratings/restaurant/${restaurantId}`);
+    const ratings = response.data.ratings.filter(
+      (rating) => String(rating.userId) === String(userId)
+    );
+    return { ...response.data, ratings };
   } catch (error) {
     console.error('Error fetching user rating:', error);
     throw error;
@@ -598,13 +605,26 @@ export const getUserRating = async (userId: string, restaurantId: string) => {
 };
 
 // Function to save a review
-export const saveReview = async (userId: string, restaurantId: string, review: string) => {
+export const saveRestaurantRating = async (
+  restaurantId: string,
+  userRating: number,
+  token: string
+) => {
+  const response = await api.post(
+    '/ratings/restaurant/add',
+    { restaurantId, userRating },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const saveReview = async (restaurantId: string, review: string, token: string) => {
   try {
-    const response = await api.post('/reviews/add', {
-      userId,
-      restaurantId,
-      review,
-    });
+    const response = await api.post(
+      '/reviews/restaurant/add',
+      { restaurantId, review },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return response.data;
   } catch (error) {
     console.error('Error saving review:', error);
@@ -615,7 +635,7 @@ export const saveReview = async (userId: string, restaurantId: string, review: s
 // Function to fetch reviews for a restaurant
 export const getReviews = async (restaurantId: string) => {
   try {
-    const response = await api.get(`/reviews/${restaurantId}`);
+    const response = await api.get(`/reviews/restaurant/${restaurantId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching reviews:', error);
@@ -625,14 +645,17 @@ export const getReviews = async (restaurantId: string) => {
 
 
 // Function to save a rating
-export const saveDishRating = async (userId: string, dishId: string, rating: number, userRating: number) => {
+export const saveDishRating = async (
+  dishId: string | number,
+  userRating: number,
+  token: string
+) => {
   try {
-    const response = await api.post('/ratings/add-dish', {
-      userId,
-      dishId,
-      rating,
-      userRating,
-    });
+    const response = await api.post(
+      '/ratings/add',
+      { dishId, userRating },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return response.data;
   } catch (error) {
     console.error('Error saving rating:', error);
@@ -640,7 +663,7 @@ export const saveDishRating = async (userId: string, dishId: string, rating: num
   }
 };
 
-export const getUserDishRatings = async (dishId: number) => {
+export const getUserDishRatings = async (dishId: string | number) => {
   try {
     const response = await api.get(`/ratings/dish/${dishId}`);
     return response.data; // returns { ratings: [...] }
@@ -655,7 +678,7 @@ export const getUserDishRatings = async (dishId: number) => {
 export const saveDishReview = async (dishId: string, review: string, token: string) => {
   try {
     const response = await api.post(
-      '/reviews/add',
+      '/reviews/dish/add',
       {
         dishId,
         review,
@@ -678,7 +701,7 @@ export const saveDishReview = async (dishId: string, review: string, token: stri
 // Function to fetch reviews for a restaurant
 export const getDishReviews = async (dishId: string) => {
   try {
-    const response = await api.get(`/reviews/${dishId}`);
+    const response = await api.get(`/reviews/dish/${dishId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching reviews:', error);
@@ -687,42 +710,10 @@ export const getDishReviews = async (dishId: string) => {
 };
 
  
-export const deleteAccount =async (token:string)=>{
-  try{
-    const response = await fetch('/users/deleteAccount', {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (response.ok) {
-
-      return { success: true };
-    } else {
-      const errorData = await response.json();
-      return { success: false, message: errorData.message || 'Failed to delete account' };
-    }
-  }
-  catch(error: unknown){
-    return {
-      success: false,
-      message: getApiErrorMessage(error, "We couldn't delete your account right now. Please try again."),
-    };
-  }
-}
-// Handle saving the notification method and sending it to the backend
- export const saveNotificationPreference = async (notificationMethod) => {
-    try {
-      const response = await axios.post('/notfication/addNotifcation', notificationMethod);
-      return response.data;
-    } catch (error) {
-      console.error('Error saving preferences:', error);
-      throw error;
-    }
-    
-  };
-
+export const deleteAccount = async () => ({
+  success: false,
+  message: "Account deletion isn't available yet. Please contact support for help.",
+});
  export const InitTransactionReq = async (
   order: { items: { id: number; quantity: number }[]; note?: string },
   token: string
@@ -764,17 +755,6 @@ export const getRiderOrders = async (token: string) => {
     throw error;
   }
 };
-
-export const acceptRiderOrder = (orderId: number, token: string) =>
-  api.post(
-    `/rider/orders/${orderId}/accept`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
 
 export const getMyCart = async (token: string) => {
   const response = await api.get('/cart/get', {

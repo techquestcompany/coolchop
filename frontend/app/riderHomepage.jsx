@@ -14,7 +14,6 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import {
   getRiderOrders,
-  acceptRiderOrder,
   updateUserLocation,
   getApiErrorMessage,
 } from "@/services/api";
@@ -28,12 +27,12 @@ const RiderHome = () => {
     const init = async () => {
       try {
         const token =
-          Platform.OS === "android"
+          Platform.OS !== "web"
             ? await SecureStore.getItemAsync("customer_token")
             : localStorage.getItem("customer_token");
 
         const role =
-          Platform.OS === "android"
+          Platform.OS !== "web"
             ? await SecureStore.getItemAsync("role")
             : localStorage.getItem("role");
 
@@ -86,17 +85,6 @@ const RiderHome = () => {
     setOrders(res|| []);
   };
 
-  /** ✅ Accept Order */
-  const acceptOrder = async (orderId: number) => {
-    try {
-      const token = await SecureStore.getItemAsync("customer_token");
-      await acceptRiderOrder(orderId, token);
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-    } catch (err) {
-      Alert.alert("Unable to accept order", getApiErrorMessage(err, "We couldn't accept this order. Please try again."));
-    }
-  };
-
   if (loading) {
     return <ActivityIndicator size="large" />;
   }
@@ -121,12 +109,9 @@ const RiderHome = () => {
             <Text>Customer: {item.user?.name || "N/A"}</Text>
             <Text>Delivery: {item.deliveryAddress}</Text>
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => acceptOrder(item.id)}
-            >
-              <Text style={styles.buttonText}>Accept Order</Text>
-            </TouchableOpacity>
+            <Text style={styles.unavailableText}>
+              Order claiming is not available yet.
+            </Text>
           </View>
         )}
       />
@@ -150,11 +135,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
   },
-  button: {
-    backgroundColor: "#28a745",
-    padding: 10,
-    marginTop: 8,
-    borderRadius: 6,
-  },
-  buttonText: { color: "#fff", textAlign: "center" },
+  unavailableText: { color: "#666", marginTop: 8 },
 });

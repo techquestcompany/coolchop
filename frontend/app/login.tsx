@@ -58,15 +58,17 @@ const handleSignIn = async () => {
       response.user?.token &&
       response.user?.role
     ) {
-      const { role, token } = response.user;
+      const { id, role, token } = response.user;
 
       // 🔐 Store role + token
       if (Platform.OS !== "web") {
         await SecureStore.setItemAsync("role", role);
         await SecureStore.setItemAsync("customer_token", token);
+        await SecureStore.setItemAsync("userId", String(id));
       } else if (Platform.OS === "web") {
         localStorage.setItem("role", role);
         localStorage.setItem("customer_token", token);
+        localStorage.setItem("userId", String(id));
       }
 
       Toast.show({

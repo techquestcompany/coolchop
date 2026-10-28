@@ -56,6 +56,53 @@ exports.addDishRating = async (req, res) => {
   }
 };
 
+exports.addRestaurantRating = async (req, res) => {
+  const userId = req.user.id;
+  const { restaurantId, userRating } = req.body;
+  const ratingValue = Number(userRating);
+
+  if (!Number.isInteger(Number(restaurantId)) || Number(restaurantId) < 1) {
+    return res.status(400).json({ error: "Choose a restaurant to rate." });
+  }
+  if (!Number.isInteger(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+    return res.status(400).json({ error: "Choose a rating from 1 to 5." });
+  }
+
+  try {
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ error: "We couldn't find that restaurant." });
+    }
+
+    const [rating] = await Rating.findOrCreate({
+      where: { userId, restaurantId },
+      defaults: { userId, restaurantId, userRating: ratingValue, rating: ratingValue },
+    });
+    if (rating.userRating !== ratingValue) {
+      rating.userRating = ratingValue;
+      rating.rating = ratingValue;
+      await rating.save();
+    }
+
+    const ratings = await Rating.findAll({ where: { restaurantId } });
+    const average = ratings.reduce((sum, item) => sum + item.userRating, 0) / ratings.length;
+    await restaurant.update({
+      ratings: Number(average.toFixed(1)),
+      reviews: ratings.length,
+    });
+
+    return res.status(200).json({
+      message: "Restaurant rating saved.",
+      averageRating: restaurant.ratings,
+    });
+  } catch (error) {
+    console.error("Error adding restaurant rating:", error);
+    return res.status(500).json({
+      error: "We couldn't save your rating right now. Please try again.",
+    });
+  }
+};
+
 // ⭐ GET RESTAURANT RATINGS
 exports.getRatingsByRestaurant = async (req, res) => {
   try {

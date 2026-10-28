@@ -148,7 +148,7 @@ exports.getRestaurantOrders = async (req, res) => {
 exports.getRiderOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
-      where: { status: "success" },
+      where: { status: "preparing" },
       include: [
         {
           model: User,

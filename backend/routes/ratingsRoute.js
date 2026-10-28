@@ -5,6 +5,7 @@ const requireRole = require("../utils/requireRole");
 const router = express.Router();
 
 router.post('/add', tokenMiddleware, requireRole("customer"), ratingsController.addDishRating);
+router.post('/restaurant/add', tokenMiddleware, requireRole("customer"), ratingsController.addRestaurantRating);
 
 router.get('/restaurant/:restaurantId', ratingsController.getRatingsByRestaurant);
 

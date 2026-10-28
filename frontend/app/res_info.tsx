@@ -21,7 +21,7 @@ import {
   getDishesByRestaurantId,
   baseURL,
   saveReview,
-  saveRating,
+  saveRestaurantRating,
   getUserRating,
   getApiErrorMessage,
 } from "@/services/api";
@@ -61,10 +61,14 @@ const RestaurantInfoScreen = () => {
   const fetchUserRating = async () => {
     try {
       const userId = await SecureStore.getItemAsync("userId");
+      if (!userId) {
+        setRating(0);
+        return;
+      }
 
       const response = await getUserRating(userId, id);
 
-      if (response && response.ratings && response.ratings[0].userRating > 0) {
+      if (response?.ratings?.[0]?.userRating > 0) {
         const userRating = response.ratings[0].userRating;
         setRating(userRating);
       } else {
@@ -133,25 +137,17 @@ const RestaurantInfoScreen = () => {
   };
 
   const handleRating = async (userRating) => {
+    const previousRating = rating;
     setRating(userRating);
 
-    // Current restaurant rating and reviews
-    const currentRating = restaurant.ratings;
-    const numberOfReviews = restaurant.reviews;
-
-    // Calculate new rating
-    const newRating = (currentRating * numberOfReviews + userRating) / (numberOfReviews + 1);
-
     try {
-      const userId = await SecureStore.getItemAsync("userId");
-
-      const response = await saveRating(userId, restaurant.id, newRating, userRating);
-      if (response) {
-        Toast.show({ type: "success", text1: "Thanks for your feedback!" });
-      } else {
-        throw new Error(data.message || "Failed to submit rating.");
-      }
+      const token = await SecureStore.getItemAsync("customer_token");
+      if (!token) throw new Error("Please sign in to rate this restaurant.");
+      const response = await saveRestaurantRating(restaurant.id, userRating, token);
+      setRestaurant((current) => ({ ...current, ratings: response.averageRating }));
+      Toast.show({ type: "success", text1: "Thanks for your feedback!" });
     } catch (err) {
+      setRating(previousRating);
       Toast.show({
         type: "error",
         text1: "Unable to submit rating",
@@ -163,14 +159,14 @@ const RestaurantInfoScreen = () => {
 
 
   const submitReview = async () => {
-    const userId = await SecureStore.getItemAsync("userId");
-
     try {
-      const response = await saveReview(userId, id , review);
+      const token = await SecureStore.getItemAsync("customer_token");
+      if (!token) throw new Error("Please sign in to leave a review.");
+      const response = await saveReview(id, review, token);
 
-      if (response.success) {
+      if (response.message) {
         Toast.show({ type: "success", text1: "Review submitted!" });
-        setReview(""); // Clear the input
+        setReview("");
       }
     } catch (err) {
       console.error("Failed to save review:", err);

@@ -18,19 +18,22 @@ const SearchScreen = () => {
 
   const fetchData = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       if (isDishes) {
-        const dishData = await getAllDishes();
+        const dishResponse = await getAllDishes();
+        const dishData = dishResponse.data;
         setDishes(dishData);
         setFilteredData(dishData);
       } else {
-        const restaurantData = await getAllRestaurants();
+        const restaurantResponse = await getAllRestaurants();
+        const restaurantData = restaurantResponse.data;
         setRestaurants(restaurantData);
         setFilteredData(restaurantData);
       }
-      setIsLoading(false);
     } catch (err) {
       setError(getApiErrorMessage(err, "We couldn't load search results. Please try again."));
+    } finally {
       setIsLoading(false);
     }
   };

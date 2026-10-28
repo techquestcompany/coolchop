@@ -8,6 +8,7 @@ router.post('/add', tokenMiddleware, requireRole("customer"), reviewsController.
 
 // ⭐ Restaurant reviews
 router.get('/restaurant/:restaurantId', reviewsController.getReviewsByRestaurant);
+router.post('/restaurant/add', tokenMiddleware, requireRole("customer"), reviewsController.addReview);
 
 // ⭐ Dish reviews
 router.post('/dish/add', tokenMiddleware, requireRole("customer"), reviewsController.addDishReview);
