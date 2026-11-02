@@ -55,8 +55,12 @@ const SearchScreen = () => {
   };
 
   const renderItem = ({ item }) => {
-    const dishImg = item.image || item.dishImage;
-    const restaurantImg = item.restaurant?.profileImage;
+    const imagePath = item.profileImage || item.image || item.dishImage || item.restaurant?.profileImage;
+    const imageUrl = imagePath?.startsWith('http')
+      ? imagePath
+      : imagePath
+        ? `${baseURL.replace(/\/api\/?$/, '')}/public/uploads/${imagePath}`
+        : undefined;
 
     return (
       <TouchableOpacity
@@ -65,7 +69,7 @@ const SearchScreen = () => {
       >
         <Image
           source={{
-            uri: `${baseURL}/public/uploads/${dishImg || restaurantImg}`
+            uri: imageUrl,
           }}
           style={styles.image}
         />

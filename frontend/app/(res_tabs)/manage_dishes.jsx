@@ -111,7 +111,11 @@ const ManageDishes = () => {
     <View style={styles.dishCard}>
       {/* Dish Image */}
       <Image
-        source={{ uri: `${baseURL}/public/uploads/${item.profileImage}`  }}
+        source={{
+          uri: item.profileImage?.startsWith("http")
+            ? item.profileImage
+            : `${baseURL.replace(/\/api\/?$/, "")}/public/uploads/${item.profileImage}`,
+        }}
         style={styles.dishImage}
         resizeMode="cover"
       />

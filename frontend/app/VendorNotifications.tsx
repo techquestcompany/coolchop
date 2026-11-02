@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Picker, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 
 const NotificationPreferences = () => {
   const [showModal, setShowModal] = useState(false);

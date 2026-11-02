@@ -54,7 +54,11 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "The email address or password is incorrect. Please check your details and try again." });
 
-    // Check verification
+    // Older successful verifications cleared the code without setting isVerified.
+    if (!user.isVerified && user.code === null) {
+      await user.update({ isVerified: true });
+    }
+
     if (!user.isVerified) {
       return res.status(400).json({ error: "Please verify your email address before signing in. Check your inbox for the verification code." });
     }
@@ -123,7 +127,6 @@ exports.signup = async (req, res) => {
     // Generate verification code
     const verificationCode = generateVerificationCode();
 
-
     // Create user
     const user = await User.create({
       name,
@@ -186,7 +189,7 @@ exports.verifyCode = async (req, res) => {
       return res.status(400).json({ error: "That verification code is incorrect or has expired. Check the code and try again." });
     }
 
-    await user.update({ code: null });
+    await user.update({ code: null, isVerified: true });
 
     res.status(200).json({ message: "Code verified successfully" });
   } catch (error) {

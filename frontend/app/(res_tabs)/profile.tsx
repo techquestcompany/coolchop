@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { baseURL, getMyRestaurant, getApiErrorMessage } from "@/services/api";
-import { getStoredToken } from "@/services/authStorage";
+import { getStoredToken, removeStoredItem } from "@/services/authStorage";
 
 
 export default function VendorProfileScreen() {
@@ -34,6 +35,15 @@ export default function VendorProfileScreen() {
       setError(getApiErrorMessage(err, "We couldn't load your restaurant profile. Please try again."));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await removeStoredItem("restaurant_token");
+      router.replace("/reslogin");
+    } catch (err) {
+      Alert.alert("Unable to log out", "Please try again.");
     }
   };
 
@@ -117,15 +127,11 @@ export default function VendorProfileScreen() {
       {/* App Settings */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App Settings</Text>
-        <TouchableOpacity style={styles.row}>
+        <TouchableOpacity style={styles.row} onPress={() => router.push("/VendorNotifications")}>
           <Ionicons name="notifications" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Notifications</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.row}>
-          <Ionicons name="help-circle" size={20} color="#D32F2F" />
-          <Text style={styles.rowText}>Help Center</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.row}>
+        <TouchableOpacity style={styles.row} onPress={handleLogout}>
           <Ionicons name="log-out" size={20} color="#D32F2F" />
           <Text style={styles.rowText}>Logout</Text>
         </TouchableOpacity>

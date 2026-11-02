@@ -56,7 +56,9 @@ const SearchScreen = () => {
     <TouchableOpacity style={styles.itemContainer} onPress={() => isDishes ? router.push(`/dish_info?id=${item.id}`) : router.push(`/res_info?id=${item.id}`)}>
       <Image
         source={{
-          uri: `${baseURL}/public/uploads/${isDishes ? item.profileImage : item.profileImage}`,
+          uri: item.profileImage?.startsWith('http')
+            ? item.profileImage
+            : `${baseURL.replace(/\/api\/?$/, '')}/public/uploads/${item.profileImage}`,
         }}
         style={styles.image}
       />
