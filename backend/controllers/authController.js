@@ -123,6 +123,7 @@ exports.signup = async (req, res) => {
     // Generate verification code
     const verificationCode = generateVerificationCode();
 
+
     // Create user
     const user = await User.create({
       name,
@@ -130,11 +131,16 @@ exports.signup = async (req, res) => {
       phone,
       password: hashedPassword,
       role,
-      isAdmin: isAdmin ? 1 : 0,
+      isAdmin: 0,
       isVerified: 0,
       code: verificationCode,
       confirm_location: 0,
     });
+  const isAdmin = getAdminUserIds().has(user.id);
+
+    if (isAdmin) {
+      await user.update({ isAdmin: 1 });
+    }
 
     // Send verification email
     try {
