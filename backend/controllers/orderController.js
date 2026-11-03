@@ -372,7 +372,6 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
 exports.getRiderOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({

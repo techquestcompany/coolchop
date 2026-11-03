@@ -42,7 +42,12 @@ const UserOrders = () => {
       try {
         const token = await getStoredToken('customer_token');
         if (!token) throw new Error('Customer session is missing');
-        const data = await fetchOrdersByUser(token);
+        const response = await fetchOrdersByUser(token);
+        const data = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.orders)
+            ? response.orders
+            : [];
         setOrders(data);
         setFilteredOrders(data.slice(0, itemsPerPage));
       } catch (error) {

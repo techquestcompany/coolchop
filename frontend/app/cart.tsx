@@ -20,6 +20,22 @@ const getCustomerToken = async () =>
     ? localStorage.getItem("customer_token")
     : SecureStore.getItemAsync("customer_token");
 
+const getDishImageUri = (profileImage) => {
+  if (
+    typeof profileImage !== "string" ||
+    !profileImage.trim() ||
+    profileImage === "null"
+  ) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(profileImage)) return profileImage;
+
+  return encodeURI(
+    `${baseURL.replace(/\/api\/?$/, "")}/public/uploads/${profileImage}`
+  );
+};
+
 const CartScreen = () => {
   const [cartItems, setCartItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,34 +121,37 @@ const CartScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         ListHeaderComponent={<Text style={styles.title}>Your Cart</Text>}
         ListEmptyComponent={<Text style={styles.emptyText}>Your cart is empty</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Image
-              source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }}
-              style={styles.image}
-            />
-            <View style={styles.details}>
-              <Text style={styles.name}>{item.dishName}</Text>
-              <Text style={styles.price}>₵{item.price.toFixed(2)}</Text>
-              <View style={styles.quantityControls}>
-                <TouchableOpacity
-                  onPress={() => handleQuantityChange(item.id, item.quantity - 1)}
-                >
-                  <Text style={styles.circleButton}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.quantity}>{item.quantity}</Text>
-                <TouchableOpacity
-                  onPress={() => handleQuantityChange(item.id, item.quantity + 1)}
-                >
-                  <Text style={styles.circleButton}>+</Text>
-                </TouchableOpacity>
+        renderItem={({ item }) => {
+          const imageUri = getDishImageUri(item.profileImage);
+
+          return (
+            <View style={styles.item}>
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.image} />
+              ) : null}
+              <View style={styles.details}>
+                <Text style={styles.name}>{item.dishName}</Text>
+                <Text style={styles.price}>₵{item.price.toFixed(2)}</Text>
+                <View style={styles.quantityControls}>
+                  <TouchableOpacity
+                    onPress={() => handleQuantityChange(item.id, item.quantity - 1)}
+                  >
+                    <Text style={styles.circleButton}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.quantity}>{item.quantity}</Text>
+                  <TouchableOpacity
+                    onPress={() => handleQuantityChange(item.id, item.quantity + 1)}
+                  >
+                    <Text style={styles.circleButton}>+</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+              <TouchableOpacity onPress={() => handleRemove(item.id)}>
+                <Text style={styles.remove}>Remove</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => handleRemove(item.id)}>
-              <Text style={styles.remove}>Remove</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          );
+        }}
         ListFooterComponent={(
           <>
             <View style={styles.section}>
