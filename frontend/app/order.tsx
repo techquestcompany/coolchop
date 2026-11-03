@@ -3,20 +3,22 @@ import {
   StyleSheet,
   View,
   Text,
+  Image,
   TouchableOpacity,
   ScrollView,
   Alert,
 } from "react-native";
-//import MapView, { Marker, Polyline  } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import axios from "axios";
 import {
-  fetchOrder,
+  fetchOrdersByUser,
   getDishById,
   getRestaurantById,
   getUserData,
   getApiErrorMessage,
+  baseURL,
 } from "@/services/api";
-import * as SecureStore from "expo-secure-store";
+import { getStoredToken } from "@/services/authStorage";
 
 export default function OrderSummary() {
   const [orderDetails, setOrderDetails] = useState([]);
@@ -25,6 +27,16 @@ export default function OrderSummary() {
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const hasUserCoordinates =
+    user.latitude != null &&
+    user.longitude != null &&
+    Number.isFinite(Number(user.latitude)) &&
+    Number.isFinite(Number(user.longitude));
+  const hasRestaurantCoordinates =
+    restaurant.latitude != null &&
+    restaurant.longitude != null &&
+    Number.isFinite(Number(restaurant.latitude)) &&
+    Number.isFinite(Number(restaurant.longitude));
 
   useEffect(() => {
     fetchOrderDetails();
@@ -32,11 +44,17 @@ export default function OrderSummary() {
 
   const fetchOrderDetails = async () => {
     try {
-      const token = await SecureStore.getItemAsync("token");
-     
-      const response = await fetchOrder(user_id);
+      const token = await getStoredToken("customer_token");
+      if (!token) throw new Error("Customer session is missing. Please sign in again.");
 
-      const items = JSON.parse(response[0].items);
+      const response = await fetchOrdersByUser(token);
+      const orders = Array.isArray(response) ? response : response?.orders;
+      const latestOrder = orders?.[0];
+      if (!latestOrder) throw new Error("No orders were found for this account.");
+
+      const items = Array.isArray(latestOrder.items)
+        ? latestOrder.items
+        : JSON.parse(latestOrder.items || "[]");
 
       const detailedOrderDetails = [];
       const restaurantMap = new Map();
@@ -48,6 +66,7 @@ export default function OrderSummary() {
           ...item,
           dishName: dishData.dishName,
           price: dishData.price,
+          profileImage: dishData.profileImage,
           restaurantId: dishData.restaurantId,
         });
 
@@ -70,7 +89,7 @@ export default function OrderSummary() {
         restaurantName: restaurantNames,
       });
 
-      const userData = await getUserData(user_id);
+      const userData = await getUserData(token);
       setUser(userData);
 
       // Calculate totals
@@ -202,10 +221,20 @@ export default function OrderSummary() {
                 </Text>
                 {restaurantData.dishes.map((dish, idx) => (
                   <View style={styles.itemRow} key={idx}>
-                    <Text>{`${dish.quantity}x ${dish.dishName}`}</Text>
-                    <Text>{`GHS ${(dish.quantity * dish.price).toFixed(
-                      2
-                    )}`}</Text>
+                    {dish.profileImage ? (
+                      <Image
+                        source={{
+                          uri: dish.profileImage.startsWith("http")
+                            ? dish.profileImage
+                            : `${baseURL.replace(/\/api\/?$/, "")}/public/uploads/${dish.profileImage}`,
+                        }}
+                        style={styles.dishImage}
+                      />
+                    ) : null}
+                    <View style={styles.dishDetails}>
+                      <Text>{`${dish.quantity}x ${dish.dishName}`}</Text>
+                      <Text>{`GHS ${(dish.quantity * Number(dish.price)).toFixed(2)}`}</Text>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -227,40 +256,46 @@ export default function OrderSummary() {
       </ScrollView>
 
       {/* Map View */}
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: user.latitude,
-          longitude: user.longitude,
-          latitudeDelta: 2.5,
-          longitudeDelta: 2.5,
-        }}
-      >
-        {restaurant && (
+      {hasUserCoordinates && (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: Number(user.latitude),
+            longitude: Number(user.longitude),
+            latitudeDelta: 2.5,
+            longitudeDelta: 2.5,
+          }}
+        >
+          {hasRestaurantCoordinates && (
+            <Marker
+              coordinate={{
+                latitude: Number(restaurant.latitude),
+                longitude: Number(restaurant.longitude),
+              }}
+              title={restaurant.restaurantName}
+              description="Restaurant Location"
+            />
+          )}
           <Marker
             coordinate={{
-              latitude: restaurant.latitude,
-              longitude: restaurant.longitude,
+              latitude: Number(user.latitude),
+              longitude: Number(user.longitude),
             }}
-            title={restaurant.restaurantName}
-            description="Restaurant Location"
+            title="Your Location"
+            description="Delivery Point"
           />
-        )}
-        <Marker
-          coordinate={{ latitude: user.latitude, longitude: user.longitude }}
-          title="Your Location"
-          description="Delivery Point"
-        />
-
-      <Polyline
-          coordinates={[
-            { latitude: user.latitude, longitude: user.longitude },
-            { latitude: restaurant.latitude, longitude: restaurant.longitude },
-          ]}
-          strokeColor="#FF0000" // Color of the path
-          strokeWidth={4} // Thickness of the path
-        />
-      </MapView>
+          {hasRestaurantCoordinates && (
+            <Polyline
+              coordinates={[
+                { latitude: Number(user.latitude), longitude: Number(user.longitude) },
+                { latitude: Number(restaurant.latitude), longitude: Number(restaurant.longitude) },
+              ]}
+              strokeColor="#FF0000"
+              strokeWidth={4}
+            />
+          )}
+        </MapView>
+      )}
 
       {/* Summary Footer */}
       <View style={styles.summaryFooter}>
@@ -310,9 +345,11 @@ const styles = StyleSheet.create({
   serviceCharge: { color: "gray", marginTop: 5, marginBottom: 10 },
   itemRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 5,
   },
+  dishImage: { width: 56, height: 56, borderRadius: 6, marginRight: 10 },
+  dishDetails: { flex: 1, flexDirection: "row", justifyContent: "space-between" },
   actionButtons: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  ScrollView,
   Platform,
   Alert,
 } from "react-native";
@@ -38,6 +37,7 @@ const CartScreen = () => {
       const items = await getMyCart(token);
       setCartItems(items.filter((item) => item.Dish).map((item) => ({
         ...item.Dish,
+        price: Number(item.Dish.price),
         quantity: item.quantity,
       })));
       setIsLoading(false);
@@ -100,62 +100,57 @@ const CartScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
-        <Text style={styles.title}>Your Cart</Text>
-        {cartItems.length === 0 ? (
-          <Text style={styles.emptyText}>Your cart is empty</Text>
-        ) : (
-          <FlatList
-            data={cartItems}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.item}>
-                <Image
-                  source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }}
-                  style={styles.image}
-                />
-                <View style={styles.details}>
-                  <Text style={styles.name}>{item.dishName}</Text>
-                  <Text style={styles.price}>₵{item.price.toFixed(2)}</Text>
-                  <View style={styles.quantityControls}>
-                    <TouchableOpacity
-                      onPress={() => handleQuantityChange(item.id, item.quantity - 1)}
-                    >
-                      <Text style={styles.circleButton}>-</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.quantity}>{item.quantity}</Text>
-                    <TouchableOpacity
-                      onPress={() => handleQuantityChange(item.id, item.quantity + 1)}
-                    >
-                      <Text style={styles.circleButton}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <TouchableOpacity onPress={() => handleRemove(item.id)}>
-                  <Text style={styles.remove}>Remove</Text>
+      <FlatList
+        data={cartItems}
+        keyExtractor={(item) => item.id.toString()}
+        ListHeaderComponent={<Text style={styles.title}>Your Cart</Text>}
+        ListEmptyComponent={<Text style={styles.emptyText}>Your cart is empty</Text>}
+        renderItem={({ item }) => (
+          <View style={styles.item}>
+            <Image
+              source={{ uri: `${baseURL}/public/uploads/${item.profileImage}` }}
+              style={styles.image}
+            />
+            <View style={styles.details}>
+              <Text style={styles.name}>{item.dishName}</Text>
+              <Text style={styles.price}>₵{item.price.toFixed(2)}</Text>
+              <View style={styles.quantityControls}>
+                <TouchableOpacity
+                  onPress={() => handleQuantityChange(item.id, item.quantity - 1)}
+                >
+                  <Text style={styles.circleButton}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.quantity}>{item.quantity}</Text>
+                <TouchableOpacity
+                  onPress={() => handleQuantityChange(item.id, item.quantity + 1)}
+                >
+                  <Text style={styles.circleButton}>+</Text>
                 </TouchableOpacity>
               </View>
-            )}
-          />
+            </View>
+            <TouchableOpacity onPress={() => handleRemove(item.id)}>
+              <Text style={styles.remove}>Remove</Text>
+            </TouchableOpacity>
+          </View>
         )}
-
-        {/* Notes Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Leave a note for the restaurant</Text>
-          <TextInput
-            style={styles.noteInput}
-            placeholder="Type your suggestion here..."
-            multiline
-            value={note}
-            onChangeText={setNote}
-          />
-        </View>
-
-        {/* View Order Button */}
-        <TouchableOpacity style={styles.viewOrderButton} onPress={handleSaveOrder}>
-          <Text style={styles.viewOrderText}>VIEW ORDER</Text>
-        </TouchableOpacity>
-      </ScrollView>
+        ListFooterComponent={(
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Leave a note for the restaurant</Text>
+              <TextInput
+                style={styles.noteInput}
+                placeholder="Type your suggestion here..."
+                multiline
+                value={note}
+                onChangeText={setNote}
+              />
+            </View>
+            <TouchableOpacity style={styles.viewOrderButton} onPress={handleSaveOrder}>
+              <Text style={styles.viewOrderText}>VIEW ORDER</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      />
     </View>
   );
 };

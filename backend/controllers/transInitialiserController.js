@@ -110,7 +110,7 @@ exports.initializeTransaction = async (req, res) => {
       orderNumber: `ORD-${crypto.randomUUID()}`,
       reference,
       userId: user.id,
-      items: JSON.stringify(normalizedItems),
+      items: normalizedItems,
       totalAmount: totalMinorUnits / 100,
       note: typeof note === "string" ? note.slice(0, 500) : null,
       status: "pending",

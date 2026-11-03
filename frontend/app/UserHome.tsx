@@ -122,7 +122,11 @@ const sendUserLocation = async () => {
   const renderDishCard = ({ item }) => (
     <View style={styles.card}>
       <Image
-        source={{ uri: encodeURI(`${baseURL}/public/uploads/${item.profileImage}`) }}
+        source={{
+          uri: item.profileImage?.startsWith('http')
+            ? item.profileImage
+            : encodeURI(`${baseURL.replace(/\/api\/?$/, '')}/public/uploads/${item.profileImage}`),
+        }}
         style={styles.image}
       />
 

@@ -1,6 +1,7 @@
 
 const { Order, Dish, Transaction, User, sequelize } = require("../models");
 const getAddressFromCoords = require("../utils/getAddressFromCoords");
+const normalizeOrderItems = require("../utils/normalizeOrderItems");
 const crypto = require("crypto");
 
 const ORDER_STATUSES = new Set([
@@ -15,19 +16,7 @@ const RESTAURANT_TRANSITIONS = {
   on_delivery: "delivered",
 };
 
-const orderItems = (order) => {
-  let items = order.items;
-
-  if (typeof items === "string") {
-    items = JSON.parse(items);
-  }
-
-  if (!Array.isArray(items)) {
-    throw new Error(`Order ${order.id} contains invalid item data.`);
-  }
-
-  return items;
-};
+const orderItems = (order) => normalizeOrderItems(order.items);
 
 const isAdmin = (user) =>
   user?.role === "admin" ||
