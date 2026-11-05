@@ -15,12 +15,25 @@ import { getMyCart, removeFromMyCart, setMyCartQuantity, baseURL, getApiErrorMes
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
 
+interface CartDish {
+  id: number;
+  dishName: string;
+  price: number;
+  profileImage?: string | null;
+  quantity: number;
+}
+
+interface CartResponseItem {
+  Dish?: Omit<CartDish, "quantity" | "price"> & { price: number | string } | null;
+  quantity: number;
+}
+
 const getCustomerToken = async () =>
   Platform.OS === "web"
     ? localStorage.getItem("customer_token")
     : SecureStore.getItemAsync("customer_token");
 
-const getDishImageUri = (profileImage) => {
+const getDishImageUri = (profileImage?: string | null): string | null => {
   if (
     typeof profileImage !== "string" ||
     !profileImage.trim() ||
@@ -37,9 +50,9 @@ const getDishImageUri = (profileImage) => {
 };
 
 const CartScreen = () => {
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState<CartDish[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
   useEffect(() => {
@@ -47,24 +60,27 @@ const CartScreen = () => {
   }, []);
 
   const fetchCartItems = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const token = await getCustomerToken();
       if (!token) throw new Error("Please sign in to view your cart.");
-      const items = await getMyCart(token);
-      setCartItems(items.filter((item) => item.Dish).map((item) => ({
-        ...item.Dish,
-        price: Number(item.Dish.price),
-        quantity: item.quantity,
-      })));
-      setIsLoading(false);
+      const items: CartResponseItem[] = await getMyCart(token);
+      if (!Array.isArray(items)) throw new Error("Unexpected cart response from server");
+      setCartItems(items.flatMap((item) => {
+        const dish = item.Dish;
+        if (!dish) return [];
+        return [{ ...dish, price: Number(dish.price), quantity: item.quantity }];
+      }));
     } catch (err) {
       console.error("Failed to fetch cart items:", err);
       setError(getApiErrorMessage(err, "We couldn't load your cart. Please try again."));
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRemove = async (dishId) => {
+  const handleRemove = async (dishId: number) => {
     try {
       const token = await getCustomerToken();
       if (!token) throw new Error("Please sign in to update your cart.");
@@ -76,7 +92,7 @@ const CartScreen = () => {
     }
   };
 
-  const handleQuantityChange = async (dishId, newQuantity) => {
+  const handleQuantityChange = async (dishId: number, newQuantity: number) => {
     if (newQuantity < 1) return;
     try {
       const token = await getCustomerToken();
@@ -110,6 +126,9 @@ const CartScreen = () => {
     return (
       <View style={styles.center}>
         <Text style={{ color: "red", textAlign: "center" }}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchCartItems}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -266,6 +285,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
   },
+  retryButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "#ffa500",
+    borderRadius: 6,
+  },
+  retryText: { color: "#fff", fontWeight: "bold" },
   center: {
     flex: 1,
     justifyContent: "center",

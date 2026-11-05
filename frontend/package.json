@@ -9,10 +9,13 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
+    "test:contracts": "jest --runInBand --runTestsByPath services/__tests__/orderContracts.test.ts",
+    "typecheck:contracts": "tsc --ignoreConfig --noEmit --strict --skipLibCheck --target es2020 --moduleResolution bundler --module esnext services/orderContracts.ts",
     "lint": "expo lint"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "modulePaths": ["<rootDir>/node_modules/expo/node_modules"]
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

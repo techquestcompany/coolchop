@@ -1,5 +1,7 @@
 import axios from "axios";
 import Constants from "expo-constants";
+import { normalizeCustomerOrders } from "./orderContracts";
+import type { CustomerOrder } from "./orderContracts";
 
 
 
@@ -448,13 +450,12 @@ export const deleteFromCart = async (dishId: string, token: string) => {
   }
 };
 
-// Function to save an order
-export const fetchOrdersByUser = async (token: string) => {
+export const fetchOrdersByUser = async (token: string): Promise<CustomerOrder[]> => {
   try {
     const response = await api.get('/orders/user_orders', {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data;
+    return normalizeCustomerOrders(response.data);
   } catch (error: any) {
     console.error('Error fetching order:', {
       message: error.message,
@@ -500,7 +501,7 @@ export const deleteOrder = async (orderId: string, token: string) => {
   }
 };
 export const updateOrder = async (
-  orderId: string,
+  orderId: string | number,
   updatedData: { status?: string },
   token: string
 ) => {
@@ -754,6 +755,28 @@ export const getRiderOrders = async (token: string) => {
     console.error('Error fetching rider orders:', error);
     throw error;
   }
+};
+
+export const claimRiderOrder = async (orderId: number, token: string) => {
+  const response = await api.post(
+    `/orders/${orderId}/claim`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const updateRiderOrderStatus = async (
+  orderId: number,
+  status: "on_delivery" | "delivered",
+  token: string
+) => {
+  const response = await api.put(
+    `/orders/${orderId}/rider-status`,
+    { status },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
 };
 
 export const getMyCart = async (token: string) => {

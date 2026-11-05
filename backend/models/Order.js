@@ -7,6 +7,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "userId",
         as: "user",
       });
+      Order.belongsTo(models.User, {
+        foreignKey: "riderId",
+        as: "rider",
+      });
       Order.hasMany(models.Transaction, { foreignKey: "orderId", as: "transactions" });
 
     }
@@ -56,6 +60,11 @@ reconciliationAttemptedAt: {
       userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+
+      riderId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
       },
     },
     {

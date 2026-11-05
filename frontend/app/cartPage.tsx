@@ -4,6 +4,29 @@ import { baseURL } from '@/services/api';
 import { useRouter } from 'expo-router';
 import { useCart } from '@/context/CartContext';
 
+const getDishImageUri = (profileImage) => {
+  if (
+    typeof profileImage !== 'string' ||
+    !profileImage.trim() ||
+    profileImage === 'null'
+  ) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(profileImage)) {
+    try {
+      const imageUrl = new URL(profileImage);
+      imageUrl.pathname = imageUrl.pathname.replace(/^\/api(?=\/)/, '');
+      return imageUrl.toString();
+    } catch {
+      return profileImage;
+    }
+  }
+
+  const imagePath = profileImage.replace(/^\/?(?:api\/)?public\/uploads\//, '');
+  return encodeURI(`${baseURL.replace(/\/api\/?$/, '')}/public/uploads/${imagePath}`);
+};
+
 const CartPage = () => {
   const { cartItems, incrementQuantity, decrementQuantity, refreshCart } = useCart();
   const [loading, setLoading] = useState(true);
@@ -42,27 +65,30 @@ const fetchCart = async () => {
             data={cartItems}
            keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
 
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Image
-                  source={{ uri: `${baseURL}/public/uploads/${item.Dish?.profileImage}` }}
-                  style={styles.image}
-                />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.item}>{item.Dish?.dishName}</Text>
-                  <Text>{item.Dish?.price} x {item.quantity} = ₵{parseInt(item.Dish?.price) * item.quantity}</Text>
-                  <View style={styles.quantityContainer}>
-                    <TouchableOpacity onPress={() => decrementQuantity(item.Dish.id)}>
-                      <Text style={styles.quantityButton}>-</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <TouchableOpacity onPress={() => incrementQuantity(item.Dish.id)}>
-                      <Text style={styles.quantityButton}>+</Text>
-                    </TouchableOpacity>
+            renderItem={({ item }) => {
+              const imageUri = getDishImageUri(item.Dish?.profileImage);
+
+              return (
+                <View style={styles.card}>
+                  {imageUri ? (
+                    <Image source={{ uri: imageUri }} style={styles.image} />
+                  ) : null}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.item}>{item.Dish?.dishName}</Text>
+                    <Text>{item.Dish?.price} x {item.quantity} = ₵{Number(item.Dish?.price) * item.quantity}</Text>
+                    <View style={styles.quantityContainer}>
+                      <TouchableOpacity onPress={() => decrementQuantity(item.Dish.id)}>
+                        <Text style={styles.quantityButton}>-</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.quantityText}>{item.quantity}</Text>
+                      <TouchableOpacity onPress={() => incrementQuantity(item.Dish.id)}>
+                        <Text style={styles.quantityButton}>+</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-            )}
+              );
+            }}
           />
           <Text style={styles.total}>Total: {getTotal()}</Text>
           <TouchableOpacity

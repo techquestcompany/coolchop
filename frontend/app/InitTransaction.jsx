@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as SecureStore from "expo-secure-store";
 import { InitTransactionReq, reconcilePayment, getApiErrorMessage } from '../services/api';
+import { buildCheckoutPayload } from '../services/orderContracts';
 import { useCart } from "@/context/CartContext";
 
 const getPendingReference = async () =>
@@ -64,13 +65,7 @@ const InitTransaction = () => {
         return;
       }
 
-      const orderPayload = {
-        items: cartItems.map(item => ({
-          id: item.Dish?.id ?? item.id,
-          quantity: item.quantity,
-        })),
-        note: Array.isArray(note) ? note[0] : note || "Checkout from mobile app",
-      };
+      const orderPayload = buildCheckoutPayload(cartItems, note);
 
       const { authorization_url, reference } = await InitTransactionReq(orderPayload, token);
 

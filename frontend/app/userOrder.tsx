@@ -8,60 +8,45 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  type TextStyle,
 } from 'react-native';
 import { fetchOrdersByUser, updateOrder, getApiErrorMessage } from '../services/api';
+import type { CustomerOrder } from '../services/orderContracts';
 import { getStoredToken } from '../services/authStorage';
 
-const parseItems = (items) => {
-  if (!items) return [];
-
-  // If already an array, return it
-  if (Array.isArray(items)) return items;
-
-  // If it's a JSON string, parse it
-  try {
-    return JSON.parse(items);
-  } catch (err) {
-    console.error('Failed to parse items:', items);
-    return [];
-  }
-};
-
-
 const UserOrders = () => {
-  const [orders, setOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<CustomerOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [page, setPage] = useState(1);
 
 
   const itemsPerPage = 5;
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const token = await getStoredToken('customer_token');
-        if (!token) throw new Error('Customer session is missing');
-        const response = await fetchOrdersByUser(token);
-        const data = Array.isArray(response)
-          ? response
-          : Array.isArray(response?.orders)
-            ? response.orders
-            : [];
-        setOrders(data);
-        setFilteredOrders(data.slice(0, itemsPerPage));
-      } catch (error) {
-        console.error('Error initializing user orders:', error);
-        Alert.alert('Unable to load orders', getApiErrorMessage(error, "We couldn't load your orders. Please try again."));
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadOrders = async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const token = await getStoredToken('customer_token');
+      if (!token) throw new Error('Customer session is missing');
+      const data = await fetchOrdersByUser(token);
+      setOrders(data);
+      setFilteredOrders(data.slice(0, itemsPerPage));
+      setPage(1);
+    } catch (error) {
+      console.error('Error initializing user orders:', error);
+      setLoadError(getApiErrorMessage(error, "We couldn't load your orders. Please try again."));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    init();
+  useEffect(() => {
+    loadOrders();
   }, []);
 
-  const cancelOrder = async (order) => {
+  const cancelOrder = async (order: CustomerOrder) => {
     try {
       const token = await getStoredToken('customer_token');
       if (!token) throw new Error('Customer session is missing');
@@ -85,8 +70,8 @@ const UserOrders = () => {
     setPage(nextPage);
   };
 
- const renderItem = ({ item }) => {
-  const parsedItems = parseItems(item.items);
+ const renderItem = ({ item }: { item: CustomerOrder }) => {
+  const parsedItems = item.items;
 
   return (
     <View style={styles.orderCard}>
@@ -112,7 +97,7 @@ const UserOrders = () => {
 
       <Text style={styles.label}>
         Status:{' '}
-        <Text style={styles.status(item.status)}>
+        <Text style={getStatusTextStyle(item.status)}>
           {item.status}
         </Text>
       </Text>
@@ -137,6 +122,13 @@ const UserOrders = () => {
 
       {loading ? (
         <ActivityIndicator size="large" color="#007bff" style={{ marginTop: 30 }} />
+      ) : loadError ? (
+        <View style={styles.loadErrorContainer}>
+          <Text style={styles.loadErrorText}>{loadError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadOrders}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       ) : filteredOrders.length === 0 ? (
         <Text style={styles.noOrdersText}>No orders found</Text>
       ) : (
@@ -174,20 +166,22 @@ const styles = StyleSheet.create({
   value: {
     fontWeight: '400',
   },
-  status: (status) => ({
-    color:
-      status === 'pending' ? '#ffc107' :
-      status === 'completed' ? '#28a745' :
-      status === 'cancelled' ? '#dc3545' : '#6c757d',
-    fontWeight: 'bold',
-    textTransform: 'capitalize',
-  }),
   noOrdersText: {
     textAlign: 'center',
     fontSize: 18,
     marginTop: 30,
     color: '#6c757d',
   },
+  loadErrorContainer: { alignItems: 'center', marginTop: 30 },
+  loadErrorText: { color: '#b42318', textAlign: 'center' },
+  retryButton: {
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    backgroundColor: '#28a745',
+    borderRadius: 6,
+  },
+  retryText: { color: '#fff', fontWeight: 'bold' },
   cancelButton: {
     backgroundColor: '#dc3545',
     paddingVertical: 6,
@@ -213,6 +207,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+});
+
+const getStatusTextStyle = (status: string): TextStyle => ({
+  color:
+    status === 'pending' ? '#ffc107' :
+    status === 'completed' ? '#28a745' :
+    status === 'cancelled' ? '#dc3545' : '#6c757d',
+  fontWeight: 'bold',
+  textTransform: 'capitalize',
 });
 
 export default UserOrders;

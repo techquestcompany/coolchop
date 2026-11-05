@@ -16,9 +16,14 @@ const MAX_RECONCILIATION_AGE_MS = 48 * 60 * 60 * 1000;
 
 let scheduledTask;
 let reconciliationRunning = false;
+let paystackAuthorizationRejected = false;
 
 const reconcilePendingPayments = async () => {
-  if (!process.env.PAYSTACK_SECRET_KEY || reconciliationRunning) return;
+  if (
+    !process.env.PAYSTACK_SECRET_KEY ||
+    reconciliationRunning ||
+    paystackAuthorizationRejected
+  ) return;
   reconciliationRunning = true;
 
   try {
@@ -64,6 +69,13 @@ const reconcilePendingPayments = async () => {
           }
         }
       } catch (error) {
+        if (error.code === "PAYSTACK_UNAUTHORIZED") {
+          paystackAuthorizationRejected = true;
+          console.error(
+            "Payment recovery paused: Paystack rejected the configured secret key. Correct PAYSTACK_SECRET_KEY and restart the backend."
+          );
+          break;
+        }
         console.error(`Payment recovery failed for order ${order.id}:`, error.message);
       } finally {
         await order.update({ reconciliationAttemptedAt: new Date() });

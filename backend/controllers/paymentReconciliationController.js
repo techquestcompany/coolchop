@@ -1,5 +1,6 @@
  const https = require("https");
 const { Order } = require("../models");
+const createPaystackHttpError = require("../utils/paystackHttpError");
 const {
   recordFailedPayment,
   recordSuccessfulPayment,
@@ -34,7 +35,7 @@ const verifyPaystackReference = (reference) =>
           try {
             const result = JSON.parse(responseBody);
             if (response.statusCode < 200 || response.statusCode >= 300) {
-              return reject(new Error(`Paystack returned HTTP ${response.statusCode}`));
+              return reject(createPaystackHttpError(response.statusCode));
             }
             resolve(result);
           } catch (error) {

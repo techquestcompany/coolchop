@@ -140,8 +140,7 @@ const VendorOrders = () => {
           >
             <Picker.Item label="All" value="all" />
             <Picker.Item label="Preparing" value="preparing" />
-            <Picker.Item label="On delivery" value="on_delivery" />
-            <Picker.Item label="Delivered" value="delivered" />
+            <Picker.Item label="Ready for pickup" value="ready_for_pickup" />
           </Picker>
         </View>
       </View>
@@ -174,17 +173,17 @@ const VendorOrders = () => {
                 </Text>
 
                 <View style={styles.statusRow}>
-                  <Picker
-                    selectedValue={item.status}
-                    style={styles.statusPicker}
-                    onValueChange={(value) =>
-                      handleStatusChange(item.id, value)
-                    }
-                  >
-                    <Picker.Item label="Preparing" value="preparing" />
-                    <Picker.Item label="On delivery" value="on_delivery" />
-                    <Picker.Item label="Delivered" value="delivered" />
-                  </Picker>
+                  <Text style={styles.orderText}>
+                    Status: {item.status === 'ready_for_pickup' ? 'Ready for pickup' : 'Preparing'}
+                  </Text>
+                  {item.status === 'preparing' && (
+                    <TouchableOpacity
+                      style={styles.readyButton}
+                      onPress={() => handleStatusChange(item.id, 'ready_for_pickup')}
+                    >
+                      <Text style={styles.readyButtonText}>Ready for pickup</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             );
@@ -226,7 +225,8 @@ const styles = StyleSheet.create({
   bold: { fontWeight: 'bold' },
 
   statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  statusPicker: { flex: 1 },
+  readyButton: { backgroundColor: '#218838', padding: 10, borderRadius: 6, marginLeft: 'auto' },
+  readyButtonText: { color: '#fff', fontWeight: '600' },
 
 
   noOrdersText: { textAlign: 'center', fontSize: 16, marginTop: 30 },

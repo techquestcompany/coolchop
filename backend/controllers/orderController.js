@@ -1,20 +1,21 @@
 
 const { Order, Dish, Transaction, User, sequelize } = require("../models");
+const { Op } = require("sequelize");
 const getAddressFromCoords = require("../utils/getAddressFromCoords");
 const normalizeOrderItems = require("../utils/normalizeOrderItems");
+const {
+  isRestaurantTransitionAllowed,
+  isRiderTransitionAllowed,
+} = require("../utils/orderLifecycle");
 const crypto = require("crypto");
 
 const ORDER_STATUSES = new Set([
   "preparing",
+  "ready_for_pickup",
   "on_delivery",
   "delivered",
   "cancelled",
 ]);
-
-const RESTAURANT_TRANSITIONS = {
-  preparing: "on_delivery",
-  on_delivery: "delivered",
-};
 
 const orderItems = (order) => normalizeOrderItems(order.items);
 
@@ -121,7 +122,7 @@ exports.getRestaurantOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
       where: {
-        status: ["preparing", "on_delivery"],
+        status: ["preparing", "ready_for_pickup"],
       },
       order: [["createdAt", "DESC"]],
     });
@@ -192,57 +193,7 @@ exports.getRestaurantOrders = async (req, res) => {
   }
 };
 
-// GET AVAILABLE ORDERS FOR RIDERS
-exports.getRiderOrders = async (req, res) => {
-  try {
-    const orders = await Order.findAll({
-      where: { status: "success" },
-      include: [
-        {
-          model: User,
-          as: "user",
-          attributes: [
-            "id",
-            "latitude",
-            "longitude",
-            "name",
-            "phone",
-          ],
-        },
-      ],
-    });
 
-    const enrichedOrders = await Promise.all(
-      orders.map(async (order) => {
-        const user = order.user;
-
-        const hasCoordinates =
-          user?.latitude != null &&
-          user?.longitude != null;
-
-        const address = hasCoordinates
-          ? await getAddressFromCoords(
-              user.latitude,
-              user.longitude
-            )
-          : null;
-
-        return {
-          ...order.toJSON(),
-          deliveryAddress: address,
-        };
-      })
-    );
-
-    return res.status(200).json(enrichedOrders);
-  } catch (error) {
-    console.error("Error fetching rider orders:", error);
-
-    return res.status(500).json({
-      message: "We couldn't load available orders right now. Please try again.",
-    });
-  }
-};
 
 // GET A SINGLE ORDER
 exports.getOrderById = async (req, res) => {
@@ -375,7 +326,15 @@ exports.createOrder = async (req, res) => {
 exports.getRiderOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
-      where: { status: "preparing" },
+      where: {
+        [Op.or]: [
+          { status: "ready_for_pickup", riderId: null },
+          {
+            riderId: req.user.id,
+            status: ["ready_for_pickup", "on_delivery"],
+          },
+        ],
+      },
       include: [
         {
           model: User,
@@ -388,7 +347,7 @@ exports.getRiderOrders = async (req, res) => {
       orders.map(async (order) => {
         const user = order.user;
         const address =
-          user?.latitude && user?.longitude
+          user?.latitude != null && user?.longitude != null
             ? await getAddressFromCoords(user.latitude, user.longitude)
             : null;
         return { ...order.toJSON(), deliveryAddress: address };
@@ -398,6 +357,89 @@ exports.getRiderOrders = async (req, res) => {
   } catch (error) {
     console.error("Error fetching rider orders:", error);
     return res.status(500).json({ message: "We couldn't load available orders right now. Please try again." });
+  }
+};
+
+exports.claimRiderOrder = async (req, res) => {
+  const orderId = Number(req.params.orderId);
+  if (!Number.isInteger(orderId) || orderId < 1) {
+    return res.status(400).json({ message: "Enter a valid order ID." });
+  }
+
+  try {
+    const result = await sequelize.transaction(async (transaction) => {
+      const order = await Order.findByPk(orderId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!order) return { notFound: true };
+      if (order.status !== "ready_for_pickup" || order.riderId != null) {
+        return { unavailable: true };
+      }
+
+      order.riderId = req.user.id;
+      await order.save({ transaction });
+      return { order };
+    });
+
+    if (result.notFound) {
+      return res.status(404).json({ message: "We couldn't find that order." });
+    }
+    if (result.unavailable) {
+      return res.status(409).json({ message: "That order is no longer available." });
+    }
+
+    return res.status(200).json({ message: "Order claimed successfully.", order: result.order });
+  } catch (error) {
+    console.error("Error claiming rider order:", error);
+    return res.status(500).json({ message: "We couldn't claim this order right now. Please try again." });
+  }
+};
+
+exports.updateRiderOrderStatus = async (req, res) => {
+  const orderId = Number(req.params.orderId);
+  const { status } = req.body;
+
+  if (
+    !Number.isInteger(orderId) ||
+    orderId < 1 ||
+    !["on_delivery", "delivered"].includes(status) ||
+    Object.keys(req.body).some((key) => key !== "status")
+  ) {
+    return res.status(400).json({ message: "Enter a valid order ID and delivery status." });
+  }
+
+  try {
+    const result = await sequelize.transaction(async (transaction) => {
+      const order = await Order.findByPk(orderId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!order) return { notFound: true };
+      if (Number(order.riderId) !== Number(req.user.id)) return { forbidden: true };
+      if (!isRiderTransitionAllowed(order.status, status)) return { invalidTransition: true };
+
+      order.status = status;
+      await order.save({ transaction });
+      return { order };
+    });
+
+    if (result.notFound) {
+      return res.status(404).json({ message: "We couldn't find that order." });
+    }
+    if (result.forbidden) {
+      return res.status(403).json({ message: "This order is not assigned to you." });
+    }
+    if (result.invalidTransition) {
+      return res.status(409).json({ message: "That delivery status change isn't available." });
+    }
+
+    return res.status(200).json({ message: "Delivery status updated.", order: result.order });
+  } catch (error) {
+    console.error("Error updating rider order:", error);
+    return res.status(500).json({ message: "We couldn't update this delivery right now. Please try again." });
   }
 };
 
@@ -469,9 +511,7 @@ exports.updateOrder = async (req, res) => {
         }
 
         if (restaurant) {
-          if (
-            RESTAURANT_TRANSITIONS[order.status] !== status
-          ) {
+          if (!isRestaurantTransitionAllowed(order.status, status)) {
             return { invalidTransition: true };
           }
 
