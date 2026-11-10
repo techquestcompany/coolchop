@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import { Colors } from '@/constants/Colors';
@@ -31,6 +32,15 @@ export default function VendorTabLayout() {
           title: 'Dishes',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name={focused ? 'restaurant' : 'restaurant-outline'} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="search" size={24} color={color} />
           ),
         }}
       />

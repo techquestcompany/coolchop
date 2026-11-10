@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
 
   searchContainer: { flexDirection: 'row', marginBottom: 10 },
   searchInput: { flex: 1, backgroundColor: '#fff', borderWidth: 1, borderRadius: 6, padding: 10 },
-  searchButton: { backgroundColor: '#007bff', padding: 10, borderRadius: 6, marginLeft: 10 },
+  searchButton: { backgroundColor: '#D32F2F', padding: 10, borderRadius: 6, marginLeft: 10 },
   searchButtonText: { color: '#fff' },
 
   filterContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },

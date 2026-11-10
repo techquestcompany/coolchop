@@ -8,6 +8,7 @@
     "start": "node server.js",
     "db:migrate": "node scripts/migrate.js up",
     "db:migrate:status": "node scripts/migrate.js status",
+    "seed:orders": "node scripts/seedOrders.js",
     "test": "node --test test/authorization.test.js test/orderItems.test.js test/orderLifecycle.test.js"
   },
   "dependencies": {

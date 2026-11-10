@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Alert, Button, Platform, SafeAreaView, StatusBar } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -7,34 +6,42 @@ import * as Updates from "expo-updates";
 export default function HomeScreen() {
   const { currentlyRunning, isUpdateAvailable, isUpdatePending } =
     Updates.useUpdates();
+  const updatesAvailable = Updates.isEnabled && !__DEV__;
 
-  useEffect(() => {
-    if (isUpdatePending) {
-      // Update has successfully downloaded; apply it now
-      // Updates.reloadAsync();
-      // Alert.alert("Update downloaded and applied");
-
-      dummyFunction();
-    }
-  }, [isUpdatePending]);
-
-  const dummyFunction = async () => {
+  const checkForUpdates = async () => {
+    if (!updatesAvailable) return;
     try {
-      await Updates.reloadAsync();
+      const result = await Updates.checkForUpdateAsync();
+      if (!result.isAvailable) {
+        Alert.alert("No updates available", "You're already using the latest version.");
+      }
     } catch (e) {
-      Alert.alert("Error");
+      Alert.alert(
+        "Couldn't check for updates",
+        e instanceof Error ? e.message : "Please try again later."
+      );
     }
-
-    // UNCOMMENT TO REPRODUCE EAS UPDATE ERROR
-    // } finally {
-    //   console.log("dummyFunction");
-    // }
   };
 
-  // If true, we show the button to download and run the update
-  const showDownloadButton = isUpdateAvailable;
+  const applyUpdate = async () => {
+    if (!updatesAvailable) return;
+    try {
+      if (!isUpdatePending) {
+        const result = await Updates.fetchUpdateAsync();
+        if (!result.isNew) {
+          Alert.alert("No updates available", "You're already using the latest version.");
+          return;
+        }
+      }
+      await Updates.reloadAsync();
+    } catch (e) {
+      Alert.alert(
+        "Couldn't apply update",
+        e instanceof Error ? e.message : "Please try again later."
+      );
+    }
+  };
 
-  // Show whether or not we are running embedded code or an update
   const runTypeMessage = currentlyRunning.isEmbeddedLaunch
     ? "This app is running from built-in code"
     : "This app is running an update";
@@ -48,16 +55,23 @@ export default function HomeScreen() {
       }}
     >
       <SafeAreaView style={{ flex: 1 }}>
-        <ThemedText type="subtitle">Updates Demo 5</ThemedText>
+        <ThemedText type="subtitle">App updates</ThemedText>
         <ThemedText>{runTypeMessage}</ThemedText>
+        {!updatesAvailable ? (
+          <ThemedText>
+            Over-the-air updates are unavailable in this build. Install a production build
+            with Expo Updates enabled to check for or apply updates.
+          </ThemedText>
+        ) : null}
         <Button
-          onPress={() => Updates.checkForUpdateAsync()}
-          title="Check manually for updates"
+          onPress={checkForUpdates}
+          title="Check for updates"
+          disabled={!updatesAvailable}
         />
-        {showDownloadButton ? (
+        {updatesAvailable && (isUpdateAvailable || isUpdatePending) ? (
           <Button
-            onPress={() => Updates.fetchUpdateAsync()}
-            title="Download and run update"
+            onPress={applyUpdate}
+            title={isUpdatePending ? "Apply downloaded update" : "Download and apply update"}
           />
         ) : null}
       </SafeAreaView>
