@@ -18,15 +18,25 @@ import { router } from 'expo-router';
 import { getCurrentLocation } from './hooks/useUserLocation';
 import { getStoredToken } from '@/services/authStorage';
 
+type FeaturedDish = {
+  id: number;
+  dishName: string;
+  price: number | string;
+  profileImage?: string | null;
+  restaurant?: { restaurantName?: string };
+};
+
 const HomeScreen = () => {
   const [username, setUsername] = useState('');
   const [loadingUser, setLoadingUser] = useState(true);
-  const [userError, setUserError] = useState(null);
-  const [dishes, setDishes] = useState([]);
-  const [dishError, setDishError] = useState(null);
+  const [userError, setUserError] = useState<string | null>(null);
+  const [dishes, setDishes] = useState<FeaturedDish[]>([]);
+  const [dishError, setDishError] = useState<string | null>(null);
+  const [loadingDishes, setLoadingDishes] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [dishRetry, setDishRetry] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [loadingMore, setLoadingMore] = useState(false);
 
   // CART FUNCTIONS
   const { cartItems = [], addToCart, refreshCart } = useCart();
@@ -68,19 +78,38 @@ useEffect(() => {
 
   /** Fetch dishes */
   useEffect(() => {
+    let active = true;
     const fetchDishesData = async () => {
+      setLoadingDishes(true);
+      setDishError(null);
       try {
         const response = await getAllDishes(searchQuery, page);
-        const newData = Array.isArray(response?.data) ? response.data : [];
-        setDishes((prev) => (page === 1 ? newData : [...prev, ...newData]));
-        setDishError(null);
+        if (!Array.isArray(response?.data)) {
+          throw new Error('Unexpected dishes response from server');
+        }
+        if (active) {
+          setDishes((prev) => {
+            const combined = page === 1 ? response.data : [...prev, ...response.data];
+            const dishesById = new Map<number, FeaturedDish>();
+            combined.forEach((dish: FeaturedDish) => dishesById.set(dish.id, dish));
+            return Array.from(dishesById.values());
+          });
+          setTotalPages(Number(response.totalPages) || 1);
+        }
       } catch (err) {
-        console.error('Failed to fetch dishes:', err);
-        setDishError(getApiErrorMessage(err, "We couldn't load dishes right now. Please try again."));
+        if (active) {
+          console.error('Failed to fetch dishes:', err);
+          setDishError(getApiErrorMessage(err, "We couldn't load featured foods. Please try again."));
+        }
+      } finally {
+        if (active) setLoadingDishes(false);
       }
     };
     fetchDishesData();
-  }, [searchQuery, page]);
+    return () => {
+      active = false;
+    };
+  }, [searchQuery, page, dishRetry]);
 
   const debouncedSearch = useCallback(
     debounce((query) => {
@@ -112,14 +141,12 @@ const sendUserLocation = async () => {
 
 
   const handleLoadMore = () => {
-    if (loadingMore) return;
-    setLoadingMore(true);
+    if (loadingDishes || page >= totalPages) return;
     setPage((prev) => prev + 1);
-    setLoadingMore(false);
   };
 
   /** Render Dish Card */
-  const renderDishCard = ({ item }) => (
+  const renderDishCard = ({ item }: { item: FeaturedDish }) => (
     <View style={styles.card}>
       <Image
         source={{
@@ -143,7 +170,7 @@ const sendUserLocation = async () => {
 
       <View style={styles.detailRow}>
         <MaterialIcons name="store" size={20} color="#555" />
-        <Text style={styles.itemText}>{item.Restaurant?.restaurantName}</Text>
+        <Text style={styles.itemText}>{item.restaurant?.restaurantName}</Text>
       </View>
 
       <TouchableOpacity
@@ -203,10 +230,14 @@ const sendUserLocation = async () => {
       <Text style={styles.title}>🍴 Featured Foods</Text>
 
       {dishError ? (
-        <Text style={{ color: 'red', textAlign: 'center', marginTop: 20 }}>{dishError}</Text>
+        <TouchableOpacity onPress={() => setDishRetry((retry) => retry + 1)}>
+          <Text style={{ color: 'red', textAlign: 'center', marginTop: 20 }}>{dishError} Tap to retry.</Text>
+        </TouchableOpacity>
       ) : null}
-      {dishes.length === 0 ? (
-        <Text style={{ textAlign: 'center', marginTop: 20 }}>No dishes found.</Text>
+      {loadingDishes && dishes.length === 0 ? (
+        <ActivityIndicator size="large" color="#D32F2F" />
+      ) : dishes.length === 0 && !dishError ? (
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>No featured foods are available yet.</Text>
       ) : (
         <FlatList
           data={dishes}
@@ -214,7 +245,7 @@ const sendUserLocation = async () => {
           renderItem={renderDishCard}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={loadingMore ? <ActivityIndicator size="large" /> : null}
+          ListFooterComponent={loadingDishes && dishes.length > 0 ? <ActivityIndicator size="small" color="#D32F2F" /> : null}
         />
       )}
 

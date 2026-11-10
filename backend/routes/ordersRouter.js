@@ -8,6 +8,7 @@ router.get('/user_orders', tokenMiddleware, requireRole("customer", "rider", "ad
 router.get('/all_orders', tokenMiddleware, requireRole("admin"), OrderController.getAllOrders);
 router.get('/restaurant_orders', tokenMiddleware, requireRole("restaurant"), OrderController.getRestaurantOrders);
 router.get('/rider_orders', tokenMiddleware, requireRole("rider"), OrderController.getRiderOrders);
+router.get('/rider_history', tokenMiddleware, requireRole("rider"), OrderController.getRiderHistory);
 router.post('/:orderId/claim', tokenMiddleware, requireRole("rider"), OrderController.claimRiderOrder);
 router.put('/:orderId/rider-status', tokenMiddleware, requireRole("rider"), OrderController.updateRiderOrderStatus);
 router.post('/save', tokenMiddleware, requireRole("customer"), OrderController.createOrder);

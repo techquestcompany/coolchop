@@ -757,6 +757,13 @@ export const getRiderOrders = async (token: string) => {
   }
 };
 
+export const getRiderHistory = async (token: string) => {
+  const response = await api.get('/orders/rider_history', {
+    headers: { Authorization: "Bearer " + token },
+  });
+  return response.data;
+};
+
 export const claimRiderOrder = async (orderId: number, token: string) => {
   const response = await api.post(
     `/orders/${orderId}/claim`,

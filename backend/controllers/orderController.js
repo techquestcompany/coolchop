@@ -360,6 +360,32 @@ exports.getRiderOrders = async (req, res) => {
   }
 };
 
+exports.getRiderHistory = async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      where: {
+        riderId: req.user.id,
+        status: "delivered",
+      },
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "name", "phone"],
+        },
+      ],
+      order: [["updatedAt", "DESC"]],
+    });
+
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching rider delivery history:", error);
+    return res.status(500).json({
+      message: "We couldn't load your delivery history right now. Please try again.",
+    });
+  }
+};
+
 exports.claimRiderOrder = async (req, res) => {
   const orderId = Number(req.params.orderId);
   if (!Number.isInteger(orderId) || orderId < 1) {
@@ -676,4 +702,3 @@ exports.deleteOrder = async (req, res) => {
     });
   }
 };
-

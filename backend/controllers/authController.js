@@ -27,7 +27,7 @@ const sendVerificationEmail = async (email, code) => {
   await transporter.verify(); // catches auth errors
 
   const mailOptions = {
-    from: `"Your App Name" <${process.env.EMAIL_USER}>`,
+    from: `"Coolchop" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: "Email Verification Code",
     text: `Your verification code is: ${code}`,
