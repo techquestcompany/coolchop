@@ -12,14 +12,21 @@ import {
   SafeAreaView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import Constants from "expo-constants";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import * as Location from "expo-location";
 import { router } from "expo-router";
+import { io } from "socket.io-client";
 import { removeStoredItem } from "@/services/authStorage";
 import {
+  API_URL,
   getRiderOrders,
   getRiderHistory,
   claimRiderOrder,
+  registerRiderPushToken,
+  unregisterRiderPushToken,
   updateRiderOrderStatus,
   updateUserLocation,
   getApiErrorMessage,
@@ -33,6 +40,7 @@ const RiderHome = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState(null);
   const [token, setToken] = useState("");
+  const [pushToken, setPushToken] = useState("");
   const [riderId, setRiderId] = useState(null);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -63,8 +71,7 @@ const RiderHome = () => {
 
         setToken(token);
         setRiderId(Number(storedUserId));
-        await requestLocation(token);
-        await loadOrders(token);
+        await Promise.all([requestLocation(token), loadOrders(token)]);
       } catch (err) {
         console.error(err);
         setLoadError(getApiErrorMessage(err, "We couldn't load your dashboard. Please try again."));
@@ -75,6 +82,97 @@ const RiderHome = () => {
 
     init();
   }, []);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
+    const socket = io(API_URL.replace(/\/api\/?$/, ""), {
+      auth: { token },
+      reconnection: true,
+    });
+
+    const refreshFromEvent = () => {
+      getRiderOrders(token)
+        .then((result) => {
+          if (active && Array.isArray(result)) {
+            setOrders(result);
+            setLoadError(null);
+          }
+        })
+        .catch((error) => {
+          if (active) {
+            console.error("Failed to refresh rider orders after a live update:", error);
+            setLoadError(getApiErrorMessage(error, "We couldn't refresh your orders."));
+          }
+        });
+    };
+
+    socket.on("rider:order-ready", refreshFromEvent);
+    socket.on("rider:order-updated", refreshFromEvent);
+    socket.on("connect_error", (error) => {
+      console.warn("Rider live updates are unavailable:", error.message);
+    });
+
+    const notificationSubscription =
+      Notifications.addNotificationReceivedListener((notification) => {
+        if (notification.request.content.data?.type === "rider_order_ready") {
+          refreshFromEvent();
+        }
+      });
+    const responseSubscription =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        if (response.notification.request.content.data?.type === "rider_order_ready") {
+          refreshFromEvent();
+        }
+      });
+
+    const registerForPush = async () => {
+      if (Platform.OS === "web" || !Device.isDevice) return;
+
+      try {
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("orders", {
+            name: "Order updates",
+            importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: "#D32F2F",
+          });
+        }
+
+        const currentPermissions = await Notifications.getPermissionsAsync();
+        const permissions =
+          currentPermissions.granted ||
+          currentPermissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
+            ? currentPermissions
+            : await Notifications.requestPermissionsAsync();
+        if (!permissions.granted && permissions.ios?.status !== Notifications.IosAuthorizationStatus.PROVISIONAL) {
+          return;
+        }
+
+        const projectId =
+          Constants.easConfig?.projectId ??
+          Constants.expoConfig?.extra?.eas?.projectId;
+        if (typeof projectId !== "string" || !projectId) {
+          throw new Error("The EAS project ID is missing from app configuration.");
+        }
+
+        const result = await Notifications.getExpoPushTokenAsync({ projectId });
+        if (!active) return;
+        await registerRiderPushToken(token, result.data, Platform.OS);
+        if (active) setPushToken(result.data);
+      } catch (error) {
+        console.warn("Rider push notification registration failed:", error);
+      }
+    };
+
+    registerForPush();
+    return () => {
+      active = false;
+      socket.disconnect();
+      notificationSubscription.remove();
+      responseSubscription.remove();
+    };
+  }, [token]);
 
   /** 📍 Request & Send Rider Location */
   const requestLocation = async (token) => {
@@ -134,10 +232,27 @@ const RiderHome = () => {
   const handleLogout = () => {
     const logout = async () => {
       try {
+        let pushUnregistered = true;
+        if (pushToken) {
+          try {
+            await unregisterRiderPushToken(token, pushToken);
+          } catch (error) {
+            pushUnregistered = false;
+            console.error("Failed to unregister rider push token:", error);
+          }
+        }
         await Promise.all(
           ["customer_token", "role", "userId", "token"].map(removeStoredItem)
         );
         router.replace("/login");
+        if (!pushUnregistered) {
+          const warning = "You are logged out, but this device could not be removed from rider push notifications. Sign in again while online to refresh its registration.";
+          if (Platform.OS === "web") {
+            window.alert(warning);
+          } else {
+            Alert.alert("Logged out", warning);
+          }
+        }
       } catch (error) {
         console.error("Rider logout failed:", error);
         const message = "We couldn't log you out. Please try again.";

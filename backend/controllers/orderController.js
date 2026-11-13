@@ -1,8 +1,19 @@
 
-const { Order, Dish, Transaction, User, sequelize } = require("../models");
+const {
+  Order,
+  Dish,
+  Transaction,
+  User,
+  NotificationOutbox,
+  sequelize,
+} = require("../models");
 const { Op } = require("sequelize");
 const getAddressFromCoords = require("../utils/getAddressFromCoords");
 const normalizeOrderItems = require("../utils/normalizeOrderItems");
+const {
+  emitRiderOrderReady,
+  emitRiderOrderUpdated,
+} = require("../utils/riderSocketEvents");
 const {
   isRestaurantTransitionAllowed,
   isRiderTransitionAllowed,
@@ -416,6 +427,8 @@ exports.claimRiderOrder = async (req, res) => {
       return res.status(409).json({ message: "That order is no longer available." });
     }
 
+    emitRiderOrderUpdated(result.order);
+
     return res.status(200).json({ message: "Order claimed successfully.", order: result.order });
   } catch (error) {
     console.error("Error claiming rider order:", error);
@@ -461,6 +474,8 @@ exports.updateRiderOrderStatus = async (req, res) => {
     if (result.invalidTransition) {
       return res.status(409).json({ message: "That delivery status change isn't available." });
     }
+
+    emitRiderOrderUpdated(result.order);
 
     return res.status(200).json({ message: "Delivery status updated.", order: result.order });
   } catch (error) {
@@ -588,11 +603,27 @@ exports.updateOrder = async (req, res) => {
           }
         }
 
+        const becameReadyForPickup =
+          order.status !== "ready_for_pickup" && status === "ready_for_pickup";
         order.status = status;
 
         await order.save({ transaction });
 
-        return { order };
+        if (becameReadyForPickup) {
+          await NotificationOutbox.create(
+            {
+              dedupeKey: `rider-order-ready:${order.id}`,
+              eventType: "rider_order_ready",
+              payload: {
+                orderId: order.id,
+                orderNumber: order.orderNumber,
+              },
+            },
+            { transaction }
+          );
+        }
+
+        return { order, becameReadyForPickup };
       }
     );
 
@@ -618,6 +649,10 @@ exports.updateOrder = async (req, res) => {
       return res.status(409).json({
         message: "That order status change isn't available.",
       });
+    }
+
+    if (result.becameReadyForPickup) {
+      emitRiderOrderReady(result.order);
     }
 
     return res.status(200).json({

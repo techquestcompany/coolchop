@@ -27,6 +27,9 @@ const ratingsRoutes = require("./routes/ratingsRoute");
 const reviewRoutes = require("./routes/reviewRoute");
 const paymentsRoutes = require("./routes/transInitialiserRoute");
 const transactionRoutes = require("./routes/transactionRoutes");
+const riderNotificationRoutes = require("./routes/riderNotificationRoutes");
+const riderSocketEvents = require("./utils/riderSocketEvents");
+const riderSocketAuth = require("./utils/riderSocketAuth");
 const app = express();
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -145,6 +148,7 @@ app.use("/api/ratings", ratingsRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/notifications", riderNotificationRoutes);
 
 app.use((req, res) => {
   return res.status(404).json({
@@ -183,9 +187,28 @@ app.use((error, req, res, next) => {
 
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);
-const socketServer = new Server(server);
+const socketServer = new Server(server, {
+  cors: {
+    origin(origin, callback) {
+      const normalizedOrigin = origin ? normalizeOrigin(origin) : null;
+      if (
+        !origin ||
+        (normalizedOrigin && allowedOrigins.includes(normalizedOrigin)) ||
+        isDevelopmentOrigin(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error("Origin is not allowed by CORS"));
+    },
+  },
+});
+riderSocketEvents.setSocketServer(socketServer);
+
+socketServer.use(riderSocketAuth);
 
 socketServer.on("connection", (socket) => {
+  socket.join(`rider:${socket.data.riderId}`);
+  socket.join("riders:available");
   console.log("WebSocket connection successful");
   socket.on("disconnect", () => {
     console.log("WebSocket connection disconnected");

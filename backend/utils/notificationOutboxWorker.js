@@ -2,7 +2,13 @@
 
 const cron = require("node-cron");
 const { Op } = require("sequelize");
-const { NotificationOutbox, User, sequelize } = require("../models");
+const {
+  NotificationOutbox,
+  Order,
+  RiderPushToken,
+  User,
+  sequelize,
+} = require("../models");
 const { sendOrderConfirmation } = require("./mail");
 
 const BATCH_SIZE = 20;
@@ -50,11 +56,93 @@ const sendOrderConfirmed = async (payload) => {
   }
 };
 
-const processEvent = async (event) => {
-  if (event.eventType !== "order_confirmed") {
-    throw new Error(`Unsupported notification event type: ${event.eventType}`);
+const sendRiderOrderReady = async (payload) => {
+  const order = await Order.findOne({
+    attributes: ["id"],
+    where: {
+      id: payload.orderId,
+      status: "ready_for_pickup",
+      riderId: null,
+    },
+  });
+  if (!order) return;
+
+  const riders = await User.findAll({
+    attributes: ["id"],
+    where: { role: "rider" },
+  });
+  if (riders.length === 0) {
+    throw new Error("No rider accounts are available for this order notification.");
   }
-  await sendOrderConfirmed(event.payload);
+
+  const tokens = await RiderPushToken.findAll({
+    attributes: ["token"],
+    where: { userId: { [Op.in]: riders.map(({ id }) => id) } },
+  });
+  if (tokens.length === 0) {
+    throw new Error("No riders have registered a push notification device yet.");
+  }
+
+  const tokenValues = tokens.map(({ token }) => token);
+  for (let offset = 0; offset < tokenValues.length; offset += 100) {
+    const batch = tokenValues.slice(offset, offset + 100);
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(
+        batch.map((token) => ({
+          to: token,
+          title: "Order ready for pickup",
+          body: `Order ${payload.orderNumber} is ready. Open Coolchop to claim it.`,
+          sound: "default",
+          priority: "high",
+          channelId: "orders",
+          data: {
+            type: "rider_order_ready",
+            orderId: payload.orderId,
+            orderNumber: payload.orderNumber,
+          },
+        }))
+      ),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const result = await response.json();
+    if (!response.ok || !Array.isArray(result?.data) || result.data.length !== batch.length) {
+      throw new Error(`Expo push service returned HTTP ${response.status}.`);
+    }
+
+    const retryErrors = [];
+    for (let index = 0; index < result.data.length; index += 1) {
+      const ticket = result.data[index];
+      if (ticket.status === "ok") continue;
+      if (ticket.details?.error === "DeviceNotRegistered") {
+        await RiderPushToken.destroy({ where: { token: batch[index] } });
+      } else {
+        retryErrors.push(ticket.message || ticket.details?.error || "Push delivery failed.");
+      }
+    }
+    if (retryErrors.length > 0) {
+      throw new Error(retryErrors.slice(0, 3).join("; "));
+    }
+  }
+};
+
+const processEvent = async (event) => {
+  switch (event.eventType) {
+    case "order_confirmed":
+      await sendOrderConfirmed(event.payload);
+      return;
+    case "rider_order_ready":
+      await sendRiderOrderReady(event.payload);
+      return;
+    default:
+      throw new Error(`Unsupported notification event type: ${event.eventType}`);
+  }
 };
 
 const processOutboxBatch = async () => {

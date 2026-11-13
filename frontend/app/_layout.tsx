@@ -1,14 +1,25 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 import { Provider as PaperProvider } from 'react-native-paper';
+import * as Notifications from 'expo-notifications';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { CartProvider } from '@/context/CartContext';
+import { getStoredToken } from '@/services/authStorage';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -25,6 +36,29 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    const handleNotificationResponse = async (response) => {
+      const data = response?.notification.request.content.data;
+      if (data?.type !== 'rider_order_ready') return;
+
+      const [role, token] = await Promise.all([
+        getStoredToken('role'),
+        getStoredToken('customer_token'),
+      ]);
+      if (role === 'rider' && token) {
+        router.replace('/riderHomepage');
+      }
+    };
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      handleNotificationResponse
+    );
+    Notifications.getLastNotificationResponseAsync()
+      .then(handleNotificationResponse)
+      .catch((error) => console.error('Failed to handle opened notification:', error));
+    return () => subscription.remove();
+  }, []);
 
   if (!loaded) {
     return null;

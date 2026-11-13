@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1004563882262",
-    "project_id": "coolchop-91a2b",
-    "storage_bucket": "coolchop-91a2b.firebasestorage.app"
+    "project_number": "513513963260",
+    "project_id": "coolchop-989d4",
+    "storage_bucket": "coolchop-989d4.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1004563882262:android:ba22505e916a9d328ef037",
+        "mobilesdk_app_id": "1:513513963260:android:ca2f2ca8b0c30363db6179",
         "android_client_info": {
           "package_name": "com.coolchop.coolchop"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD3HvX9CU6i2GcksOxgEXwkF7t1jFUmywY"
+          "current_key": "AIzaSyDeHZTlXckOsJaGvRfYIcW8bRK05lQurCA"
         }
       ],
       "services": {

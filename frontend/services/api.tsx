@@ -757,6 +757,30 @@ export const getRiderOrders = async (token: string) => {
   }
 };
 
+export const registerRiderPushToken = async (
+  token: string,
+  pushToken: string,
+  platform: "android" | "ios"
+) => {
+  const response = await api.post(
+    "/notifications/rider/push-token",
+    { token: pushToken, platform },
+    { headers: { Authorization: "Bearer " + token } }
+  );
+  return response.data;
+};
+
+export const unregisterRiderPushToken = async (
+  token: string,
+  pushToken: string
+) => {
+  const response = await api.delete("/notifications/rider/push-token", {
+    data: { token: pushToken },
+    headers: { Authorization: "Bearer " + token },
+  });
+  return response.data;
+};
+
 export const getRiderHistory = async (token: string) => {
   const response = await api.get('/orders/rider_history', {
     headers: { Authorization: "Bearer " + token },
