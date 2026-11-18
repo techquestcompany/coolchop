@@ -2,6 +2,7 @@ const https = require("https");
 const crypto = require("crypto");
 const { User, Dish, Order } = require("../models");
 const createPaystackHttpError = require("../utils/paystackHttpError");
+const calculateCheckoutTotals = require("../utils/checkoutTotals");
 
 const requestPaystack = (payload) =>
   new Promise((resolve, reject) => {
@@ -94,7 +95,7 @@ exports.initializeTransaction = async (req, res) => {
       });
     }
 
-    const totalMinorUnits = normalizedItems.reduce((sum, item) => {
+    const subtotalMinorUnits = normalizedItems.reduce((sum, item) => {
       const price = Number(dishesById.get(item.id).price);
       if (!Number.isFinite(price) || price < 0) {
         throw new Error(`Invalid price configured for dish ${item.id}`);
@@ -102,16 +103,22 @@ exports.initializeTransaction = async (req, res) => {
       return sum + Math.round(price * 100) * item.quantity;
     }, 0);
 
-    if (!Number.isSafeInteger(totalMinorUnits) || totalMinorUnits < 1) {
+    if (!Number.isSafeInteger(subtotalMinorUnits) || subtotalMinorUnits < 1) {
       return res.status(400).json({ error: "Order total is invalid." });
     }
 
+    const {
+      serviceChargeMinorUnits,
+      totalMinorUnits,
+    } = calculateCheckoutTotals(subtotalMinorUnits);
     const reference = `CC-${crypto.randomUUID()}`;
     const order = await Order.create({
       orderNumber: `ORD-${crypto.randomUUID()}`,
       reference,
       userId: user.id,
       items: normalizedItems,
+      subtotalAmount: subtotalMinorUnits / 100,
+      serviceChargeAmount: serviceChargeMinorUnits / 100,
       totalAmount: totalMinorUnits / 100,
       note: typeof note === "string" ? note.slice(0, 500) : null,
       status: "pending",
@@ -139,6 +146,8 @@ exports.initializeTransaction = async (req, res) => {
       authorization_url: paymentData.authorization_url,
       reference,
       access_code: paymentData.access_code,
+      subtotal: subtotalMinorUnits,
+      service_charge: serviceChargeMinorUnits,
       amount: totalMinorUnits,
       currency: "GHS",
       orderId: order.id,

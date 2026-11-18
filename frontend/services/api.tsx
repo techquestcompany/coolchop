@@ -319,6 +319,18 @@ export const getMyRestaurant = async (token: string) => {
   return response.data;
 };
 
+export const updateRestaurantAvailability = async (
+  isAcceptingRequests: boolean,
+  token: string
+) => {
+  const response = await api.patch(
+    '/restaurant/myrestaurant/availability',
+    { isAcceptingRequests },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
 export const getDishesByRestaurantId = async (restaurantId: string | number) => {
   try {
     const response = await api.get(`/restaurant/restaurants/${restaurantId}/dishes`);

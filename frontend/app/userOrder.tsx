@@ -92,7 +92,15 @@ const UserOrders = () => {
       )}
 
       <Text style={styles.label}>
-        Amount: <Text style={styles.value}>GHS {item.totalAmount}</Text>
+        Subtotal: <Text style={styles.value}>GHS {item.subtotalAmount ?? item.totalAmount}</Text>
+      </Text>
+      {item.serviceChargeAmount != null && (
+        <Text style={styles.label}>
+          Service charge (3%): <Text style={styles.value}>GHS {item.serviceChargeAmount}</Text>
+        </Text>
+      )}
+      <Text style={styles.label}>
+        Total paid: <Text style={styles.value}>GHS {item.totalAmount}</Text>
       </Text>
 
       <Text style={styles.label}>

@@ -68,6 +68,16 @@ const SearchScreen = () => {
           {isDishes ? `⭐ 10.0 - ${item.visits} visits` : `Rating: ⭐ ${item.rating}`}
         </Text>
         {isDishes && <Text style={styles.deliveryTime}>{item.price}</Text>}
+        {isDishes && typeof item.restaurant?.isAcceptingRequests === 'boolean' && (
+          <Text
+            style={[
+              styles.availabilityBadge,
+              item.restaurant.isAcceptingRequests ? styles.acceptingBadge : styles.unavailableBadge,
+            ]}
+          >
+            {item.restaurant.isAcceptingRequests ? 'Accepting requests' : 'Not accepting requests'}
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -200,6 +210,18 @@ const styles = StyleSheet.create({
   deliveryTime: {
     color: '#888',
   },
+  availabilityBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    marginTop: 6,
+    overflow: 'hidden',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  acceptingBadge: { backgroundColor: '#E8F5E9', color: '#2E7D32' },
+  unavailableBadge: { backgroundColor: '#FCE4EC', color: '#AD1457' },
 });
 
 export default SearchScreen;

@@ -14,6 +14,7 @@ import {
 import { getMyCart, removeFromMyCart, setMyCartQuantity, baseURL, getApiErrorMessage } from "@/services/api";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
+import { calculateCheckoutTotals } from "@/services/orderContracts";
 
 interface CartDish {
   id: number;
@@ -112,6 +113,14 @@ const CartScreen = () => {
   const handleSaveOrder = async () => {
     router.push({ pathname: "/InitTransaction", params: { note } });
   };
+
+  const subtotalMinorUnits = cartItems.reduce(
+    (sum, item) => sum + Math.round(Number(item.price) * 100) * item.quantity,
+    0
+  );
+  const checkoutTotals = calculateCheckoutTotals(subtotalMinorUnits);
+  const formatGhs = (minorUnits: number) =>
+    new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(minorUnits / 100);
   
 
   if (isLoading) {
@@ -182,6 +191,11 @@ const CartScreen = () => {
                 value={note}
                 onChangeText={setNote}
               />
+            </View>
+            <View style={styles.checkoutSummary}>
+              <Text style={styles.summaryRow}>Subtotal: {formatGhs(checkoutTotals.subtotalMinorUnits)}</Text>
+              <Text style={styles.summaryRow}>Service charge (3%): {formatGhs(checkoutTotals.serviceChargeMinorUnits)}</Text>
+              <Text style={styles.summaryTotal}>Total: {formatGhs(checkoutTotals.totalMinorUnits)}</Text>
             </View>
             <TouchableOpacity style={styles.viewOrderButton} onPress={handleSaveOrder}>
               <Text style={styles.viewOrderText}>VIEW ORDER</Text>
@@ -266,6 +280,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  checkoutSummary: {
+    alignItems: "flex-end",
+    padding: 15,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+  },
+  summaryRow: { marginBottom: 6 },
+  summaryTotal: { fontWeight: "bold", fontSize: 16, marginTop: 4 },
   noteInput: {
     backgroundColor: "#f1f1f1",
     padding: 10,

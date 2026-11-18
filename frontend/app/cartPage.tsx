@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndi
 import { baseURL } from '@/services/api';
 import { useRouter } from 'expo-router';
 import { useCart } from '@/context/CartContext';
+import { calculateCheckoutTotals } from '@/services/orderContracts';
 
 const getDishImageUri = (profileImage) => {
   if (
@@ -47,10 +48,13 @@ const fetchCart = async () => {
     fetchCart();
   }, [refreshCart]);
 
-  const getTotal = () =>
-    new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(
-      cartItems.reduce((sum, item) => sum + item.Dish?.price * item.quantity, 0)
-    );
+  const subtotalMinorUnits = cartItems.reduce(
+    (sum, item) => sum + Math.round(Number(item.Dish?.price) * 100) * Number(item.quantity),
+    0
+  );
+  const checkoutTotals = calculateCheckoutTotals(subtotalMinorUnits);
+  const formatGhs = (minorUnits) =>
+    new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(minorUnits / 100);
 
   if (loading) return <ActivityIndicator size="large" />;
 
@@ -90,7 +94,11 @@ const fetchCart = async () => {
               );
             }}
           />
-          <Text style={styles.total}>Total: {getTotal()}</Text>
+          <View style={styles.totals}>
+            <Text style={styles.totalRow}>Subtotal: {formatGhs(checkoutTotals.subtotalMinorUnits)}</Text>
+            <Text style={styles.totalRow}>Service charge (3%): {formatGhs(checkoutTotals.serviceChargeMinorUnits)}</Text>
+            <Text style={styles.total}>Total: {formatGhs(checkoutTotals.totalMinorUnits)}</Text>
+          </View>
           <TouchableOpacity
             style={styles.checkout}
             onPress={() => router.push('/InitTransaction')}
@@ -114,6 +122,8 @@ const styles = StyleSheet.create({
   quantityButton: { fontSize: 20, paddingHorizontal: 10, fontWeight: 'bold' },
   quantityText: { fontSize: 16, marginHorizontal: 10 },
   total: { fontSize: 18, fontWeight: 'bold', textAlign: 'right', marginTop: 20 },
+  totals: { alignItems: 'flex-end' },
+  totalRow: { fontSize: 15, marginTop: 8 },
   checkout: {
     backgroundColor: "#28a745",
     paddingVertical: 10,

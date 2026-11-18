@@ -222,6 +222,16 @@ const handleRating = async (userRating: number) => {
               <Text style={styles.subtitle}>
                 ⭐ {dish.ratings} | {dish.reviews} reviews
               </Text>
+              {typeof dish.restaurant?.isAcceptingRequests === 'boolean' && (
+                <Text
+                  style={[
+                    styles.availabilityBadge,
+                    dish.restaurant.isAcceptingRequests ? styles.acceptingBadge : styles.unavailableBadge,
+                  ]}
+                >
+                  {dish.restaurant.isAcceptingRequests ? 'Accepting requests' : 'Not accepting requests'}
+                </Text>
+              )}
               <Text style={styles.price}>Price: ₵{Number(dish.price).toFixed(2)}</Text>
               <Text style={styles.description}>{dish.description}</Text>
             </View>
@@ -303,6 +313,18 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 8 },
   subtitle: { fontSize: 16, color: "gray", marginBottom: 16 },
+  availabilityBadge: {
+    alignSelf: "flex-start",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 12,
+    fontSize: 12,
+    fontWeight: "600",
+    overflow: "hidden",
+  },
+  acceptingBadge: { backgroundColor: "#E8F5E9", color: "#2E7D32" },
+  unavailableBadge: { backgroundColor: "#FCE4EC", color: "#AD1457" },
   price: { fontSize: 18, fontWeight: "bold", color: "#ffa500", marginBottom: 16 },
   description: { fontSize: 14, color: "#333", lineHeight: 20 },
   orderButton: { margin: 16, backgroundColor: "#D32F2F", paddingVertical: 15, borderRadius: 10, alignItems: "center" },

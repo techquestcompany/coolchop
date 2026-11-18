@@ -70,11 +70,12 @@ exports.login = async (req, res) => {
 
     // Generate JWT
     const isAdmin = getAdminUserIds().has(user.id);
+    const role = isAdmin ? "admin" : user.role === "rider" ? "rider" : "customer";
     const token = jwt.sign(
       {
         id: user.id,
         email: user.email,
-        role: isAdmin ? "admin" : user.role === "rider" ? "rider" : "customer",
+        role,
         isAdmin,
       },
       process.env.JWT_SECRET,
@@ -86,7 +87,7 @@ exports.login = async (req, res) => {
   user: {
     id: user.id,
     email: user.email,
-    role: user.role,
+    role,
     token, // include token inside user
     isVerified: user.isVerified,
     longitude: user.longitude,
@@ -216,7 +217,7 @@ exports.getUserData = async (req, res) => {
       latitude: user.latitude,
       phone: user.phone,
       profileImage: user.profileImage,
-      role: user.role,
+      role: req.user.role,
     });
   } catch (error) {
     console.error("Error getting user data:", error);

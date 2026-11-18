@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useRouter } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { removeStoredItem } from "@/services/authStorage";
 
 const Logout = () => {
   const router = useRouter();
@@ -9,12 +9,10 @@ const Logout = () => {
   useEffect(() => {
     const logoutUser = async () => {
       try {
-        // Remove the securely stored userId
-        await SecureStore.deleteItemAsync("userId");
-        console.log("User ID removed successfully.");
-
-        // Redirect to the login screen
-        router.push("/login");
+        await Promise.all(
+          ["customer_token", "restaurant_token", "role", "userId", "token"].map(removeStoredItem)
+        );
+        router.replace("/login");
       } catch (error) {
         console.error("Error during logout:", error);
       }

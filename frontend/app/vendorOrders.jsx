@@ -9,9 +9,16 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { fetchRestaurantOrders, updateOrder, getApiErrorMessage } from '../services/api';
+import {
+  fetchRestaurantOrders,
+  updateOrder,
+  getApiErrorMessage,
+  getMyRestaurant,
+  updateRestaurantAvailability,
+} from '../services/api';
 import { getStoredToken } from '../services/authStorage';
 
 /* ---------- Helper to safely parse order items ---------- */
@@ -34,6 +41,10 @@ const VendorOrders = () => {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState('');
+  const [isAcceptingRequests, setIsAcceptingRequests] = useState(false);
+  const [availabilityLoaded, setAvailabilityLoaded] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState(false);
+  const [savingAvailability, setSavingAvailability] = useState(false);
 
   useEffect(() => {
     loadTokenAndOrders();
@@ -47,10 +58,44 @@ const VendorOrders = () => {
         return;
       }
       setToken(storedToken);
+      await loadAvailability(storedToken);
       await loadOrders(storedToken);
     } catch (error) {
       console.error('Error loading token or orders:', error);
       Alert.alert('Unable to load restaurant orders', getApiErrorMessage(error, "We couldn't load orders. Please try again."));
+    }
+  };
+
+  const loadAvailability = async (jwtToken) => {
+    setAvailabilityLoaded(false);
+    setAvailabilityError(false);
+    try {
+      const restaurant = await getMyRestaurant(jwtToken);
+      setIsAcceptingRequests(Boolean(restaurant.isAcceptingRequests));
+      setAvailabilityLoaded(true);
+    } catch (error) {
+      console.error('Error loading restaurant availability:', error);
+      setAvailabilityError(true);
+      Alert.alert(
+        'Unable to load availability',
+        getApiErrorMessage(error, "We couldn't load your request availability.")
+      );
+    }
+  };
+
+  const handleAvailabilityChange = async (value) => {
+    setSavingAvailability(true);
+    try {
+      const response = await updateRestaurantAvailability(value, token);
+      setIsAcceptingRequests(response.isAcceptingRequests);
+    } catch (error) {
+      console.error('Error updating restaurant availability:', error);
+      Alert.alert(
+        'Unable to update availability',
+        getApiErrorMessage(error, "We couldn't update request availability. Please try again.")
+      );
+    } finally {
+      setSavingAvailability(false);
     }
   };
 
@@ -116,6 +161,31 @@ const VendorOrders = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Vendor Orders</Text>
+
+      <View style={styles.availabilityCard}>
+        <View style={styles.availabilityText}>
+          <Text style={styles.availabilityTitle}>Request availability</Text>
+          <Text style={styles.availabilityStatus}>
+            {!availabilityLoaded
+              ? 'Availability unavailable'
+              : isAcceptingRequests ? 'Accepting requests' : 'Not accepting requests'}
+          </Text>
+        </View>
+        {availabilityError ? (
+          <TouchableOpacity onPress={() => loadAvailability(token)}>
+            <Text style={styles.retryAvailability}>Retry</Text>
+          </TouchableOpacity>
+        ) : (
+          <Switch
+            value={isAcceptingRequests}
+            onValueChange={handleAvailabilityChange}
+            disabled={!availabilityLoaded || savingAvailability}
+            trackColor={{ false: '#ccc', true: '#8BC34A' }}
+            thumbColor={isAcceptingRequests ? '#4CAF50' : '#f4f3f4'}
+            accessibilityLabel="Accept food requests"
+          />
+        )}
+      </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
@@ -201,6 +271,20 @@ export default VendorOrders;
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f8f9fa' },
   title: { fontSize: 26, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  availabilityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    elevation: 2,
+  },
+  availabilityText: { flex: 1 },
+  availabilityTitle: { fontWeight: 'bold', fontSize: 16 },
+  availabilityStatus: { color: '#555', marginTop: 4 },
+  retryAvailability: { color: '#D32F2F', fontWeight: '600', padding: 8 },
 
   searchContainer: { flexDirection: 'row', marginBottom: 10 },
   searchInput: { flex: 1, backgroundColor: '#fff', borderWidth: 1, borderRadius: 6, padding: 10 },

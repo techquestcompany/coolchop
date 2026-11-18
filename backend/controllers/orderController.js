@@ -56,6 +56,9 @@ const withDishDetails = async (order) => {
 
   return {
     ...order.toJSON(),
+    totalAmount: Number(order.totalAmount),
+    subtotalAmount: order.subtotalAmount == null ? null : Number(order.subtotalAmount),
+    serviceChargeAmount: order.serviceChargeAmount == null ? null : Number(order.serviceChargeAmount),
     items: items.map((item) => {
       const dish = dishesById.get(Number(item.id));
 

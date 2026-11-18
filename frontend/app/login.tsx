@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Alert, TouchableOpacity, ActivityIndicator, StyleSheet, Image, ScrollView, KeyboardAvoidingView, SafeAreaView, Platform } from 'react-native';
-import { Checkbox } from 'react-native-paper'; 
 import { router } from 'expo-router';
 import { login, getApiErrorMessage } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons'; 
 import * as SecureStore from 'expo-secure-store';
+import { removeStoredItem } from '@/services/authStorage';
 //import Platform from "react-native";
 
 const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeText, toggleSecure, isPassword }) => {
@@ -34,7 +34,6 @@ const InputField = ({ iconName, placeholder, secureTextEntry, value, onChangeTex
 };
 
 export default function SignInScreen() {
-  const [checked, setChecked] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(true);
@@ -61,6 +60,7 @@ const handleSignIn = async () => {
       const { id, role, token } = response.user;
 
       // 🔐 Store role + token
+      await removeStoredItem("restaurant_token");
       if (Platform.OS !== "web") {
         await SecureStore.setItemAsync("role", role);
         await SecureStore.setItemAsync("customer_token", token);
@@ -137,14 +137,7 @@ const handleSignIn = async () => {
           />
 
           <View style={styles.options}>
-            <View style={styles.rememberMe}>
-              <Checkbox 
-                uncheckedColor='#D32F2F' 
-                status={checked ? 'checked' : 'unchecked'} 
-                onPress={() => setChecked(!checked)} 
-              />
-              <Text>Remember me</Text>
-            </View>
+            <Text style={styles.rememberMe}>Stay signed in on this device</Text>
             <TouchableOpacity onPress={() => router.push('/forgot_password')}>
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
@@ -225,8 +218,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   rememberMe: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: '#555',
+    alignSelf: 'center',
   },
   forgotPassword: {
     color: '#D32F2F',

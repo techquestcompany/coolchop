@@ -90,6 +90,11 @@ module.exports = (sequelize, DataTypes) => {
         
         defaultValue: false,
       },
+      isAcceptingRequests: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+      },
       password: {
       type: DataTypes.STRING,
       allowNull: false,

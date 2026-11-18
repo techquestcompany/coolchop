@@ -1,5 +1,6 @@
 import {
   buildCheckoutPayload,
+  calculateCheckoutTotals,
   normalizeCustomerOrders,
 } from "../orderContracts";
 
@@ -11,6 +12,8 @@ describe("customer order API contract", () => {
         orderNumber: "ORD-8",
         items: JSON.stringify([{ id: "4", quantity: "2" }]),
         totalAmount: "25.5",
+        subtotalAmount: "24.75",
+        serviceChargeAmount: "0.75",
         status: "pending",
       }],
       totalOrders: 1,
@@ -18,6 +21,8 @@ describe("customer order API contract", () => {
 
     expect(orders[0].items).toEqual([{ id: 4, quantity: 2 }]);
     expect(orders[0].totalAmount).toBe(25.5);
+    expect(orders[0].subtotalAmount).toBe(24.75);
+    expect(orders[0].serviceChargeAmount).toBe(0.75);
   });
 
   it("continues to accept legacy array responses and malformed item values", () => {
@@ -32,6 +37,17 @@ describe("customer order API contract", () => {
     expect(() => normalizeCustomerOrders({ data: [] })).toThrow(
       "Unexpected orders response from server"
     );
+  });
+});
+
+describe("checkout totals", () => {
+  it("calculates a 3 percent service charge rounded to the nearest pesewa", () => {
+    expect(calculateCheckoutTotals(10000)).toEqual({
+      subtotalMinorUnits: 10000,
+      serviceChargeMinorUnits: 300,
+      totalMinorUnits: 10300,
+    });
+    expect(calculateCheckoutTotals(101).serviceChargeMinorUnits).toBe(3);
   });
 });
 

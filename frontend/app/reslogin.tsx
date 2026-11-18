@@ -13,9 +13,8 @@ import {
   SafeAreaView,
   Platform,
 } from 'react-native';
-import { Checkbox } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { loginRestaurant, verifyToken, getApiErrorMessage } from '../services/api';
+import { loginRestaurant, verifyResToken, getApiErrorMessage } from '../services/api';
 import Toast from 'react-native-toast-message';
 import { FontAwesome } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -70,7 +69,6 @@ async function removeItem(key) {
 }
 
 export default function VendorLoginScreen() {
-  const [checked, setChecked] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(true);
@@ -87,17 +85,20 @@ export default function VendorLoginScreen() {
 
     if (token && role === 'vendor') {
       try {
-        const isValid = await verifyToken(token);
-        if (!isValid) {
+        await verifyResToken(token);
+        router.replace('/(res_tabs)');
+      } catch (error) {
+        const status = error?.response?.status;
+        if (status === 401 || status === 403 || status === 404) {
           await removeItem('restaurant_token');
           await removeItem('role');
         } else {
-          router.push('/(res_tabs)');
+          Toast.show({
+            type: 'error',
+            text1: 'Unable to restore your session',
+            text2: getApiErrorMessage(error, 'Check your connection and try again.'),
+          });
         }
-      } catch (error) {
-        console.log('Token verification failed:', error);
-        await removeItem('restaurant_token');
-        await removeItem('role');
       }
     }
   };
@@ -113,6 +114,8 @@ export default function VendorLoginScreen() {
       const res = await loginRestaurant(email, password);
 
       if (res.message?.trim() === 'Login successful' && res.token) {
+        await removeItem('customer_token');
+        await removeItem('userId');
         await saveItem('restaurant_token', res.token);
         await saveItem('role', 'vendor');
 
@@ -122,7 +125,7 @@ export default function VendorLoginScreen() {
           text2: 'Welcome back.',
         });
 
-        router.push('/(res_tabs)');
+        router.replace('/(res_tabs)');
       } else {
         Toast.show({
           type: 'error',
@@ -173,14 +176,7 @@ export default function VendorLoginScreen() {
           />
 
           <View style={styles.options}>
-            <View style={styles.rememberMe}>
-              <Checkbox
-                uncheckedColor="#D32F2F"
-                status={checked ? 'checked' : 'unchecked'}
-                onPress={() => setChecked(!checked)}
-              />
-              <Text>Remember me</Text>
-            </View>
+            <Text style={styles.rememberMe}>Stay signed in on this device</Text>
             <TouchableOpacity onPress={() => router.push('/forgot_password')}>
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
             </TouchableOpacity>
@@ -263,8 +259,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   rememberMe: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    color: '#555',
+    alignSelf: 'center',
   },
   forgotPassword: {
     color: '#D32F2F',

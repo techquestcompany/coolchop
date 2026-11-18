@@ -41,6 +41,7 @@ export default function VendorProfileScreen() {
   const handleLogout = async () => {
     try {
       await removeStoredItem("restaurant_token");
+      await removeStoredItem("role");
       router.replace("/reslogin");
     } catch (err) {
       Alert.alert("Unable to log out", "Please try again.");

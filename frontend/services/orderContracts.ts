@@ -12,6 +12,8 @@ export interface CustomerOrder {
   orderNumber: string;
   items: CustomerOrderItem[];
   totalAmount: number;
+  subtotalAmount?: number | null;
+  serviceChargeAmount?: number | null;
   status: string;
   reference?: string | null;
 }
@@ -81,14 +83,39 @@ export const normalizeCustomerOrders = (response: unknown): CustomerOrder[] => {
 
   if (!orders) throw new Error("Unexpected orders response from server");
 
-  return orders.filter(isRecord).map((order) => ({
-    ...order,
-    id: Number(order.id),
-    orderNumber: String(order.orderNumber ?? order.id),
-    items: normalizeOrderItems(order.items),
-    totalAmount: Number(order.totalAmount) || 0,
-    status: String(order.status ?? "unknown"),
-  }));
+  return orders.filter(isRecord).map((order) => {
+    const subtotalAmount = order.subtotalAmount == null ? null : Number(order.subtotalAmount);
+    const serviceChargeAmount = order.serviceChargeAmount == null ? null : Number(order.serviceChargeAmount);
+
+    return {
+      ...order,
+      id: Number(order.id),
+      orderNumber: String(order.orderNumber ?? order.id),
+      items: normalizeOrderItems(order.items),
+      totalAmount: Number(order.totalAmount) || 0,
+      subtotalAmount: subtotalAmount !== null && Number.isFinite(subtotalAmount) ? subtotalAmount : null,
+      serviceChargeAmount: serviceChargeAmount !== null && Number.isFinite(serviceChargeAmount) ? serviceChargeAmount : null,
+      status: String(order.status ?? "unknown"),
+    };
+  });
+};
+
+export const calculateCheckoutTotals = (subtotalMinorUnits: number) => {
+  if (!Number.isSafeInteger(subtotalMinorUnits) || subtotalMinorUnits < 0) {
+    throw new Error("Checkout subtotal must be a non-negative whole number of cents.");
+  }
+
+  const serviceChargeMinorUnits = Math.round(subtotalMinorUnits * 0.03);
+  const totalMinorUnits = subtotalMinorUnits + serviceChargeMinorUnits;
+  if (!Number.isSafeInteger(totalMinorUnits)) {
+    throw new Error("Checkout total exceeds the supported amount.");
+  }
+
+  return {
+    subtotalMinorUnits,
+    serviceChargeMinorUnits,
+    totalMinorUnits,
+  };
 };
 
 export const buildCheckoutPayload = (

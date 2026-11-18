@@ -250,6 +250,27 @@ exports.getRestaurantById = async (req, res) => {
   }
 };
 
+exports.updateRestaurantAvailability = async (req, res) => {
+  const isAcceptingRequests = req.body?.isAcceptingRequests;
+  if (typeof isAcceptingRequests !== "boolean") {
+    return res.status(400).json({ message: "isAcceptingRequests must be a boolean" });
+  }
+
+  try {
+    const restaurant = await Restaurant.findByPk(req.user.id);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    restaurant.isAcceptingRequests = isAcceptingRequests;
+    await restaurant.save();
+    return res.status(200).json({ isAcceptingRequests: restaurant.isAcceptingRequests });
+  } catch (error) {
+    console.error("Error updating restaurant availability:", error);
+    return res.status(500).json({ message: "We couldn't update request availability right now. Please try again." });
+  }
+};
+
 exports.getPublicRestaurantById = async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id < 1) {
@@ -258,7 +279,7 @@ exports.getPublicRestaurantById = async (req, res) => {
 
   try {
     const restaurant = await Restaurant.findByPk(id, {
-      attributes: ["id", "restaurantName", "description", "address", "phone", "profileImage", "ratings", "reviews"],
+      attributes: ["id", "restaurantName", "description", "address", "phone", "profileImage", "ratings", "reviews", "isAcceptingRequests"],
     });
     if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
@@ -379,7 +400,7 @@ exports.getAllDishes = async (req, res) => {
         {
           model: Restaurant,
           as:"restaurant",
-          attributes: ["id", "restaurantName","description", "address", "phone"]
+          attributes: ["id", "restaurantName","description", "address", "phone", "isAcceptingRequests"]
         }
       ]
     });
@@ -401,7 +422,16 @@ exports.getDishById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const dish = await Dish.findOne({ where: { id } });
+    const dish = await Dish.findOne({
+      where: { id },
+      include: [
+        {
+          model: Restaurant,
+          as: "restaurant",
+          attributes: ["id", "restaurantName", "isAcceptingRequests"],
+        },
+      ],
+    });
 
     if (!dish) {
       return res.status(404).json({ message: "Dish not found" });

@@ -46,6 +46,16 @@ reconciliationAttemptedAt: {
         allowNull: false,
       },
 
+      subtotalAmount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+      },
+
+      serviceChargeAmount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+      },
+
       status: {
         type: DataTypes.ENUM("pending", "preparing", "on_delivery", "delivered", "success", "failed", "cancelled"),
         allowNull: false,

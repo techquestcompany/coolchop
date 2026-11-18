@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as SecureStore from "expo-secure-store";
 import { InitTransactionReq, reconcilePayment, getApiErrorMessage } from '../services/api';
-import { buildCheckoutPayload } from '../services/orderContracts';
+import { buildCheckoutPayload, calculateCheckoutTotals } from '../services/orderContracts';
 import { useCart } from "@/context/CartContext";
 
 const getPendingReference = async () =>
@@ -43,6 +43,14 @@ const InitTransaction = () => {
   const webviewRef = useRef(null);
   const { cartItems, refreshCart } = useCart();
   const { note } = useLocalSearchParams();
+  const [paymentTotals, setPaymentTotals] = useState(null);
+  const subtotalMinorUnits = cartItems.reduce(
+    (sum, item) => sum + Math.round(Number(item.Dish?.price) * 100) * Number(item.quantity),
+    0
+  );
+  const displayedTotals = paymentTotals || calculateCheckoutTotals(subtotalMinorUnits);
+  const formatGhs = (minorUnits) =>
+    new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(minorUnits / 100);
 
   React.useEffect(() => {
     getPendingReference()
@@ -67,9 +75,20 @@ const InitTransaction = () => {
 
       const orderPayload = buildCheckoutPayload(cartItems, note);
 
-      const { authorization_url, reference } = await InitTransactionReq(orderPayload, token);
+      const {
+        authorization_url,
+        reference,
+        subtotal,
+        service_charge,
+        amount,
+      } = await InitTransactionReq(orderPayload, token);
 
       await savePendingReference(reference);
+      setPaymentTotals({
+        subtotalMinorUnits: subtotal,
+        serviceChargeMinorUnits: service_charge,
+        totalMinorUnits: amount,
+      });
       setReference(reference);
       setPaymentStatus("Payment started. Complete it in the secure payment window.");
       setAuthorizationUrl(authorization_url);
@@ -134,8 +153,13 @@ const InitTransaction = () => {
       {!showPaystack && !loading && (
         <>
           <Text style={styles.amountNotice}>
-            The order total is calculated by the server using current menu prices.
+            A 3% service charge is added to your food subtotal. Final amounts are verified using current menu prices.
           </Text>
+          <View style={styles.summary}>
+            <Text style={styles.summaryRow}>Subtotal: {formatGhs(displayedTotals.subtotalMinorUnits)}</Text>
+            <Text style={styles.summaryRow}>Service charge (3%): {formatGhs(displayedTotals.serviceChargeMinorUnits)}</Text>
+            <Text style={styles.summaryTotal}>Total: {formatGhs(displayedTotals.totalMinorUnits)}</Text>
+          </View>
 
           {paymentStatus ? <Text style={styles.status}>{paymentStatus}</Text> : null}
           {reference ? (
@@ -158,12 +182,19 @@ const InitTransaction = () => {
       )}
 
       {showPaystack && (
-        <WebView
-          ref={webviewRef}
-          source={{ uri: authorizationUrl }}
-          style={{ marginTop: 20, height: 600, width: '100%' }}
-          onNavigationStateChange={onNavigationStateChange}
-        />
+        <>
+          <View style={styles.summary}>
+            <Text style={styles.summaryRow}>Subtotal: {formatGhs(displayedTotals.subtotalMinorUnits)}</Text>
+            <Text style={styles.summaryRow}>Service charge (3%): {formatGhs(displayedTotals.serviceChargeMinorUnits)}</Text>
+            <Text style={styles.summaryTotal}>Total: {formatGhs(displayedTotals.totalMinorUnits)}</Text>
+          </View>
+          <WebView
+            ref={webviewRef}
+            source={{ uri: authorizationUrl }}
+            style={{ marginTop: 20, height: 600, width: '100%' }}
+            onNavigationStateChange={onNavigationStateChange}
+          />
+        </>
       )}
     </SafeAreaView>
   );
@@ -176,6 +207,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#555',
   },
+  summary: { padding: 14, marginVertical: 10, backgroundColor: '#f7f7f7', borderRadius: 8 },
+  summaryRow: { marginVertical: 4, textAlign: 'right' },
+  summaryTotal: { marginTop: 6, fontWeight: 'bold', fontSize: 17, textAlign: 'right' },
   status: { marginVertical: 12, textAlign: "center" },
   title: { fontSize: 20, marginBottom: 20 },
   inputContainer: { width: '100%', marginBottom: 15 },

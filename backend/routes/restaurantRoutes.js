@@ -12,6 +12,7 @@ router.post('/dish', tokenMiddleware, requireRole("restaurant"), resController.c
 router.get('/restaurants', resController.getAllRestaurants);
 router.get('/myrestaurant', tokenMiddleware, requireRole("restaurant"), resController.getRestaurantById);
 router.patch('/myrestaurant', tokenMiddleware, requireRole("restaurant"), resController.updateRestaurantProfile);
+router.patch('/myrestaurant/availability', tokenMiddleware, requireRole("restaurant"), resController.updateRestaurantAvailability);
 router.delete("/dish/:id", tokenMiddleware, requireRole("restaurant"), resController.deleteDish);
 router.get('/restaurant_dish', tokenMiddleware, requireRole("restaurant"), resController.getDishesByRestaurantId);
 router.get('/restaurants/:restaurantId/dishes', resController.getDishesForRestaurant);

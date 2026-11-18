@@ -23,7 +23,7 @@ type FeaturedDish = {
   dishName: string;
   price: number | string;
   profileImage?: string | null;
-  restaurant?: { restaurantName?: string };
+  restaurant?: { restaurantName?: string; isAcceptingRequests?: boolean };
 };
 
 const HomeScreen = () => {
@@ -172,6 +172,16 @@ const sendUserLocation = async () => {
         <MaterialIcons name="store" size={20} color="#555" />
         <Text style={styles.itemText}>{item.restaurant?.restaurantName}</Text>
       </View>
+      {typeof item.restaurant?.isAcceptingRequests === 'boolean' && (
+        <Text
+          style={[
+            styles.availabilityBadge,
+            item.restaurant.isAcceptingRequests ? styles.acceptingBadge : styles.unavailableBadge,
+          ]}
+        >
+          {item.restaurant.isAcceptingRequests ? 'Accepting requests' : 'Not accepting requests'}
+        </Text>
+      )}
 
       <TouchableOpacity
         style={styles.button}
@@ -290,6 +300,18 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: 150, borderRadius: 8 },
   detailRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
   itemText: { fontSize: 16, color: '#333' },
+  availabilityBadge: {
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  acceptingBadge: { backgroundColor: '#E8F5E9', color: '#2E7D32' },
+  unavailableBadge: { backgroundColor: '#FCE4EC', color: '#AD1457' },
   priceText: { fontSize: 18, fontWeight: 'bold', color: '#28a745' },
   button: { backgroundColor: '#D32F2F', padding: 10, borderRadius: 5, marginTop: 10 },
   buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
