@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
 const { getAdminUserIds } = require("./adminIdentity");
+const { User, Restaurant } = require("../models");
 
-module.exports = function (req, res, next) {
+module.exports = async function (req, res, next) {
   const authHeader = req.get("authorization");
 
   if (!authHeader) {
@@ -23,9 +24,14 @@ module.exports = function (req, res, next) {
     return res.status(500).json({ error: "Authentication is unavailable" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: "Invalid or expired token" });
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return res.status(403).json({ error: "Invalid or expired token" });
+  }
 
+  try {
     if (
       !decoded ||
       typeof decoded !== "object" ||
@@ -37,14 +43,28 @@ module.exports = function (req, res, next) {
 
     const id = Number(decoded.id);
     const isAdmin = getAdminUserIds().has(id);
-    const role = isAdmin
-      ? "admin"
-      : decoded.role === "restaurant"
-        ? "restaurant"
-        : decoded.role === "rider"
-          ? "rider"
-          : "customer";
+    if (decoded.role === "restaurant") {
+      const restaurant = await Restaurant.findByPk(id, {
+        attributes: ["id", "isVerified", "isActive"],
+      });
+      if (!restaurant || !restaurant.isVerified || !restaurant.isActive) {
+        return res.status(403).json({ error: "This restaurant account is not active or approved." });
+      }
+      req.user = { ...decoded, id, role: "restaurant", isAdmin: false };
+      return next();
+    }
+
+    const user = await User.findByPk(id, {
+      attributes: ["id", "role", "isActive"],
+    });
+    if (!user || !user.isActive) {
+      return res.status(403).json({ error: "This account is not active." });
+    }
+    const role = isAdmin ? "admin" : user.role === "rider" ? "rider" : "customer";
     req.user = { ...decoded, id, role, isAdmin };
     next();
-  });
+  } catch (error) {
+    console.error("Authentication account lookup failed:", error);
+    return res.status(500).json({ error: "Authentication is unavailable." });
+  }
 };

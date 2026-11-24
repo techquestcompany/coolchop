@@ -14,6 +14,7 @@ router.put('/me', tokenMiddleware, requireRole("customer", "rider"), userControl
 router.post("/forgottenPassword",userController.forgottenPassword)
 router.post("/resetPassword",userController.passwordReset);
 router.get("/allUsers", tokenMiddleware, requireRole("admin"), userController.getAllUsers)
+router.patch("/admin/users/:id/status", tokenMiddleware, requireRole("admin"), userController.updateUserStatus);
 router.post("/changePassword",userController.changePassword);
 router.post("/location", tokenMiddleware, requireRole("customer", "rider"), userController.updateUserLocation);
 

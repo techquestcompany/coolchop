@@ -65,8 +65,8 @@ exports.login = async (req, res) => {
     }
 
     // Check if the account is verified
-    if (!restaurant.isVerified) {
-      return res.status(403).json({ error: "Your account is not verified" });
+    if (!restaurant.isVerified || !restaurant.isActive) {
+      return res.status(403).json({ error: "Your restaurant account is not active or approved." });
     }
 
     // Compare the provided password with the stored hash
@@ -125,7 +125,8 @@ exports.addRestaurant = async (req, res) => {
       phone,
       address,
       description,
-      password: hashedPassword 
+      password: hashedPassword,
+      isActive: true,
     });
     res.status(201).json({
       message: 'Restaurant registered successfully. Our team will contact you for the next step.',
@@ -189,6 +190,7 @@ exports.getAllRestaurants = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const { count, rows } = await Restaurant.findAndCountAll({
+      where: { isVerified: true, isActive: true },
       attributes: { exclude: ["password"] },
       limit,
       offset,
@@ -199,12 +201,62 @@ exports.getAllRestaurants = async (req, res) => {
       total: count,
       page,
       limit,
-      totalPages: Math.ceil(count / limit),
+      totalPages: Math.max(1, Math.ceil(count / limit)),
       data: rows, 
     });
   } catch (error) {
     console.error("Error retrieving restaurants:", error);
     res.status(500).json({ message: "We couldn't load restaurants right now. Please try again." });
+  }
+};
+
+exports.getAdminRestaurants = async (req, res) => {
+  try {
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(Number.parseInt(req.query.limit, 10) || 10, 50);
+    if (page < 1 || limit < 1) {
+      return res.status(400).json({ message: "Invalid page or limit" });
+    }
+
+    const { count, rows } = await Restaurant.findAndCountAll({
+      attributes: { exclude: ["password"] },
+      limit,
+      offset: (page - 1) * limit,
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.status(200).json({
+      total: count,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(count / limit)),
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Error retrieving restaurants for administration:", error);
+    return res.status(500).json({ message: "We couldn't load restaurants right now. Please try again." });
+  }
+};
+
+exports.updateRestaurantStatus = async (req, res) => {
+  const restaurantId = Number(req.params.id);
+  const { isActive } = req.body;
+
+  if (!Number.isInteger(restaurantId) || restaurantId < 1 || typeof isActive !== "boolean") {
+    return res.status(400).json({ message: "Provide a valid restaurant ID and active status." });
+  }
+
+  try {
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found." });
+    }
+
+    await restaurant.update({ isActive });
+    return res.status(200).json({ id: restaurant.id, isActive: restaurant.isActive });
+  } catch (error) {
+    console.error("Error updating restaurant status:", error);
+    return res.status(500).json({ message: "We couldn't update this restaurant right now. Please try again." });
   }
 };
 
@@ -278,7 +330,8 @@ exports.getPublicRestaurantById = async (req, res) => {
   }
 
   try {
-    const restaurant = await Restaurant.findByPk(id, {
+    const restaurant = await Restaurant.findOne({
+      where: { id, isVerified: true, isActive: true },
       attributes: ["id", "restaurantName", "description", "address", "phone", "profileImage", "ratings", "reviews", "isAcceptingRequests"],
     });
     if (!restaurant) {
@@ -348,6 +401,12 @@ exports.getDishesForRestaurant = async (req, res) => {
   try {
     const dishes = await Dish.findAll({
       where: { restaurantId },
+      include: [{
+        model: Restaurant,
+        as: "restaurant",
+        attributes: [],
+        where: { isVerified: true, isActive: true },
+      }],
       order: [["createdAt", "DESC"]],
     });
     return res.status(200).json(dishes);
@@ -400,7 +459,8 @@ exports.getAllDishes = async (req, res) => {
         {
           model: Restaurant,
           as:"restaurant",
-          attributes: ["id", "restaurantName","description", "address", "phone", "isAcceptingRequests"]
+          attributes: ["id", "restaurantName","description", "address", "phone", "isAcceptingRequests"],
+          where: { isVerified: true, isActive: true },
         }
       ]
     });
@@ -429,6 +489,8 @@ exports.getDishById = async (req, res) => {
           model: Restaurant,
           as: "restaurant",
           attributes: ["id", "restaurantName", "isAcceptingRequests"],
+          where: { isVerified: true, isActive: true },
+          required: true,
         },
       ],
     });
@@ -525,6 +587,7 @@ exports.searchRestaurants = async (req, res) => {
           { description: { [Op.iLike]: `%${searchQuery}%` } },
         ],
         isVerified: true,
+        isActive: true,
       },
       limit,
       offset,
@@ -575,7 +638,7 @@ exports.searchDishes = async (req, res) => {
           model: Restaurant,
           as: "restaurant",
           attributes: ["id", "restaurantName", "address"],
-          where: { isVerified: true },
+          where: { isVerified: true, isActive: true },
         },
       ],
       limit,

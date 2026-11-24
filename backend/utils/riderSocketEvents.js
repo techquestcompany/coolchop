@@ -6,6 +6,10 @@ exports.setSocketServer = (server) => {
   socketServer = server;
 };
 
+exports.disconnectRiderSockets = (riderId) => {
+  socketServer?.in(`rider:${riderId}`).disconnectSockets(true);
+};
+
 exports.emitRiderOrderReady = (order) => {
   socketServer?.to("riders:available").emit("rider:order-ready", {
     orderId: order.id,

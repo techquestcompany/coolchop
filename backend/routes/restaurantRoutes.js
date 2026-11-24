@@ -7,6 +7,8 @@ const router = express.Router();
 router.post('/signup', resController.addRestaurant);
 router.post('/login', resController.login);
 router.patch('/approve/:id', tokenMiddleware, requireRole("admin"), resController.approveRestaurant);
+router.get('/admin/restaurants', tokenMiddleware, requireRole("admin"), resController.getAdminRestaurants);
+router.patch('/admin/restaurants/:id/status', tokenMiddleware, requireRole("admin"), resController.updateRestaurantStatus);
 router.post('/dish', tokenMiddleware, requireRole("restaurant"), resController.createDishes);
 
 router.get('/restaurants', resController.getAllRestaurants);

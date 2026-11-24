@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { DataTable, Text } from 'react-native-paper';
-import { getAllUsers, getApiErrorMessage } from '../services/api';
+import { Button, DataTable, Text } from 'react-native-paper';
+import { getAllUsers, getApiErrorMessage, setUserActiveStatus } from '../services/api';
 import { getStoredToken } from '../services/authStorage';
 
 interface ManagedUser {
@@ -9,6 +9,9 @@ interface ManagedUser {
   name: string;
   email: string;
   phone?: string | null;
+  role: string;
+  isActive: boolean;
+  isAdmin: boolean;
 }
 
 const App = () => {
@@ -36,6 +39,34 @@ const App = () => {
     }
   };
 
+  const changeUserStatus = async (user: ManagedUser) => {
+    const isActive = !user.isActive;
+    const update = async () => {
+      try {
+        const token = await getStoredToken('customer_token');
+        if (!token) throw new Error('Admin session is missing');
+        await setUserActiveStatus(user.id, isActive, token);
+        await fetchUsers(page);
+      } catch (error) {
+        Alert.alert('Unable to update account', getApiErrorMessage(error, "We couldn't update this account. Please try again."));
+      }
+    };
+
+    if (isActive) {
+      await update();
+      return;
+    }
+
+    Alert.alert(
+      'Deactivate account?',
+      `This will prevent ${user.name} from signing in, while preserving their order and transaction history.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Deactivate', style: 'destructive', onPress: () => { void update(); } },
+      ]
+    );
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -48,7 +79,9 @@ const App = () => {
         <DataTable.Header>
           <DataTable.Title style={{ flex: 1 }}>Name</DataTable.Title>
           <DataTable.Title style={{ flex: 1 }}>Email</DataTable.Title>
-          <DataTable.Title style={{ flex: 1 }}>Phone</DataTable.Title>
+          <DataTable.Title style={{ flex: 0.7 }}>Role</DataTable.Title>
+          <DataTable.Title style={{ flex: 0.8 }}>Status</DataTable.Title>
+          <DataTable.Title style={{ flex: 1 }}>Action</DataTable.Title>
         </DataTable.Header>
 
         {users.length === 0 ? (
@@ -60,7 +93,17 @@ const App = () => {
             <DataTable.Row key={user.id}>
               <DataTable.Cell style={{ flex: 1 }}>{user.name}</DataTable.Cell>
               <DataTable.Cell style={{ flex: 1 }}>{user.email}</DataTable.Cell>
-              <DataTable.Cell style={{ flex: 1 }}>{user.phone}</DataTable.Cell>
+              <DataTable.Cell style={{ flex: 0.7 }}>{user.isAdmin ? 'Admin' : user.role}</DataTable.Cell>
+              <DataTable.Cell style={{ flex: 0.8 }}>{user.isActive ? 'Active' : 'Inactive'}</DataTable.Cell>
+              <DataTable.Cell style={{ flex: 1 }}>
+                {user.isAdmin ? (
+                  <Text>Protected</Text>
+                ) : (
+                  <Button compact onPress={() => changeUserStatus(user)}>
+                    {user.isActive ? 'Deactivate' : 'Reactivate'}
+                  </Button>
+                )}
+              </DataTable.Cell>
             </DataTable.Row>
           ))
         )}

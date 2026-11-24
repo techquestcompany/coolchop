@@ -3,6 +3,7 @@ const {
   Order,
   Dish,
   Transaction,
+  Restaurant,
   User,
   NotificationOutbox,
   sequelize,
@@ -111,6 +112,12 @@ exports.getAllOrders = async (req, res) => {
 
     const orders = await Order.findAll({
       where,
+      include: isAdmin(req.user)
+        ? [
+            { model: User, as: "user", attributes: ["id", "name", "email"] },
+            { model: User, as: "rider", attributes: ["id", "name", "email"], required: false },
+          ]
+        : [],
       order: [["createdAt", "DESC"]],
     });
 
@@ -290,6 +297,12 @@ exports.createOrder = async (req, res) => {
 
     const dishes = await Dish.findAll({
       where: { id: dishIds },
+      include: [{
+        model: Restaurant,
+        as: "restaurant",
+        attributes: [],
+        where: { isVerified: true, isActive: true },
+      }],
     });
 
     const dishesById = new Map(

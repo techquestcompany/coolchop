@@ -6,7 +6,9 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
+import { router } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
 import { Card } from 'react-native-paper';
 
@@ -16,12 +18,16 @@ import { getStoredToken } from '@/services/authStorage';
 /* =========================
    Helpers
 ========================= */
-const safeNumber = (value) => {
+const safeNumber = (value: unknown) => {
   const num = Number(value);
   return isNaN(num) ? 0 : num;
 };
 
 const screenWidth = Dimensions.get('window').width;
+
+interface DashboardOrder {
+  createdAt: string;
+}
 
 /* =========================
    Component
@@ -31,6 +37,7 @@ const AdminDashboard = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [ordersChart, setOrdersChart] = useState([0, 0, 0, 0, 0, 0, 0]);
+  const [chartLabels, setChartLabels] = useState(['', '', '', '', '', '', '']);
 
   useEffect(() => {
     loadDashboard();
@@ -47,20 +54,33 @@ const AdminDashboard = () => {
         getAllUsers(token, 1, 100),
       ]);
 
-      const orders = Array.isArray(ordersRes) ? ordersRes : [];
+      const orders: DashboardOrder[] = Array.isArray(ordersRes?.orders) ? ordersRes.orders : [];
 
       setTotalUsers(usersRes.totalUsers || 0);
-      setTotalOrders(orders.length);
+      setTotalOrders(ordersRes.totalOrders ?? orders.length);
 
-      // Orders per day (Sun - Sat)
-      const weeklyOrders = [0, 0, 0, 0, 0, 0, 0];
+      const days = Array.from({ length: 7 }, (_, index) => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() - (6 - index));
+        return date;
+      });
+      const countsByDate = new Map<string, number>(
+        days.map((date) => [date.toDateString(), 0] as const)
+      );
 
       orders.forEach(order => {
-        const day = new Date(order.createdAt).getDay();
-        weeklyOrders[day] += 1;
+        const date = new Date(order.createdAt);
+        if (!Number.isNaN(date.getTime())) {
+          const dateKey = new Date(date.getFullYear(), date.getMonth(), date.getDate()).toDateString();
+          if (countsByDate.has(dateKey)) {
+            countsByDate.set(dateKey, (countsByDate.get(dateKey) ?? 0) + 1);
+          }
+        }
       });
 
-      setOrdersChart(weeklyOrders.map(safeNumber));
+      setOrdersChart(days.map((date) => safeNumber(countsByDate.get(date.toDateString()))));
+      setChartLabels(days.map((date) => date.toLocaleDateString(undefined, { weekday: 'short' })));
     } catch (error) {
       console.error('Dashboard error:', error);
     } finally {
@@ -69,7 +89,7 @@ const AdminDashboard = () => {
   };
 
   const chartData = {
-    labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    labels: chartLabels,
     datasets: [{ data: ordersChart }],
   };
 
@@ -85,7 +105,6 @@ const AdminDashboard = () => {
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Admin Dashboard</Text>
 
-      {/* ===== Stats Cards ===== */}
       <View style={styles.statsRow}>
         <Card style={styles.card}>
           <Text style={styles.cardTitle}>Total Users</Text>
@@ -98,7 +117,6 @@ const AdminDashboard = () => {
         </Card>
       </View>
 
-      {/* ===== Orders Chart ===== */}
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Orders (Last 7 Days)</Text>
 
@@ -120,6 +138,22 @@ const AdminDashboard = () => {
           }}
           style={styles.chart}
         />
+      </View>
+
+      <Text style={styles.sectionTitle}>System management</Text>
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/manage_users')}>
+          <Text style={styles.actionText}>Manage users and riders</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/manage_res')}>
+          <Text style={styles.actionText}>Approve and manage restaurants</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/admin/orders')}>
+          <Text style={styles.actionText}>View and manage orders</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/admin/transactions')}>
+          <Text style={styles.actionText}>View and manage transactions</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -174,6 +208,26 @@ const styles = StyleSheet.create({
   },
   chart: {
     borderRadius: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  actions: {
+    gap: 10,
+    paddingBottom: 24,
+  },
+  actionButton: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 16,
+    elevation: 2,
+  },
+  actionText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

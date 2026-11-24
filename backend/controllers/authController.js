@@ -1,10 +1,11 @@
-const {User} = require("../models");
+const {User, RiderPushToken, sequelize} = require("../models");
 const bcrypt = require("bcryptjs");
 const { encrypt, decrypt } = require("../utils/encryption");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken")
 const crypto = require("crypto");
 const { getAdminUserIds } = require("../utils/adminIdentity");
+const { disconnectRiderSockets } = require("../utils/riderSocketEvents");
 require("dotenv").config();
 
 
@@ -53,6 +54,10 @@ exports.login = async (req, res) => {
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "The email address or password is incorrect. Please check your details and try again." });
+
+    if (!user.isActive) {
+      return res.status(403).json({ error: "This account has been deactivated. Contact support for assistance." });
+    }
 
     // Older successful verifications cleared the code without setting isVerified.
     if (!user.isVerified && user.code === null) {
@@ -136,6 +141,7 @@ exports.signup = async (req, res) => {
       password: hashedPassword,
       role,
       isAdmin: 0,
+      isActive: true,
       isVerified: 0,
       code: verificationCode,
       confirm_location: 0,
@@ -384,17 +390,57 @@ exports.getAllUsers = async (req, res) => {
       order: [["createdAt", "DESC"]],
     });
     return res.status(200).json({
-      users: rows,
+      users: rows.map((user) => ({
+        ...user.toJSON(),
+        isAdmin: getAdminUserIds().has(user.id),
+      })),
       page,
       limit,
       totalUsers: count,
-      totalPages: Math.ceil(count / limit),
+      totalPages: Math.max(1, Math.ceil(count / limit)),
     });
   } catch (error) {
     console.error("Error listing users:", error.message);
     return res.status(500).json({ error: "We couldn't load users right now. Please try again." });
   }
 
+};
+
+exports.updateUserStatus = async (req, res) => {
+  const userId = Number(req.params.id);
+  const { isActive } = req.body;
+
+  if (!Number.isInteger(userId) || userId < 1 || typeof isActive !== "boolean") {
+    return res.status(400).json({ error: "Provide a valid user ID and active status." });
+  }
+
+  if (userId === req.user.id || getAdminUserIds().has(userId)) {
+    return res.status(403).json({ error: "Administrator accounts cannot be deactivated here." });
+  }
+
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    await sequelize.transaction(async (transaction) => {
+      await user.update({ isActive }, { transaction });
+      if (!isActive && user.role === "rider") {
+        await RiderPushToken.destroy({
+          where: { userId: user.id },
+          transaction,
+        });
+      }
+    });
+    if (!isActive && user.role === "rider") {
+      disconnectRiderSockets(user.id);
+    }
+    return res.status(200).json({ id: user.id, isActive: user.isActive });
+  } catch (error) {
+    console.error("Error updating user status:", error);
+    return res.status(500).json({ error: "We couldn't update this account right now. Please try again." });
+  }
 };
 
 

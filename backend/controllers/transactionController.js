@@ -24,7 +24,7 @@ exports.getUserTransactions = async (req, res) => {
       total: count,
       page,
       limit,
-      totalPages: Math.ceil(count / limit),
+      totalPages: Math.max(1, Math.ceil(count / limit)),
       data: rows,
     });
 
@@ -83,19 +83,18 @@ exports.deleteTransaction = async (req, res) => {
 
 exports.getAllTransactions = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(Number.parseInt(req.query.limit, 10) || 20, 100);
+    if (page < 1 || limit < 1) {
+      return res.status(400).json({ message: "Invalid page or limit." });
+    }
     const offset = (page - 1) * limit;
 
-    const where =
-      String(req.user.role).toLowerCase() === "admin"
-        ? {}
-        : { userId: req.user.id };
     const { count, rows } = await Transaction.findAndCountAll({
-      where,
+      attributes: ["id", "userId", "orderId", "reference", "amount", "currency", "status", "channel", "createdAt"],
       include: [
-        { model: User, attributes: ["id", "name", "email"] },
-        { model: Order, attributes: ["reference", "status"] },
+        { model: User, attributes: ["id", "name", "email"], required: false },
+        { model: Order, attributes: ["reference", "orderNumber", "status"], required: false },
       ],
       limit,
       offset,
@@ -106,7 +105,7 @@ exports.getAllTransactions = async (req, res) => {
       total: count,
       page,
       limit,
-      totalPages: Math.ceil(count / limit),
+      totalPages: Math.max(1, Math.ceil(count / limit)),
       data: rows,
     });
   } catch (error) {

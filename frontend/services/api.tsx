@@ -130,7 +130,14 @@ export const getAllUsers = async (token: string, page = 1, limit = 10) => {
   }
 };
 
-export const approveRestaurantById = async (id, token: string) =>{
+export const setUserActiveStatus = async (id: number, isActive: boolean, token: string) => {
+  const response = await api.patch(`/user/admin/users/${id}/status`, { isActive }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const approveRestaurantById = async (id: number, token: string) =>{
   try {
     const response = await api.patch(`/restaurant/approve/${id}`, 
       {},
@@ -145,6 +152,20 @@ export const approveRestaurantById = async (id, token: string) =>{
     throw error;
   }
 }
+
+export const getAdminRestaurants = async (token: string, page = 1, limit = 10) => {
+  const response = await api.get(`/restaurant/admin/restaurants?page=${page}&limit=${limit}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const setRestaurantActiveStatus = async (id: number, isActive: boolean, token: string) => {
+  const response = await api.patch(`/restaurant/admin/restaurants/${id}/status`, { isActive }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
 
 
 export const updateUserData = async (
@@ -518,6 +539,20 @@ export const updateOrder = async (
   token: string
 ) => {
   const response = await api.put(`/orders/${orderId}`, updatedData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const fetchAdminTransactions = async (token: string, page = 1, limit = 20) => {
+  const response = await api.get(`/transactions/allTransactions?page=${page}&limit=${limit}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+export const deleteAdminTransaction = async (id: number, token: string) => {
+  const response = await api.delete(`/transactions/transaction/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
